@@ -43,6 +43,7 @@ import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
 import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 import { LoadingState } from "@/components/ui/loading-state";
+import { DASHBOARD_ACCENTS } from "../constants/dashboard-appearance";
 
 const EventFormModal = dynamic(
   () =>
@@ -149,7 +150,7 @@ function PersonalDashboard() {
       icon: ListChecks,
       href: "#my-tasks",
       theme: tasksReady && dueTodayCount > 0 ? "text-link" : "text-foreground",
-      iconTheme: tasksReady && dueTodayCount > 0 ? "bg-primary-soft text-primary-soft-foreground" : "bg-secondary text-secondary-foreground",
+      iconTheme: DASHBOARD_ACCENTS.calendar,
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",
@@ -162,7 +163,7 @@ function PersonalDashboard() {
       icon: Clock3,
       href: "/pomodoro",
       theme: "text-foreground",
-      iconTheme: "bg-secondary text-secondary-foreground",
+      iconTheme: DASHBOARD_ACCENTS.focus,
       queries: [focus],
       errorHref: "#focus-report",
       errorDetail: "Could not load focus time. View retry options.",
@@ -176,7 +177,7 @@ function PersonalDashboard() {
         ? `/meetings/${encodeURIComponent(next.joinToken)}`
         : "/meetings",
       theme: "text-foreground",
-      iconTheme: "bg-secondary text-secondary-foreground",
+      iconTheme: DASHBOARD_ACCENTS.meeting,
       queries: [meetings],
       errorHref: "#upcoming-meetings",
       errorDetail: "Could not load meetings. View retry options.",
@@ -206,7 +207,7 @@ function PersonalDashboard() {
               <div className="mt-3 flex min-h-11 min-w-0 items-center text-xs">
                 {contextTitle && contextHref ? (
                   <Link href={contextHref} className="flex min-h-11 min-w-0 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-control py-1 text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150">
-                    <Badge className={liveMeeting ? "bg-success-soft text-success-content" : undefined}>{liveMeeting ? "Live now" : "Up next"}</Badge>
+                    <Badge className={liveMeeting ? "bg-success-soft text-success-content" : DASHBOARD_ACCENTS.calendar}>{liveMeeting ? "Live now" : "Up next"}</Badge>
                     <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">{contextTitle}</span>
                     {!liveMeeting && nextItem && <span>{formatScheduledRelativeTime(nextItem.at, now)}</span>}
                   </Link>

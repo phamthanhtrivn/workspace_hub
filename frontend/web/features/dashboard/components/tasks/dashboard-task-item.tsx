@@ -6,12 +6,7 @@ import { cn } from "@/lib/utils";
 import type { DashboardTask } from "../../types/dashboard.types";
 import { taskBucket, taskDate } from "../../utils/dashboard.utils";
 import { TaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
-
-const PRIORITY_TONES: Record<string, string> = {
-  URGENT: "bg-destructive-soft text-destructive-content",
-  HIGH: "bg-warning-soft text-warning-content",
-  LOW: "bg-secondary text-secondary-foreground",
-};
+import { DASHBOARD_ACCENTS, DASHBOARD_DEADLINE_TONES, DASHBOARD_PRIORITY_TONES } from "../../constants/dashboard-appearance";
 
 interface DashboardTaskItemProps {
   task: DashboardTask;
@@ -37,8 +32,8 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
             className={cn(
               "col-start-1 row-span-2 row-start-1 grid size-8 shrink-0 place-items-center rounded-control sm:row-span-1",
               isProjectTask
-                ? "bg-primary-soft text-primary-soft-foreground"
-                : "bg-secondary text-muted-foreground",
+                ? DASHBOARD_ACCENTS.project
+                : DASHBOARD_ACCENTS.calendar,
             )}
           >
             <SourceIcon aria-hidden="true" />
@@ -54,7 +49,7 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
                 </span>
               )}
               {task.priority !== "MEDIUM" && (
-                <Badge variant="secondary" className={cn("max-w-full whitespace-normal break-words font-medium", PRIORITY_TONES[task.priority])}>
+                <Badge variant="secondary" className={cn("max-w-full whitespace-normal break-words font-medium", DASHBOARD_PRIORITY_TONES[task.priority])}>
                   {task.priority.toLowerCase()}
                 </Badge>
               )}
@@ -64,8 +59,7 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
             variant="secondary"
             className={cn(
               "col-start-2 row-start-2 max-w-full justify-self-start whitespace-normal break-words font-medium sm:col-start-3 sm:row-start-1",
-              bucket === "Overdue" && "bg-destructive-soft text-destructive-content",
-              bucket === "Today" && "bg-primary-soft text-primary-soft-foreground",
+              DASHBOARD_DEADLINE_TONES[bucket],
             )}
             title={dueDate || undefined}
           >

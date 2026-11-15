@@ -7,6 +7,7 @@ import { DASHBOARD_FOCUS_PANEL_HEIGHT, DashboardPanel, QueryFeedback } from "../
 import { DashboardDisclosure, DashboardDisclosureContent, DashboardDisclosureTrigger } from "../common/dashboard-disclosure";
 import { formatMinutes } from "../../utils/dashboard.utils";
 import type { useDashboard } from "../../hooks/use-dashboard";
+import { DASHBOARD_ACCENTS } from "../../constants/dashboard-appearance";
 const ProductivityChart = dynamic(
   () => import("./dashboard-productivity-chart"),
   {
@@ -62,7 +63,7 @@ export function DashboardProductivity({
             </dl>
             {totalMinutes > 0 ? <ProductivityChart days={dashboard.daily} /> : (
               <div className="flex flex-col items-start gap-2 border-t border-border py-4 sm:gap-3 sm:py-5">
-                <span className="grid size-10 place-items-center rounded-control bg-secondary text-secondary-foreground"><Timer aria-hidden size={20} /></span>
+                <span className={`grid size-10 place-items-center rounded-control ${DASHBOARD_ACCENTS.focus}`}><Timer aria-hidden size={20} /></span>
                 <div>
                   <p className="text-sm font-medium text-foreground">Make room for a little focused work.</p>
                   <p className="mt-1 text-xs text-muted-foreground">No recorded focus this week. Start when you are ready.</p>

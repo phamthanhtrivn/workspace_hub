@@ -7,10 +7,11 @@ import { MeetingsPreview } from "./preview/meetings-preview";
 import { MessagesPreview } from "./preview/messages-preview";
 import { CalendarPreview } from "./preview/calendar-preview";
 import { PomodoroPreview } from "./preview/pomodoro-preview";
+import { NotebookPreview } from "./preview/notebook-preview";
 
 const PREVIEW_COMPONENTS = {
   projects: ProjectPreview, messages: MessagesPreview, meetings: MeetingsPreview,
-  documents: DocumentsPreview, calendar: CalendarPreview, pomodoro: PomodoroPreview,
+  documents: DocumentsPreview, calendar: CalendarPreview, pomodoro: PomodoroPreview, ai: NotebookPreview,
 } satisfies Record<LandingModuleId, ComponentType>;
 
 export function ProductPreview() {

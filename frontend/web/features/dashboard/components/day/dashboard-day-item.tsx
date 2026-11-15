@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DayItem } from "../../types/dashboard.types";
 import { formatTime } from "../../utils/dashboard.utils";
+import { DASHBOARD_ACCENTS } from "../../constants/dashboard-appearance";
 
 const DAY_KINDS = {
-  Event: { icon: CalendarDays, tone: "bg-info-soft text-info-content" },
+  Event: { icon: CalendarDays, tone: DASHBOARD_ACCENTS.calendar },
   Task: { icon: ListChecks, tone: "bg-warning-soft text-warning-content" },
-  Meeting: { icon: Video, tone: "bg-success-soft text-success-content" },
+  Meeting: { icon: Video, tone: DASHBOARD_ACCENTS.meeting },
 };
 
 interface DashboardDayItemProps {
@@ -43,10 +44,10 @@ export function DashboardDayItem({ entry, zone, isNext }: DashboardDayItemProps)
               <span className={cn("text-xs", isNext ? "text-primary-soft-foreground" : "text-muted-foreground")}>
                 {entry.kind}{entry.kind === "Task" ? " · Due today" : ""}
               </span>
-              {isNext && <Badge className="font-medium">Up next</Badge>}
+              {isNext && <Badge className={cn("font-medium", DASHBOARD_ACCENTS.calendar)}>Up next</Badge>}
             </span>
           </span>
-          <Badge variant="secondary" className="col-start-2 row-start-2 max-w-full justify-self-start whitespace-normal break-words font-medium sm:col-start-3 sm:row-start-1">
+          <Badge variant="secondary" className={cn("col-start-2 row-start-2 max-w-full justify-self-start whitespace-normal break-words font-medium sm:col-start-3 sm:row-start-1", tone)}>
             <time dateTime={entry.at} className="tabular-nums">
               {entry.allDay ? "All day" : formatTime(entry.at, zone)}
             </time>

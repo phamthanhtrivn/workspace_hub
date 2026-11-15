@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Menu } from "lucide-react";
+import { CircleHelp, Menu } from "lucide-react";
+import { useWorkspaceHelp } from "@/features/help/hooks/use-workspace-help";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
@@ -25,6 +26,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   useNotificationSocket();
   useChatSocket();
+  const { openHelp } = useWorkspaceHelp();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card py-3.5 px-4 sm:px-6 lg:px-8">
@@ -51,6 +53,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
 
         {/* Right: Actions & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="ghost" size="icon" aria-label="Open Help & shortcuts" aria-keyshortcuts="?" title="Help & shortcuts (?)" onClick={openHelp} className="size-10 shrink-0"><CircleHelp aria-hidden="true" className="size-5" /></Button>
           <NotificationDropdown />
           <UserProfileDropdown onOpenSettings={onOpenSettings} />
         </div>

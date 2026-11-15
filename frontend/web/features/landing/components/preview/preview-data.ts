@@ -1,7 +1,7 @@
 import { TaskPriority, TaskStatus } from "@/features/project/types/project";
 import { PREVIEW_PROJECT, PREVIEW_TASK } from "../../landing-content";
 
-// A single fictional workspace shared by the six illustrations. Never workspace/API records.
+// A single fictional workspace shared by the product illustrations. Never workspace/API records.
 export const PREVIEW_FRAME_CLASS_NAME = "h-[620px] sm:h-[720px] xl:h-[780px]";
 export const PREVIEW_DATE_LABEL = "Monday, October 26, 2026";
 export const PREVIEW_TIME_LABEL = "10:24 AM";

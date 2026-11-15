@@ -7,6 +7,7 @@ import { DASHBOARD_FOCUS_PANEL_HEIGHT, DashboardPanel, EmptyState, QueryFeedback
 import { formatTime } from "../../utils/dashboard.utils";
 import type { useDashboard } from "../../hooks/use-dashboard";
 import { formatScheduledRelativeTime } from "../../utils/dashboard-context.utils";
+import { DASHBOARD_ICON_COLORS } from "../../constants/dashboard-appearance";
 
 function MeetingItem({
   meeting,
@@ -48,7 +49,7 @@ function MeetingItem({
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <span className={`flex items-center gap-1 text-xs ${highlighted ? "text-primary-soft-foreground" : "text-muted-foreground"}`}>
-          <Users aria-hidden size={13} />
+          <Users aria-hidden size={13} className={DASHBOARD_ICON_COLORS.meeting} />
           {meeting.participantCount} participants
         </span>
         <Button asChild variant={highlighted ? "default" : "outline"} size="sm" className="min-h-11 sm:min-h-8 [@media(pointer:coarse)]:min-h-11 motion-reduce:transition-none">
@@ -56,7 +57,7 @@ function MeetingItem({
             href={`/meetings/${encodeURIComponent(meeting.joinToken)}`}
             aria-label={`View meeting: ${meeting.title}`}
           >
-            <Video aria-hidden size={13} />
+            <Video aria-hidden size={13} className={highlighted ? undefined : DASHBOARD_ICON_COLORS.meeting} />
             View meeting
           </Link>
         </Button>

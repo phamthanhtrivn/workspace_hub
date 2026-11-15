@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 
 import type { Notification } from "@/features/notification/types/notification.types";
+import { DASHBOARD_ACCENTS } from "../../constants/dashboard-appearance";
 
 export function DashboardNotificationDialog({
   notification,
@@ -61,7 +62,7 @@ export function DashboardNotificationDialog({
           <div className="flex items-start gap-3">
             <span
               aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground"
+              className={`grid h-10 w-10 shrink-0 place-items-center rounded-control ${DASHBOARD_ACCENTS.notification}`}
             >
               <Bell size={20} />
             </span>

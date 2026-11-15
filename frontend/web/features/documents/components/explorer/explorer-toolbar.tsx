@@ -14,6 +14,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { useWorkspaceHelp } from "@/features/help/hooks/use-workspace-help";
+import { shouldIgnoreShortcut } from "@/features/help/utils/keyboard-shortcuts";
+import { DOCUMENT_SEARCH_KEY } from "@/features/help/constants/help-shortcuts";
 
 interface ExplorerToolbarProps {
   actions?: React.ReactNode;
@@ -47,26 +50,17 @@ export function ExplorerToolbar({
   const controlledPopupId = useControlledPopupId();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const { shortcutsEnabled } = useWorkspaceHelp();
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
       if (
-        event.defaultPrevented ||
+        !shortcutsEnabled || shouldIgnoreShortcut(event) || event.shiftKey ||
         event.altKey ||
         !(event.ctrlKey || event.metaKey) ||
-        event.key.toLowerCase() !== "k"
-      )
-        return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable ||
-          target.closest("input,textarea,select,[role=combobox]"))
+        event.key.toLowerCase() !== DOCUMENT_SEARCH_KEY
       )
         return;
       if (
-        document.querySelector(
-          '[aria-modal="true"]:not([aria-hidden="true"])',
-        ) ||
         !searchInputRef.current?.getClientRects().length
       )
         return;
@@ -76,7 +70,7 @@ export function ExplorerToolbar({
     document.addEventListener("keydown", focusSearch);
 
     return () => document.removeEventListener("keydown", focusSearch);
-  }, []);
+  }, [shortcutsEnabled]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortOptions = [

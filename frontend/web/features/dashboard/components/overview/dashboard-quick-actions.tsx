@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DASHBOARD_ICON_COLORS } from "../../constants/dashboard-appearance";
 
 export function DashboardQuickActions({ onCreateTask, disabled }: { onCreateTask: () => void; disabled: boolean }) {
   return (
@@ -11,7 +12,7 @@ export function DashboardQuickActions({ onCreateTask, disabled }: { onCreateTask
       </Button>
       <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
         <Link href="/calendar">
-          <CalendarDays size={16} />
+          <CalendarDays aria-hidden size={16} className={DASHBOARD_ICON_COLORS.calendar} />
           Open calendar
         </Link>
       </Button>

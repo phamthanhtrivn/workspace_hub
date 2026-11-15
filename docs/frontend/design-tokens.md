@@ -61,6 +61,20 @@ Mic/Camera off uses destructive-soft, destructive-content, and destructive-outli
 
 Sidebar primary tokens alias soft selection roles. Third-party widgets consume the same semantic surface/text roles.
 
+### Dashboard category accents
+
+Dashboard icons and badges use `bg-dashboard-{category}-soft` paired with
+`text-dashboard-{category}-content`. The categories are project (violet), calendar
+(blue), focus (orange), meeting (teal), and notification (rose). Each pair has
+separate Light and Dark values in `globals.css`; Dashboard's shared appearance
+constants choose the pair for each category.
+
+These accents identify content. Overdue and urgent work retain destructive
+colors, high priority retains warning colors, and live meetings retain success
+colors. User-selected project fills and chart/progress colors stay unchanged.
+Panel backgrounds, main actions and focus indicators keep the normal workspace
+tokens. Dashboard styling uses Tailwind utilities without a CSS module.
+
 ## Type, spacing, radius, and motion
 
 | Token/convention | Value | Usage |

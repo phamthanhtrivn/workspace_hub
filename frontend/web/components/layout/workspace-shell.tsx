@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { SheetPanel } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/components/ui/use-media-query";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { WorkspaceHelpProvider } from "@/features/help/components/workspace-help-provider";
 
 
 const menuItems = [
@@ -142,6 +143,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
   return (
     <OpenUserSettingsContext.Provider value={handleOpenSettings}>
+    <WorkspaceHelpProvider>
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {isMobileMenuOpen && (
         <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
@@ -223,7 +225,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
             return (
               <Tooltip key={item.href}><TooltipTrigger asChild><Link
-                aria-label={item.href === "/ai" ? "AI Assistant — coming soon" : label}
+                aria-label={label}
                 key={item.href}
                 href={item.href}
                 title={isSidebarCollapsed ? label : undefined}
@@ -266,7 +268,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                     </span>
                   </div>
                 </div>
-              </Link></TooltipTrigger>{isSidebarCollapsed && <TooltipContent>{label}{item.href === "/ai" ? " — coming soon" : ""}</TooltipContent>}</Tooltip>
+              </Link></TooltipTrigger>{isSidebarCollapsed && <TooltipContent>{label}</TooltipContent>}</Tooltip>
             );
           })}
         </nav>
@@ -343,6 +345,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         initialTab={activeSettingsTab}
       />
     </div>
+    </WorkspaceHelpProvider>
     </OpenUserSettingsContext.Provider>
   );
 });
