@@ -1,4 +1,5 @@
 "use client";
+import { documentListOptions } from "../api/document-list.query";
 import { LoadingState } from "@/components/ui/loading-state";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -39,7 +40,6 @@ import { useDocumentActions } from "../hooks/useDocumentActions";
 import { useDocumentUpload } from "../hooks/useDocumentUpload";
 import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
-import { getDocumentListPage } from "../api/document-list.api";
 import { useDocumentBulkSelection } from "../hooks/useDocumentBulkSelection";
 import { DocumentBulkControls } from "./explorer/document-bulk-controls";
 import { DocumentActionsMenu } from "./explorer/document-actions-menu";
@@ -208,26 +208,7 @@ export function DocumentExplorer({
     refetch,
     isFetching,
   } = useInfiniteQuery({
-    queryKey: [
-      "documents",
-      activeView,
-      projectId,
-      currentFolderId,
-      sortBy,
-      searchQuery,
-    ],
-    initialPageParam: 1,
-    queryFn: ({ pageParam = 1, signal }) =>
-      getDocumentListPage(
-        { activeView, projectId, currentFolderId, sortBy, searchQuery },
-        Number(pageParam),
-        signal,
-      ),
-    getNextPageParam: (lastPage) => {
-      const meta = lastPage.meta;
-
-      return meta.page < meta.totalPages ? meta.page + 1 : undefined;
-    },
+    ...documentListOptions(currentUserId, { activeView, projectId, currentFolderId, sortBy, searchQuery }),
   });
 
   const items = useMemo(

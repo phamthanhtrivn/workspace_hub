@@ -158,6 +158,7 @@ export const getChannelMessages = async (
 export const sendChannelMessage = async (
   channelId: string,
   payload: {
+    clientRequestId?: string;
     content?: string;
     type?: MessageType | string;
     medias?: {

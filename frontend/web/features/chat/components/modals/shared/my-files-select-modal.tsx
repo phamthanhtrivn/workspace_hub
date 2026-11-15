@@ -6,13 +6,14 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { copyDocumentsToChat, type AttachmentChatContext } from "../../../api/document-attachment.api";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Folder, FileText, X, ChevronRight, Check } from "lucide-react";
 
 import { DocumentItem } from "@/features/documents/types/documents.types";
-import { chatKeys } from "@/features/chat/types/chat.constant";
-import { documentsApi } from "@/features/documents/api/documents.api";
-import { DocumentItemType } from "@/features/documents/types/documents.enums";
+import { useAppSelector } from "@/store/store";
+import { documentListOptions } from "@/features/documents/api/document-list.query";
+
+import { DocumentViewType, DocumentSortBy, DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/lib/format-file-size";
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
@@ -48,6 +49,7 @@ export default function MyFilesSelectModal({
   tone = "light",
   onSelect,
 }: MyFilesSelectModalProps) {
+  const currentUserId = useAppSelector(state => state.auth.userId);
   const isDarkTone = tone === "dark";
   const [isPreparing, setIsPreparing] = useState(false);
   const preparation = useRef<AbortController | null>(null);
@@ -62,16 +64,15 @@ export default function MyFilesSelectModal({
     new Map(),
   );
 
-  const { data: response, isLoading } = useQuery({
-    queryKey: chatKeys.spaceDetails(
-      currentFolderId ? `folder-${currentFolderId}` : "root-documents",
-    ),
-    queryFn: () =>
-      documentsApi.getDocuments({ folderId: currentFolderId || undefined }),
-    enabled: isOpen,
+  const { data: response, isLoading, isError, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } = useInfiniteQuery({
+    ...documentListOptions(currentUserId, {
+      activeView: DocumentViewType.MY_FILES, currentFolderId,
+      sortBy: DocumentSortBy.LATEST, searchQuery: "",
+    }),
+    enabled: isOpen && !!currentUserId,
   });
 
-  const items = useMemo(() => response?.data || [], [response]);
+  const items = useMemo(() => response?.pages.flatMap(page => page.data) || [], [response]);
 
   const handleNavigateToFolder = useCallback(
     (folderId: string | null, folderName: string) => {
@@ -225,6 +226,8 @@ export default function MyFilesSelectModal({
             <LoadingState label="Loading files..." layout="centered" className={`flex items-center justify-center h-full text-xs font-semibold ${
                 isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
               }`} />
+          ) : isError ? (
+            <Button variant="outline" onClick={() => void refetch()}>Unable to load files. Try again</Button>
           ) : items.length === 0 ? (
             <div
               className={`flex flex-col items-center justify-center h-full text-xs font-semibold space-y-2 py-8 ${
@@ -343,6 +346,8 @@ export default function MyFilesSelectModal({
             })
           )}
         </div>
+
+        {hasNextPage && <Button variant="ghost" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>{isFetchingNextPage ? "Loading..." : "Load more"}</Button>}
 
         {/* Footer */}
         <div

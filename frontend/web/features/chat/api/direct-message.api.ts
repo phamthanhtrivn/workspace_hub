@@ -59,6 +59,7 @@ export const getDirectMessageSendPermission = async (
 export const sendDirectMessage = async (
   conversationId: string,
   payload: {
+    clientRequestId?: string;
     content?: string;
     type?: string;
     medias?: {

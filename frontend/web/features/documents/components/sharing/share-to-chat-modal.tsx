@@ -47,6 +47,7 @@ export function ShareToChatModal({
     introMessage,
     setIntroMessage,
     isSubmitting,
+    canRetry,
     spaces,
     channels,
     directConversations,
@@ -61,6 +62,7 @@ export function ShareToChatModal({
     item,
     projectId: projectId ?? item?.projectId ?? undefined,
     onSuccess: onClose,
+    enabled: isModalOpen,
   });
 
   if (!isModalOpen || !item) return null;
@@ -281,7 +283,7 @@ export function ShareToChatModal({
                 ? "Sharing..."
                 : inheritedEditorWarningCount > 0
                   ? "Continue sharing"
-                  : "Share"}
+                  : canRetry ? "Try again" : "Share"}
             </Button>
           </DialogFooter>
         </DialogContent>

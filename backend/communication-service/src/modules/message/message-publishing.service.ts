@@ -43,6 +43,7 @@ export class MessagePublishingService {
     mentions?: string[],
     attachmentMediaId?: string,
     summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type);
     const message = await this.mutations.createMessage(
@@ -57,6 +58,7 @@ export class MessagePublishingService {
       attachmentMediaId,
       mentions,
       summaryOptions,
+      clientRequestId,
     );
 
     const threadFollowers = threadParentId
@@ -72,7 +74,7 @@ export class MessagePublishingService {
       threadFollowers,
     };
 
-    if (!message.summary?.reused)
+    if (!message.summary?.reused && !message.deliveryReused)
       await this.chatSocketPublisher.publishChannelMessageCreated(
         channelId,
         messagePayload,

@@ -1,3 +1,11 @@
+import { ConflictException } from '@nestjs/common';
+import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
+import {
+  reserveMessageDelivery,
+  recordMessageDelivery,
+  DELIVERY_CONFLICT,
+  type MessageDeliveryIdentity,
+} from '../../common/utils/message-delivery';
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
 import type {
@@ -60,6 +68,7 @@ export class DirectMessageMutationService {
     mentions?: string[],
     attachmentMediaId?: string,
     summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type);
     if (attachmentMediaId && (type !== MessageType.TEXT || medias?.length))
@@ -74,6 +83,26 @@ export class DirectMessageMutationService {
         referenceId: conversationId,
         chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       });
+    const requestId = parseClientRequestId(clientRequestId);
+    if (
+      requestId &&
+      (attachmentMediaId ||
+        summaryOptions ||
+        medias?.length ||
+        false ||
+        threadParentId ||
+        (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId,
+          requestId,
+          chatId: conversationId,
+          chatType: 'DIRECT_MESSAGE',
+          payload: { content, type, mentions: mentions ?? [] },
+        }
+      : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
         where: {
@@ -88,6 +117,30 @@ export class DirectMessageMutationService {
         throw new BadRequestException(
           MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
         );
+      }
+
+      const priorMessageId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorMessageId) {
+        const prior = await tx.directMessage.findUnique({
+          where: { id: priorMessageId },
+          include: { medias: true, threadFollowers: true },
+        });
+        if (
+          !prior ||
+          prior.deletedAt ||
+          prior.recalled ||
+          prior.senderId !== senderId ||
+          prior.conversationId !== conversationId
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return {
+          ...this.presentation.mapDirectMessage(prior),
+          deliveryReused: true,
+          summary: undefined,
+        };
       }
 
       const summaryReservation = attachmentMediaId
@@ -108,6 +161,7 @@ export class DirectMessageMutationService {
         return {
           ...this.presentation.mapDirectMessage(summaryReservation.reused),
           summary: summaryReservation.reused.summary,
+          deliveryReused: false,
         };
       }
 
@@ -185,6 +239,8 @@ export class DirectMessageMutationService {
         },
       });
 
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
+
       await tx.directConversation.update({
         where: { id: conversationId },
         data: { updatedAt: new Date() },
@@ -222,12 +278,13 @@ export class DirectMessageMutationService {
       );
       return {
         ...this.presentation.mapDirectMessage(message),
+        deliveryReused: false,
         summary: summaryReservation
           ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
           : undefined,
       };
     });
-    if (!createdMessage.summary?.reused) {
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused) {
       this.conversationAi.notify(createdMessage);
       this.voiceTranscripts.notify();
     }
@@ -237,7 +294,7 @@ export class DirectMessageMutationService {
         createdMessage,
       );
 
-    if (!createdMessage.summary?.reused)
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused)
       await this.events.publishDirectMessageCreated(conversationId, message, {
         medias,
         threadParentId,

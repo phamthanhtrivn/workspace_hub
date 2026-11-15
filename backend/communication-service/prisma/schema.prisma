@@ -290,6 +290,18 @@ model ChannelSetting {
  * MESSAGE (GROUP CHANNEL MESSAGE)
  * ========================================================= */
 
+// Kept independently of message rows so deleted messages cannot be recreated by retry.
+model MessageDeliveryReceipt {
+  senderId    String   @map("sender_id")
+  requestId   String   @db.Uuid @map("request_id")
+  fingerprint String
+  messageId   String   @map("message_id")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@id([senderId, requestId])
+  @@map("message_delivery_receipts")
+}
+
 model Message {
   id                String           @id @default(uuid()) @db.Uuid
   channelId         String           @map("channel_id") @db.Uuid

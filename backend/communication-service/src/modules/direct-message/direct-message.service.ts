@@ -29,6 +29,7 @@ export class DirectMessageService {
     mentions?: string[],
     attachmentMediaId?: string,
     summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     return this.mutations.createDirectMessage(
       conversationId,
@@ -40,6 +41,7 @@ export class DirectMessageService {
       mentions,
       attachmentMediaId,
       summaryOptions,
+      clientRequestId,
     );
   }
 

@@ -1,3 +1,11 @@
+import { ConflictException } from '@nestjs/common';
+import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
+import {
+  reserveMessageDelivery,
+  recordMessageDelivery,
+  DELIVERY_CONFLICT,
+  type MessageDeliveryIdentity,
+} from '../../common/utils/message-delivery';
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
 import type {
@@ -60,6 +68,7 @@ export class MessageMutationService {
     attachmentMediaId?: string,
     mentions?: string[],
     summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type, true);
     if (
@@ -67,6 +76,27 @@ export class MessageMutationService {
       (type !== MessageType.TEXT || medias?.length || pollData || noteData)
     )
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const requestId = parseClientRequestId(clientRequestId);
+    if (
+      requestId &&
+      (attachmentMediaId ||
+        summaryOptions ||
+        medias?.length ||
+        pollData ||
+        noteData ||
+        threadParentId ||
+        (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId,
+          requestId,
+          chatId: channelId,
+          chatType: 'CHANNEL',
+          payload: { content, type, mentions: mentions ?? [] },
+        }
+      : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       let resolvedMentions: ResolvedChannelMentions = { content, mentions: [] };
       if (type !== MessageType.SYSTEM) {
@@ -140,6 +170,35 @@ export class MessageMutationService {
         }
       }
 
+      const priorMessageId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorMessageId) {
+        const prior = await tx.message.findUnique({
+          where: { id: priorMessageId },
+          include: {
+            medias: true,
+            poll: { include: { options: { include: { votes: true } } } },
+            note: true,
+          },
+        });
+        if (
+          !prior ||
+          prior.deletedAt ||
+          prior.recalled ||
+          prior.senderId !== senderId ||
+          prior.channelId !== channelId
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return {
+          ...prior,
+          mentions: [],
+          deliveryReused: true,
+          summary: undefined,
+        };
+      }
+
       const summaryReservation = attachmentMediaId
         ? await this.conversationAi.prepareAttachmentSummary(
             tx,
@@ -153,7 +212,11 @@ export class MessageMutationService {
           )
         : undefined;
       if (summaryReservation?.reused)
-        return { ...summaryReservation.reused, mentions: [] };
+        return {
+          ...summaryReservation.reused,
+          mentions: [],
+          deliveryReused: false,
+        };
 
       if (medias?.length)
         await this.s3Service.assertAttachments(medias, {
@@ -269,6 +332,8 @@ export class MessageMutationService {
         },
       });
 
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
+
       await tx.channel.update({
         where: { id: channelId },
         data: { updatedAt: new Date() },
@@ -310,12 +375,13 @@ export class MessageMutationService {
       return {
         ...message,
         mentions: resolvedMentions.mentions,
+        deliveryReused: false,
         summary: summaryReservation
           ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
           : undefined,
       };
     });
-    if (!createdMessage.summary?.reused) {
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused) {
       this.conversationAi.notify(createdMessage);
       this.voiceTranscripts.notify();
     }

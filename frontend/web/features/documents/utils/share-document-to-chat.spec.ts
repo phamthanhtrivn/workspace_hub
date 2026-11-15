@@ -258,3 +258,74 @@ test("project documents cannot be sent to DMs or another project's space", async
   }
   assert.equal(h.prepare.mock.callCount(), 0);
 });
+
+for (const type of [ShareTabType.CHANNEL, ShareTabType.DM]) {
+  for (const lostStep of ["TEXT", "DOCUMENT"]) {
+    test(`${type}: retry after ${lostStep} response loss reuses IDs and never duplicates either message`, async (context) => {
+      const h = setup(context);
+      const input = {
+        documentId: "document", currentUserId: "owner",
+        introMessage: `Retry ${type} ${lostStep}`,
+        target: { type, chatId: type === ShareTabType.CHANNEL ? "channel" : "direct", spaceId: "space" },
+      };
+      const accepted = new Map<string, string>();
+      const attempts: { type: string; requestId: string }[] = [];
+      let loseResponse = true;
+      const send = async (_id: string, payload: { type?: string; clientRequestId?: string }) => {
+        assert.ok(payload.clientRequestId);
+        attempts.push({ type: payload.type!, requestId: payload.clientRequestId });
+        accepted.set(payload.clientRequestId, payload.type!);
+        if (payload.type === lostStep && loseResponse) {
+          loseResponse = false;
+          throw new Error("Timeout after server commit");
+        }
+        return { success: true, data: {} } as ApiResponse<ChatMessageResponse>;
+      };
+      (type === ShareTabType.CHANNEL ? h.sendChannel : h.sendDirect).mock.mockImplementation(send);
+      await assert.rejects(shareDocumentToChat(input));
+      if (type === ShareTabType.DM) input.target.spaceId = "unrelated-space";
+      await shareDocumentToChat(input);
+      assert.deepEqual([...accepted.values()].sort(), ["DOCUMENT", "TEXT"]);
+      const retried = attempts.filter(attempt => attempt.type === lostStep);
+      assert.equal(retried.length, 2);
+      assert.equal(retried[0].requestId, retried[1].requestId);
+      if (lostStep === "DOCUMENT") assert.equal(attempts.filter(attempt => attempt.type === "TEXT").length, 1);
+      assert.equal(h.metadata.mock.callCount(), 2, "retry rechecks document access");
+      assert.equal(h.prepare.mock.callCount(), 2, "retry refreshes recipients/grants");
+    });
+  }
+}
+
+test("retry after partial success stops when sending permission has been revoked", async (context) => {
+  const h = setup(context);
+  const input = {
+    documentId: "document", currentUserId: "owner", introMessage: "Partial then revoked",
+    target: { type: ShareTabType.CHANNEL, chatId: "channel", spaceId: "space" },
+  };
+  h.sendChannel.mock.mockImplementation(async (_id: string, payload: { type?: string }) => {
+    if (payload.type === "DOCUMENT") throw new Error("Network failure");
+    return { success: true, data: {} } as ApiResponse<ChatMessageResponse>;
+  });
+  await assert.rejects(shareDocumentToChat(input));
+  h.channel.members[0].role = SpaceRole.MEMBER;
+  h.channel.setting!.allowSendMessage = false;
+  await assert.rejects(shareDocumentToChat(input), /cannot send/);
+  assert.equal(h.sendChannel.mock.callCount(), 2);
+  assert.equal(h.prepare.mock.callCount(), 1);
+});
+
+test("an account change after the introduction prevents sending the document with the new login", async context => {
+  const h = setup(context);
+  let accountChanged = false;
+  h.sendDirect.mock.mockImplementation(async () => {
+    accountChanged = true;
+    return { success: true, data: {} } as ApiResponse<ChatMessageResponse>;
+  });
+  await assert.rejects(shareDocumentToChat({
+    documentId: "document", currentUserId: "owner", introMessage: "Switch login",
+    target: { type: ShareTabType.DM, chatId: "direct" },
+    assertCurrentActor: () => { if (accountChanged) throw Error("Account changed"); },
+  }));
+  assert.equal(h.sendDirect.mock.callCount(), 1);
+  assert.equal(h.prepare.mock.callCount(), 1);
+});

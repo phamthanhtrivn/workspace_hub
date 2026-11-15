@@ -1,3 +1,4 @@
+import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
 import {
   parseAttachmentSummaryOptions,
   type AttachmentSummaryOptions,
@@ -38,6 +39,7 @@ export class MessageController {
     data: {
       attachmentMediaId?: string;
       summaryOptions?: AttachmentSummaryOptions;
+      clientRequestId?: string;
       content?: string;
       type?: MessageType;
       medias?: {
@@ -84,6 +86,7 @@ export class MessageController {
       data.mentions,
       data.attachmentMediaId,
       parseAttachmentSummaryOptions(data.summaryOptions),
+      parseClientRequestId(data.clientRequestId),
     );
 
     return {

@@ -2,36 +2,32 @@ import {
   logActionError,
   getActionErrorMessage,
 } from "@/lib/permission-feedback";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAppSelector } from "@/store/store";
+import { store, useAppSelector } from "@/store/store";
 import {
   useSpacesQuery,
   useSpaceChannelsQuery,
   useDirectMessagesQuery,
-  type SpaceChannelsQueryData,
 } from "@/features/chat/hooks/useChatQueries";
 import { getProjectSpaceStatus } from "@/features/project/api/project.api";
-import { ChatEvent } from "@/features/chat/api/chat.events";
-import { socketService } from "@/features/chat/api/chat-socket.service";
 import { SpaceRole } from "@/features/chat/types/chat.enums";
-import { chatKeys } from "@/features/chat/types/chat.constant";
-import type {
-  ConversationSetting,
-  SpaceChannel,
-} from "@/features/chat/types/chat.types";
-import type { ChatSocketSettingUpdatedPayload } from "@/features/chat/types/chat-socket.types";
+import type { SpaceChannel } from "@/features/chat/types/chat.types";
 import { shareDocumentToChat } from "../utils/share-document-to-chat";
-import { DOCUMENT_CHAT_SHARE_SUCCESS } from "../types/document-chat-sharing.constants";
-import { METADATA_QUERY_KEY } from "@/features/chat/types/document.constants";
+import {
+  DOCUMENT_CHAT_SHARE_SUCCESS,
+  DOCUMENT_CHAT_SHARE_ERRORS,
+} from "../types/document-chat-sharing.constants";
 import { DocumentItem } from "../types/documents.types";
 import { ShareTabType } from "../types/documents.enums";
 import { toast } from "sonner";
+import { invalidateDocumentShare } from "../utils/document-cache";
 
 interface UseShareToChatProps {
   item: DocumentItem | null;
   onSuccess: () => void;
   projectId?: string;
+  enabled?: boolean;
 }
 
 function canShareDocumentToChannel(
@@ -52,31 +48,11 @@ function canShareDocumentToChannel(
   return true;
 }
 
-function patchChannelSetting(
-  data: SpaceChannelsQueryData | undefined,
-  channelId: string,
-  setting: ConversationSetting,
-) {
-  if (!data?.channels) return data;
-
-  let didPatch = false;
-  const channels = data.channels.map((channel) => {
-    if (channel.id !== channelId) return channel;
-    didPatch = true;
-
-    return {
-      ...channel,
-      setting,
-    };
-  });
-
-  return didPatch ? { ...data, channels } : data;
-}
-
 export function useShareToChat({
   item,
   onSuccess,
   projectId,
+  enabled = true,
 }: UseShareToChatProps) {
   const [requestedActiveTab, setActiveTab] = useState<ShareTabType>(
     ShareTabType.CHANNEL,
@@ -85,13 +61,10 @@ export function useShareToChat({
   const [chosenSpaceId, setSelectedSpaceId] = useState<string>("");
   const [introMessage, setIntroMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [inheritedEditorWarningCount, setInheritedEditorWarningCount] =
-    useState(0);
   const sharing = useRef(false);
 
   const queryClient = useQueryClient();
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const activeSpaceIdFromStore = useAppSelector(
     (state) => state.chat.activeSpaceId,
   );
@@ -101,13 +74,13 @@ export function useShareToChat({
     : requestedActiveTab;
 
   const { data: spaces } = useSpacesQuery(
-    isProjectDocuments ? null : currentUserId,
+    !enabled || !item || isProjectDocuments ? null : currentUserId,
   );
   const { data: projectSpaceStatus, isLoading: isLoadingProjectSpace } =
     useQuery({
       queryKey: ["projects", projectId, "space-status"],
       queryFn: () => getProjectSpaceStatus(projectId!),
-      enabled: isProjectDocuments && !!item,
+      enabled: enabled && isProjectDocuments && !!item,
     });
   const projectSpaceId = projectSpaceStatus?.spaceId ?? "";
 
@@ -124,7 +97,11 @@ export function useShareToChat({
     channelSpaceId,
     undefined,
     {
-      enabled: !!item && activeTab === ShareTabType.CHANNEL && !!channelSpaceId,
+      enabled:
+        enabled &&
+        !!item &&
+        activeTab === ShareTabType.CHANNEL &&
+        !!channelSpaceId,
     },
   );
   const channels = useMemo(() => {
@@ -136,7 +113,7 @@ export function useShareToChat({
   }, [channelsData?.channels, currentUserId]);
 
   const { data: directConversationsData } = useDirectMessagesQuery(
-    isProjectDocuments ? null : currentUserId,
+    !enabled || !item || isProjectDocuments ? null : currentUserId,
   );
   const directConversations = directConversationsData?.directMessages || [];
 
@@ -158,57 +135,49 @@ export function useShareToChat({
         : ""
       : chosenChatId;
 
-  useEffect(() => {
-    setInheritedEditorWarningCount(0);
-  }, [chosenChatId, activeTab, item?.id]);
-
-  useEffect(() => {
-    if (!item || !accessToken || !channelSpaceId) return;
-    if (activeTab !== ShareTabType.CHANNEL && !isProjectDocuments) return;
-
-    const socket = socketService.connect(accessToken);
-    const handleChannelSettingUpdated = (
-      data: ChatSocketSettingUpdatedPayload,
-    ) => {
-      const channelId = data.channelId ?? data.chatId;
-      if (!channelId || data.eventType === "space_setting_updated") return;
-      if (data.spaceId && data.spaceId !== channelSpaceId) return;
-
-      const setting = data.setting as ConversationSetting;
-      queryClient.setQueriesData<SpaceChannelsQueryData>(
-        { queryKey: chatKeys.allChannels() },
-        (oldData) => patchChannelSetting(oldData, channelId, setting),
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: chatKeys.channels(data.spaceId ?? channelSpaceId),
-      });
-    };
-
-    socket.on(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
-
-    return () => {
-      socket.off(
-        ChatEvent.CHANNEL_SETTING_UPDATED,
-        handleChannelSettingUpdated,
-      );
-    };
-  }, [
-    accessToken,
+  const feedbackKey = JSON.stringify([
+    currentUserId,
+    item?.id,
+    chosenChatId,
     activeTab,
-    channelSpaceId,
-    isProjectDocuments,
-    item,
-    queryClient,
+    introMessage,
   ]);
+  const [feedback, setFeedback] = useState({
+    key: "",
+    warningCount: 0,
+    retry: false,
+  });
+  const inheritedEditorWarningCount =
+    feedback.key === feedbackKey ? feedback.warningCount : 0;
+  const canRetry = feedback.key === feedbackKey && feedback.retry;
+  const setInheritedEditorWarningCount = (warningCount: number) =>
+    setFeedback((previous) => ({
+      key: feedbackKey,
+      warningCount,
+      retry: previous.key === feedbackKey && previous.retry,
+    }));
+  const setCanRetry = (retry: boolean) =>
+    setFeedback((previous) => ({
+      key: feedbackKey,
+      retry,
+      warningCount: previous.key === feedbackKey ? previous.warningCount : 0,
+    }));
 
   const handleShare = async () => {
     if (!item || !selectedChatId || !currentUserId || sharing.current) return;
     sharing.current = true;
     setIsSubmitting(true);
+    let accessPrepared = false;
     try {
       const result = await shareDocumentToChat({
         documentId: item.id,
+        assertCurrentActor: () => {
+          if (store.getState().auth.userId !== currentUserId)
+            throw new Error(DOCUMENT_CHAT_SHARE_ERRORS.ACCOUNT_CHANGED);
+        },
+        onAccessPrepared: () => {
+          accessPrepared = true;
+        },
         target: {
           type: activeTab,
           chatId: selectedChatId,
@@ -218,27 +187,26 @@ export function useShareToChat({
         introMessage,
         confirmInheritedEditorAccess: inheritedEditorWarningCount > 0,
       });
+      if (store.getState().auth.userId !== currentUserId) return;
       if (result.requiresConfirmation) {
         setInheritedEditorWarningCount(result.inheritedEditorCount);
+
         return;
       }
       setInheritedEditorWarningCount(0);
+      setCanRetry(false);
       toast.success(DOCUMENT_CHAT_SHARE_SUCCESS);
       onSuccess();
     } catch (error) {
+      if (store.getState().auth.userId !== currentUserId) return;
+      setCanRetry(true);
       logActionError(error);
       toast.error(
         getActionErrorMessage(error, "Failed to share document to chat."),
       );
     } finally {
-      // Refresh document access and shares after a confirmation or send attempt.
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["document-sharing", item.id],
-        }),
-        queryClient.invalidateQueries({ queryKey: [METADATA_QUERY_KEY] }),
-        queryClient.invalidateQueries({ queryKey: ["documents"] }),
-      ]);
+      if (accessPrepared && store.getState().auth.userId === currentUserId)
+        await invalidateDocumentShare(queryClient, currentUserId, item.id);
       sharing.current = false;
       setIsSubmitting(false);
     }
@@ -256,6 +224,7 @@ export function useShareToChat({
     inheritedEditorWarningCount,
     clearInheritedEditorWarning: () => setInheritedEditorWarningCount(0),
     isSubmitting,
+    canRetry,
     spaces,
     channels,
     directConversations,

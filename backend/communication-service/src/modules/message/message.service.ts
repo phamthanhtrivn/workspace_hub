@@ -77,6 +77,7 @@ export class MessageService {
     mentions?: string[],
     attachmentMediaId?: string,
     summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     return this.publishing.createMessageAndPublish(
       channelId,
@@ -90,6 +91,7 @@ export class MessageService {
       mentions,
       attachmentMediaId,
       summaryOptions,
+      clientRequestId,
     );
   }
 

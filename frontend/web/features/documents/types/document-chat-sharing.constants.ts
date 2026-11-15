@@ -1,4 +1,5 @@
 export const DOCUMENT_CHAT_SHARE_ERRORS = {
+  ACCOUNT_CHANGED: "The account changed. Open sharing again to continue.",
   TARGET_UNAVAILABLE:
     "Could not verify the chat recipients. Please select the conversation again.",
   SEND_NOT_ALLOWED: "You cannot send messages in this conversation.",
