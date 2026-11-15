@@ -1,3 +1,4 @@
+import { reserveImportedAttachments } from '../media/imported-attachment-reservation';
 import { ConflictException } from '@nestjs/common';
 import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
 import {
@@ -81,10 +82,8 @@ export class MessageMutationService {
       requestId &&
       (attachmentMediaId ||
         summaryOptions ||
-        medias?.length ||
         pollData ||
         noteData ||
-        threadParentId ||
         (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
     )
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
@@ -94,7 +93,13 @@ export class MessageMutationService {
           requestId,
           chatId: channelId,
           chatType: 'CHANNEL',
-          payload: { content, type, mentions: mentions ?? [] },
+          payload: {
+            content,
+            type,
+            mentions: mentions ?? [],
+            ...(medias?.length ? { medias } : {}),
+            ...(threadParentId ? { threadParentId } : {}),
+          },
         }
       : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
@@ -225,6 +230,13 @@ export class MessageMutationService {
           chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         });
 
+      await reserveImportedAttachments(
+        tx,
+        senderId,
+        channelId,
+        'CHANNEL',
+        medias,
+      );
       if (threadParentId) {
         const parentMsg = await tx.message.findUnique({
           where: { id: threadParentId },

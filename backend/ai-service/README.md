@@ -14,7 +14,7 @@ The host configuration api/.env remains available to tooling and optional host d
 
 ## Features and access
 
-- Personal notebooks: authorized Document sources, background indexing, cited Q&A, notes and generated summaries.
+- Personal notebooks: independent private source copies, background indexing, cited Q&A and saved notes. Sources support 5 files, 20 MiB/file and 50 MiB/notebook, separately from the Documents quota. See [file-copy behavior and local rollout](../../docs/features/document-chat-sharing.md).
 - Conversation bot: direct/channel/thread context and attachment summaries.
 - Work Assistant: authorized Project and Calendar context/actions.
 - Meeting summaries: the owner explicitly requests or retries processing after a recording completes. Readers with recording access share the saved result.

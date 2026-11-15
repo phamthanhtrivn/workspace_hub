@@ -11,6 +11,7 @@ import { logError } from "../common/errors/error-log";
 import { config } from "../config/env.config";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { rag } from "../infrastructure/integrations/rag.client";
+import { notebookSnapshots } from "../infrastructure/integrations/document.client";
 
 const RECOVERY_BATCH_SIZE = 100;
 // BullMQ owns stalled-job detection and locks. Never steal active/waiting work.
@@ -83,10 +84,7 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
       return changed(
         `UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now()
          WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
-        [
-          item.id,
-          AI_UI_MESSAGES.INDEX_INTERRUPTED,
-        ],
+        [item.id, AI_UI_MESSAGES.INDEX_INTERRUPTED],
       );
     },
     signal,
@@ -100,6 +98,7 @@ export async function reconcileQueuedJobs(
   const started = performance.now();
   const stages: RecoveryCounts[] = [];
   const cleanup = await rows<{
+    snapshot_cleanup: { snapshotId: string; actorId: string }[];
     id: string;
     scope_id: string;
     source_id: string | null;
@@ -113,6 +112,16 @@ export async function reconcileQueuedJobs(
         scopeId: item.scope_id,
         sourceId: item.source_id,
       });
+      for (const snapshot of item.snapshot_cleanup ?? [])
+        await notebookSnapshots(
+          "remove",
+          {
+            userId: snapshot.actorId,
+            notebookId: item.scope_id,
+            ids: [snapshot.snapshotId],
+          },
+          signal,
+        );
       await rows("DELETE FROM notebook_ai.cleanup_outbox WHERE id=$1", [
         item.id,
       ]);

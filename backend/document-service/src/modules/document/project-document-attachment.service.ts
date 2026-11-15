@@ -2,6 +2,7 @@ import {
   Injectable,
   ForbiddenException,
   BadRequestException,
+  PreconditionFailedException,
 } from '@nestjs/common';
 import { StorageCleanupService } from './storage-cleanup.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -15,6 +16,7 @@ import { DocumentAccessService } from './document-access.service';
 import { DocumentLocationService } from './document-location.service';
 import { DocumentEventPublisher } from './document-event-publisher.service';
 import { DocumentPresentationService } from './document-presentation.service';
+import { authorizeProject } from '../../common/auth/project-authorization';
 
 @Injectable()
 export class ProjectDocumentAttachmentService {
@@ -61,12 +63,26 @@ export class ProjectDocumentAttachmentService {
     userEmail: string,
     projectId: string,
     documentItemIds: string[],
-    operationId?: string,
+    _operationId?: string,
+    versions?: Record<string, string>,
   ) {
+    await authorizeProject(userId, projectId, 'EDIT_DOCUMENTS');
     const root = await this.locations.findProjectRootFolder(projectId);
     const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] =
       [];
     for (const sourceId of new Set(documentItemIds)) {
+      if (versions?.[sourceId]) {
+        const copied = await this.prisma.documentItem.findUnique({
+          where: {
+            importKey: `snapshot:${projectId}:${sourceId}:${versions[sourceId]}`,
+          },
+        });
+        if (copied) {
+          this.assertAttachableFile(copied);
+          imported.push(this.toTaskAttachmentDocumentMetadata(copied, true));
+          continue;
+        }
+      }
       const source = await this.access.checkPermission(
         sourceId,
         userId,
@@ -74,19 +90,30 @@ export class ProjectDocumentAttachmentService {
         DocumentRole.VIEWER,
       );
       this.assertAttachableFile(source);
-      if (source.projectId || source.ownerUserId !== userId)
-        throw new ForbiddenException(
-          'Only your own personal files can be imported',
+      const version = await this.prisma.documentVersion.findFirst({
+        where: { documentItemId: sourceId },
+        orderBy: { versionNumber: 'desc' },
+      });
+      if (
+        !version ||
+        (versions?.[sourceId] && versions[sourceId] !== version.id)
+      )
+        throw new PreconditionFailedException(
+          'The file changed. Select it again.',
         );
-      const importKey = operationId
-        ? `${projectId}:${userId}:${operationId}:${sourceId}`
-        : null;
+      if (source.projectId === projectId) {
+        imported.push(this.toTaskAttachmentDocumentMetadata(source, true));
+        continue;
+      }
+      // A retry or another task reuses the project's independent copy.
+      const importKey = `snapshot:${projectId}:${sourceId}:${version.id}`;
       if (importKey) {
         const previous = await this.prisma.documentItem.findUnique({
           where: { importKey },
         });
         if (previous) {
-          imported.push(this.toTaskAttachmentDocumentMetadata(previous));
+          this.assertAttachableFile(previous);
+          imported.push(this.toTaskAttachmentDocumentMetadata(previous, true));
           continue;
         }
       }
@@ -101,6 +128,16 @@ export class ProjectDocumentAttachmentService {
           copiedKey,
           Number(source.sizeBytes),
         );
+        const currentSource = await this.access.checkPermission(
+          sourceId,
+          userId,
+          userEmail,
+          DocumentRole.VIEWER,
+        );
+        if (currentSource.isArchived || currentSource.s3Key !== source.s3Key)
+          throw new PreconditionFailedException(
+            'The file changed. Select it again.',
+          );
         item = await this.prisma.$transaction(async (tx) => {
           if (importKey) {
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${importKey}, 8085))::text`;
@@ -269,6 +306,7 @@ export class ProjectDocumentAttachmentService {
       DocumentItem,
       'id' | 'name' | 'mimeType' | 'sizeBytes' | 'projectId'
     >,
+    alreadyAdded = false,
   ) {
     return {
       id: item.id,
@@ -276,6 +314,7 @@ export class ProjectDocumentAttachmentService {
       mimeType: item.mimeType,
       sizeBytes: Number(item.sizeBytes),
       projectId: item.projectId,
+      alreadyAdded,
     };
   }
 

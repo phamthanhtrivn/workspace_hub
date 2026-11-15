@@ -56,26 +56,29 @@ databases may need the baseline preparation described in
 
 ### Fresh local WorkspaceHub state
 
-After stopping all seven application processes, preview the exact scope, then
-run the guarded local reset if a clean development state is needed:
+Stop all host applications (including web, IDE DB consoles and any host AI worker) with Ctrl+C. Keep PostgreSQL, Redis, Kafka, Qdrant and the Docker RAG worker running. Stop Docker AI consumers and realtime recording before inspecting the reset:
 
-```powershell
+In DBeaver, disconnect the database connections, including metadata sessions; closing SQL editor tabs is not enough. The reset reports ACTIVE_DATABASE_CONNECTIONS with database names and connection counts and stops before deletion if any connection remains.
+
+~~~powershell
+docker compose -f backend/docker/compose.yml up -d postgres redis kafka notebook-qdrant rag-worker
+docker compose -f backend/docker/compose.yml stop notebook-api notebook-jobs livekit-egress livekit
 node backend/scripts/reset-local-workspace.mjs
-node backend/scripts/reset-local-workspace.mjs --apply
-node backend/scripts/validate-local-env.mjs
-```
+~~~
 
-The reset rehearses every migration chain on scratch databases, backs up and
-restore-tests the seven existing application databases, and recreates their real
-migration histories. It preserves the credential mode read from the current
-`.env` files: shared `postgres` credentials do not create restricted `wh_*`
-roles; a configured restricted mode reapplies its role grants. It also recreates
-the six WorkspaceHub Kafka topics,
-clears their dedicated consumer groups, removes
-only known WorkspaceHub Redis keys and RAG collections, and preserves other
-databases, Docker volumes, S3, and private backups under ignored
-`.tmp/security-fresh-backups`. Never run this while application processes still
-hold database connections. Start consumers before producers after reset.
+The command above is read-only. Apply the reported scope only when ready to remove all WorkspaceHub local application rows:
+
+~~~powershell
+node backend/scripts/reset-local-workspace.mjs --apply
+if ($LASTEXITCODE -ne 0) { throw 'Reset failed. Resolve the reported error before starting services.' }
+node backend/scripts/validate-local-env.mjs
+~~~
+
+The reset backs up and restore-tests the seven configured databases, then truncates application tables and restarts their identity sequences. It preserves schemas, Prisma/Flyway/AI and local security migration histories, grants and the existing credential mode. Pending migrations are still applied explicitly using each service's normal migration command. Backups are kept under ignored .tmp/security-fresh-backups; a table-clear failure triggers restoration of all seven backups.
+
+It also recreates the six WorkspaceHub Kafka topics/consumer groups, clears known WorkspaceHub Redis prefixes (including AI queues), and removes the Notebook Qdrant indexes and source manifests through the current Docker RAG container. No helper container is started by the reset script. Stop applications before running it and do not reconnect until it finishes. Queue/index cleanup failures can happen after database data has been cleared; preserve the printed backup location and inspect the failed phase before retrying.
+
+Other databases, Docker volumes, downloaded models, private env files, S3 files and backups are retained. Accounts are removed, so clear browser site data or sign out and register new test accounts afterward. Restart the RAG worker to discard its in-memory caches, start notification consumers before business producers, and start AI API/jobs only after migrations.
 
 ## Applications: separate terminals
 

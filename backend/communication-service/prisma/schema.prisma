@@ -291,6 +291,30 @@ model ChannelSetting {
  * ========================================================= */
 
 // Kept independently of message rows so deleted messages cannot be recreated by retry.
+model MediaCopyCleanup {
+  s3Key String @id @map("s3_key")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("media_copy_cleanup")
+}
+
+model DocumentAttachmentImport {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  operationId String   @map("operation_id") @db.Uuid
+  fingerprint String
+  chatId      String   @map("chat_id") @db.Uuid
+  chatType    String   @map("chat_type")
+  status      String   @default("PREPARING")
+  result      Json?
+  leaseToken  String?  @map("lease_token") @db.Uuid
+  leaseUntil  DateTime? @map("lease_until")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  @@unique([actorId, operationId])
+  @@index([status, createdAt])
+  @@map("document_attachment_imports")
+}
+
 model MessageDeliveryReceipt {
   senderId    String   @map("sender_id")
   requestId   String   @db.Uuid @map("request_id")

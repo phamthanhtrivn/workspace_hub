@@ -50,6 +50,7 @@ import { resolveDocumentProjectContext } from "../utils/project-documents";
 import { documentFolderAccessKey } from "../utils/document-navigation";
 
 interface DocumentExplorerProps {
+  copyAction?: React.ReactNode;
   currentFolderId: string | null;
   onNavigate: (folderId: string | null, folderName?: string) => void;
   activeView: DocumentViewType;
@@ -64,6 +65,7 @@ interface DocumentExplorerProps {
 }
 
 export function DocumentExplorer({
+  copyAction,
   currentFolderId,
   onNavigate,
   activeView,
@@ -208,7 +210,13 @@ export function DocumentExplorer({
     refetch,
     isFetching,
   } = useInfiniteQuery({
-    ...documentListOptions(currentUserId, { activeView, projectId, currentFolderId, sortBy, searchQuery }),
+    ...documentListOptions(currentUserId, {
+      activeView,
+      projectId,
+      currentFolderId,
+      sortBy,
+      searchQuery,
+    }),
   });
 
   const items = useMemo(
@@ -348,15 +356,18 @@ export function DocumentExplorer({
           ) : (
             <ExplorerToolbar
               actions={
-                <DocumentActionsMenu
-                  items={items}
-                  activeView={activeView}
-                  currentFolderId={currentFolderId}
-                  projectId={projectId}
-                  hasMore={!!hasNextPage}
-                  disabled={isLoading || bulkSelection.busy}
-                  onChoose={startBulkAction}
-                />
+                <>
+                  {copyAction}
+                  <DocumentActionsMenu
+                    items={items}
+                    activeView={activeView}
+                    currentFolderId={currentFolderId}
+                    projectId={projectId}
+                    hasMore={!!hasNextPage}
+                    disabled={isLoading || bulkSelection.busy}
+                    onChoose={startBulkAction}
+                  />
+                </>
               }
               activeView={activeView}
               viewLayout={viewLayout}

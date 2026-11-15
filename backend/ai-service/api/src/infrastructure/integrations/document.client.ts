@@ -1,6 +1,8 @@
 import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   ForbiddenException,
+  GoneException,
+  PreconditionFailedException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { config } from "../../config/env.config";
@@ -19,6 +21,7 @@ async function documentRequest<T>(
   body: unknown,
   messages: DocumentMessages,
   signal?: AbortSignal,
+  timeoutMs = 10000,
 ): Promise<T> {
   signal?.throwIfAborted();
   let response: Response;
@@ -29,7 +32,7 @@ async function documentRequest<T>(
         key: config.AI_DOCUMENT_SERVICE_KEY,
         body,
         signal,
-        timeoutMs: 10000,
+        timeoutMs,
       },
     );
   } catch {
@@ -38,6 +41,12 @@ async function documentRequest<T>(
   }
   if (!response.ok) {
     await response.body?.cancel();
+    if (response.status === 410)
+      throw new GoneException(
+        "The prepared copy has expired. Select the file again.",
+      );
+    if (response.status === 412)
+      throw new PreconditionFailedException(AI_UI_MESSAGES.SOURCE_RESELECT);
     if (response.status === 403 || response.status === 404)
       throw new ForbiddenException(messages.forbidden);
     if (response.status === 401)
@@ -78,15 +87,49 @@ export async function authorizeSources(
 ) {
   signal?.throwIfAborted();
   if (!sources.length) return [];
-  const manifests = await resolveDocuments(
-    actor,
-    sources.map((s) => ({
-      documentId: s.document_id,
-      versionId: s.version_id,
-    })),
-    download,
-    signal,
+  const bySource = new Map<string, Manifest>();
+  const legacy = sources.filter((source) => !source.snapshot_id);
+  if (legacy.length) {
+    const resolved = await resolveDocuments(
+      actor,
+      legacy.map((source) => ({
+        documentId: source.document_id,
+        versionId: source.version_id,
+      })),
+      download,
+      signal,
+    );
+    legacy.forEach((source, index) => bySource.set(source.id, resolved[index]));
+  }
+  const notebooks = [
+    ...new Set(
+      sources
+        .filter((source) => source.snapshot_id)
+        .map((source) => source.notebook_id),
+    ),
+  ];
+  await Promise.all(
+    notebooks.map(async (notebookId) => {
+      const copies = sources.filter(
+        (source) => source.snapshot_id && source.notebook_id === notebookId,
+      );
+      const resolved = await notebookSnapshots<Manifest[]>(
+        "resolve",
+        {
+          userId: actor.id,
+          notebookId,
+          ids: copies.map((source) => source.snapshot_id),
+          download,
+          retain: true,
+        },
+        signal,
+      );
+      copies.forEach((source, index) =>
+        bySource.set(source.id, resolved[index]),
+      );
+    }),
   );
+  const manifests = sources.map((source) => bySource.get(source.id)!);
   for (let i = 0; i < sources.length; i++) {
     const manifest = manifests[i];
     const source = sources[i];
@@ -97,12 +140,28 @@ export async function authorizeSources(
       manifest.revision !== source.revision ||
       !manifest.current
     )
-      throw new ForbiddenException(
-        AI_UI_MESSAGES.SOURCE_NEW_VERSION,
-      );
+      throw new ForbiddenException(AI_UI_MESSAGES.SOURCE_NEW_VERSION);
   }
 
   return manifests;
+}
+
+export function notebookSnapshots<T>(
+  action: "copy" | "resolve" | "upload" | "confirm" | "remove",
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return documentRequest<T>(
+    `/internal/notebook-snapshots/${action}`,
+    body,
+    {
+      verify: "Notebook file storage is unavailable.",
+      forbidden: "The selected file cannot be copied.",
+      unavailable: "Unable to prepare the notebook copy.",
+    },
+    signal,
+    action === "copy" ? 180000 : 10000,
+  );
 }
 
 export function resolveChatAttachment(

@@ -83,13 +83,11 @@ export function AddSourcesDialog({
                 onClick={() => input.current?.click()}
               >
                 <Upload aria-hidden="true" />
-                {upload.stage === "CHECKING"
-                  ? "Checking files..."
-                  : upload.stage === "ADDING"
-                    ? "Adding sources..."
-                    : upload.uploading
-                      ? "Uploading..."
-                      : "Choose files"}
+                {upload.stage === "ADDING"
+                  ? "Adding sources..."
+                  : upload.uploading
+                    ? "Uploading..."
+                    : "Choose files"}
               </Button>
               <input
                 ref={input}

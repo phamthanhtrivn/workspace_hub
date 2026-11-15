@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Files } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ProjectFileImportDialog } from "./project-file-import-dialog";
 import DocumentExplorer from "@/features/documents/components/document-explorer";
 import { DownloadQueueProvider } from "@/features/documents/components/download/download-queue-provider";
 import { DocumentsEmptyState } from "@/features/documents/components/ui/documents-empty-state";
@@ -20,8 +23,11 @@ export default function ProjectDocumentsView({
   canEditDocuments,
 }: ProjectDocumentsViewProps) {
   const documentsQuery = useProjectDocuments(projectId);
+  const [importOpen, setImportOpen] = useState(false);
   const [chosenFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [navigationPath, setPath] = useState<{ id: string | null; name: string }[]>([]);
+  const [navigationPath, setPath] = useState<
+    { id: string | null; name: string }[]
+  >([]);
   const [navigationProjectId, setNavigationProjectId] = useState(projectId);
   if (navigationProjectId !== projectId) {
     setNavigationProjectId(projectId);
@@ -31,8 +37,12 @@ export default function ProjectDocumentsView({
   const rootFolderId = documentsQuery.data?.folderId ?? null;
   const currentFolderId = chosenFolderId ?? rootFolderId;
   const path = navigationPath.length
-    ? navigationPath.map(entry => entry.id === rootFolderId ? { ...entry, name: projectName } : entry)
-    : rootFolderId ? [{ id: rootFolderId, name: projectName }] : [];
+    ? navigationPath.map((entry) =>
+        entry.id === rootFolderId ? { ...entry, name: projectName } : entry,
+      )
+    : rootFolderId
+      ? [{ id: rootFolderId, name: projectName }]
+      : [];
 
   const handleNavigate = (folderId: string | null, folderName?: string) => {
     const rootFolderId = documentsQuery.data?.folderId ?? null;
@@ -46,7 +56,9 @@ export default function ProjectDocumentsView({
     if (!folderName) return;
 
     setPath((currentPath) => {
-      const existingIndex = currentPath.findIndex((item) => item.id === folderId);
+      const existingIndex = currentPath.findIndex(
+        (item) => item.id === folderId,
+      );
       if (existingIndex >= 0) {
         return currentPath.slice(0, existingIndex + 1);
       }
@@ -77,6 +89,18 @@ export default function ProjectDocumentsView({
     <DownloadQueueProvider>
       <div className="h-full min-h-0 min-w-0 overflow-hidden rounded-lg border border-border bg-card">
         <DocumentExplorer
+          copyAction={
+            canEditDocuments ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+              >
+                <Files aria-hidden="true" />
+                Add files
+              </Button>
+            ) : undefined
+          }
           currentFolderId={currentFolderId}
           onNavigate={handleNavigate}
           activeView={DocumentViewType.MY_FILES}
@@ -87,6 +111,13 @@ export default function ProjectDocumentsView({
           accessErrorTitle="Project documents are private"
           accessErrorDescription="You do not have access to these project documents yet"
         />
+        {importOpen && canEditDocuments && (
+          <ProjectFileImportDialog
+            key={projectId}
+            projectId={projectId}
+            onClose={() => setImportOpen(false)}
+          />
+        )}
       </div>
     </DownloadQueueProvider>
   );

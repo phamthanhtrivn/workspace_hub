@@ -9,7 +9,7 @@ const { DirectMessageMutationService } = require('../direct-message/direct-messa
 const { VOICE_TRANSCRIPT, VoiceChatType } = require('./types/voice-transcript.constants.ts');
 const { ServiceUnavailableException, ForbiddenException } = require('@nestjs/common');
 
-const audio = { id: 'audio', name: 'upload.mp3', mimeType: 'audio/mpeg', sizeBytes: 500 };
+const audio = { s3Key: 'chat-media/reference/upload.mp3', id: 'audio', name: 'upload.mp3', mimeType: 'audio/mpeg', sizeBytes: 500 };
 
 async function enabled(run) {
   const previous = process.env.VOICE_TRANSCRIPTION_ENABLED;

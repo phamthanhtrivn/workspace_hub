@@ -83,6 +83,26 @@ export function ItemActionsMenu({
   const isSharedItem =
     activeView === DocumentViewType.SHARED || (!isProjectDocuments && !isOwner);
 
+  const sendCopyAction =
+    onShareToChat &&
+    !item.isArchived &&
+    activeView !== DocumentViewType.TRASH &&
+    (isOwner || isEditor || userRole === DocumentRole.VIEWER) ? (
+      <DropdownMenuItem
+        closeOnClick={false}
+
+        onClick={(e) => {
+          e.stopPropagation();
+          setActiveMenuId(null);
+          onShareToChat();
+        }}
+        className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info-content hover:bg-background transition cursor-pointer"
+      >
+        <FaPaperPlane className="h-3.5 w-3.5 text-info-content" />
+        <span>Send a copy</span>
+      </DropdownMenuItem>
+    ) : null;
+
   return (
     <div className="relative" ref={menuRef}>
       <DocumentsIconButton
@@ -110,6 +130,7 @@ export function ItemActionsMenu({
         >
           {isSharedItem ? (
             <>
+              {sendCopyAction}
               {!isFolder && onPreview ? (
                 <DropdownMenuItem
                   closeOnClick={false}
@@ -287,23 +308,7 @@ export function ItemActionsMenu({
                 </DropdownMenuItem>
               ) : null}
 
-              {((isProjectDocuments && userRole !== DocumentRole.NONE) ||
-                isOwner) &&
-              onShareToChat ? (
-                <DropdownMenuItem
-                  closeOnClick={false}
-
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onShareToChat();
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info-content hover:bg-background transition cursor-pointer"
-                >
-                  <FaPaperPlane className="h-3.5 w-3.5 text-info-content" />
-                  <span>Share to chat</span>
-                </DropdownMenuItem>
-              ) : null}
+              {sendCopyAction}
 
               <DropdownMenuItem
                 closeOnClick={false}

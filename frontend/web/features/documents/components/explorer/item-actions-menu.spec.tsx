@@ -83,7 +83,7 @@ test("project roots in My files expose project-safe actions", () => {
     "Star",
   ])
     assert.equal(labels.includes(label), false, label);
-  for (const label of ["Download ZIP", "Details", "Share to chat"])
+  for (const label of ["Download ZIP", "Details", "Send a copy"])
     assert.equal(labels.includes(label), true, label);
 });
 
@@ -107,17 +107,17 @@ test("personal folder actions retain personal sharing and trash", () => {
   assert.equal(labels.includes("Star"), true);
 });
 
-test("personal files shared with Viewer/Editor do not expose Share to chat", () => {
+test("personal files shared with Viewer/Editor expose independent-copy sending", () => {
   for (const userRole of [DocumentRole.VIEWER, DocumentRole.EDITOR]) {
     const labels = actions({ ...root, projectId: null, userRole });
-    assert.equal(labels.includes("Share to chat"), false);
+    assert.equal(labels.includes("Send a copy"), true);
   }
   assert.equal(
     actions({
       ...root,
       projectId: null,
       userRole: DocumentRole.OWNER,
-    }).includes("Share to chat"),
+    }).includes("Send a copy"),
     true,
   );
 });
@@ -131,8 +131,15 @@ test("shared files expose read actions to both Viewers and Editors", () => {
     assert.deepEqual(
       labels,
       userRole === DocumentRole.EDITOR
-        ? ["Preview", "Download", "Details", "Rename", "Manage versions"]
-        : ["Preview", "Download", "Details", "Manage versions"],
+        ? [
+            "Send a copy",
+            "Preview",
+            "Download",
+            "Details",
+            "Rename",
+            "Manage versions",
+          ]
+        : ["Send a copy", "Preview", "Download", "Details", "Manage versions"],
     );
   }
 });
@@ -142,5 +149,10 @@ test("shared folders expose ZIP download and details without mutation actions", 
     { ...root, projectId: null, userRole: DocumentRole.EDITOR },
     DocumentViewType.SHARED,
   );
-  assert.deepEqual(labels, ["Download ZIP", "Details", "Rename"]);
+  assert.deepEqual(labels, [
+    "Send a copy",
+    "Download ZIP",
+    "Details",
+    "Rename",
+  ]);
 });

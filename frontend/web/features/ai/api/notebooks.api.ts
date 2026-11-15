@@ -3,7 +3,6 @@ import { aiServiceMessage } from "@/lib/ai-feedback";
 import { store } from "@/store/store";
 import { notebookListSchema, notebookSchema } from "../types";
 import { readAnswer, type StreamEvent } from "./stream";
-import type { UploadBatch } from "../upload";
 import {
   notebookPageSchema,
   NOTEBOOK_PAGE_SIZE,
@@ -12,6 +11,43 @@ import {
 
 const path = (id: string) => `/api/ai/notebooks/${id}`;
 export const notebooksApi = {
+  addCopies: (
+    id: string,
+    documents: { id: string; versionId?: string }[],
+    operationId: string,
+    signal?: AbortSignal,
+  ) =>
+    api.post(
+      `${path(id)}/sources`,
+      {
+        operationId,
+        refs: documents.map((document) => ({
+          documentId: document.id,
+          versionId: document.versionId,
+        })),
+      },
+      { signal, timeout: 180000 },
+    ),
+  beginUpload: async (
+    id: string,
+    file: File,
+    mimeType: string,
+    operationId: string,
+  ): Promise<{ snapshotId: string; presignedUrl?: string; status: string }> =>
+    (
+      await api.post(`${path(id)}/uploads`, {
+        operationId,
+        name: file.name,
+        mimeType,
+        sizeBytes: file.size,
+      })
+    ).data.data,
+  confirmUploads: (id: string, snapshotIds: string[]) =>
+    api.post(
+      `${path(id)}/uploads/confirm`,
+      { snapshotIds },
+      { timeout: 180000 },
+    ),
   page: async (params: NotebookListParams, signal?: AbortSignal) =>
     notebookPageSchema.parse(
       (
@@ -29,21 +65,6 @@ export const notebooksApi = {
     (await api.post("/api/ai/notebooks", { title })).data.data,
   rename: (id: string, title: string) => api.patch(path(id), { title }),
   remove: (id: string) => api.delete(path(id)),
-  checkUpload: (id: string, file: File, batch: UploadBatch) =>
-    api.post(`${path(id)}/upload-checks`, file, {
-      params: { name: file.name },
-      timeout: 80000,
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "X-File-Size": String(file.size),
-        "X-Upload-Count": String(batch.count),
-        "X-Upload-Bytes": String(batch.bytes),
-      },
-    }),
-  add: (id: string, documentIds: string[]) =>
-    api.post(`${path(id)}/sources`, {
-      refs: documentIds.map((documentId) => ({ documentId })),
-    }),
   source: async (
     id: string,
     sourceId: string,

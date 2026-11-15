@@ -1,139 +1,139 @@
-import { getSpaceChannels } from "@/features/chat/api/space.api";
-import {
-  getDirectConversations,
-  getDirectMessageSendPermission,
-  sendDirectMessage,
-} from "@/features/chat/api/direct-message.api";
+import { sendDirectMessage } from "@/features/chat/api/direct-message.api";
+import { isAxiosError } from "axios";
 import { sendChannelMessage } from "@/features/chat/api/channel.api";
-import { getProjectSpaceStatus } from "@/features/project/api/project.api";
-import { SpaceRole } from "@/features/chat/types/chat.enums";
+import { copyDocumentsToChat } from "@/features/chat/api/document-attachment.api";
+import { ChatContextType } from "@/features/chat/types/chat.types";
+import { sendMeetingMessage } from "@/features/meeting/api/meeting.api";
+import { attachTaskDocuments } from "@/features/project/api/task.api";
+import { TaskDocumentAttachmentSource } from "@/features/project/types/project";
 import { documentsApi } from "../api/documents.api";
-import { ShareTabType } from "../types/documents.enums";
-import { DOCUMENT_CHAT_SHARE_ERRORS as ERRORS } from "../types/document-chat-sharing.constants";
+import { fileCopyApi } from "../api/file-copy.api";
 import { getDocumentChatShareAttempt } from "./document-chat-share-attempt";
-
 export interface DocumentChatShareTarget {
-  type: ShareTabType;
+  type: "channel" | "direct" | "meeting" | "project";
   chatId: string;
-  spaceId?: string;
+  joinToken?: string;
+  taskId?: string;
 }
-
 export async function shareDocumentToChat({
   documentId,
   target,
   currentUserId,
   introMessage,
-  confirmInheritedEditorAccess = false,
-  onAccessPrepared,
+  isFolder = false,
   assertCurrentActor = () => {},
 }: {
   documentId: string;
   target: DocumentChatShareTarget;
   currentUserId: string;
   introMessage: string;
-  confirmInheritedEditorAccess?: boolean;
-  onAccessPrepared?: () => void;
+  isFolder?: boolean;
   assertCurrentActor?: () => void;
-}): Promise<{ requiresConfirmation: boolean; inheritedEditorCount: number }> {
+}) {
   assertCurrentActor();
-  const access = await documentsApi.getAccessibleItem(documentId);
-  assertCurrentActor();
-  let recipientIds: string[];
-  if (access.projectId) {
-    const status = await getProjectSpaceStatus(access.projectId);
-    assertCurrentActor();
-    if (
-      target.type !== ShareTabType.CHANNEL ||
-      !status.spaceId ||
-      target.spaceId !== status.spaceId
-    ) {
-      throw new Error(ERRORS.PROJECT_CHANNEL_REQUIRED);
-    }
-  }
-  if (target.type === ShareTabType.CHANNEL) {
-    if (!target.spaceId) throw new Error(ERRORS.TARGET_UNAVAILABLE);
-    // This endpoint includes the complete membership, unlike the limited member search.
-    const response = await getSpaceChannels(target.spaceId);
-    assertCurrentActor();
-    const channel =
-      response.success &&
-      response.data?.find((channel) => channel.id === target.chatId);
-    const sender =
-      channel &&
-      channel.members?.find((member) => member.userId === currentUserId);
-    if (!channel || !sender) throw new Error(ERRORS.TARGET_UNAVAILABLE);
-    if (
-      sender.role === SpaceRole.MEMBER &&
-      channel.setting?.allowSendMessage === false
-    )
-      throw new Error(ERRORS.SEND_NOT_ALLOWED);
-    recipientIds = channel.members.map((member) => member.userId);
-  } else {
-    const response = await getDirectConversations();
-    assertCurrentActor();
-    const conversation =
-      response.success &&
-      response.data?.find((conversation) => conversation.id === target.chatId);
-    if (
-      !conversation ||
-      !conversation.members?.some((member) => member.userId === currentUserId)
-    )
-      throw new Error(ERRORS.TARGET_UNAVAILABLE);
-    const permission = await getDirectMessageSendPermission(target.chatId);
-    assertCurrentActor();
-    if (!permission.canSend) throw new Error(ERRORS.SEND_NOT_ALLOWED);
-    recipientIds = conversation.members.map((member) => member.userId);
-  }
-  const recipients = [...new Set(recipientIds)].filter(
-    (id) => id !== currentUserId,
-  );
-  if (!recipients.length && target.type === ShareTabType.DM)
-    throw new Error(ERRORS.TARGET_UNAVAILABLE);
-  // No message is sent if verification/granting fails.
-  const permissionResult = recipients.length
-    ? await documentsApi.prepareChatShare(
-        documentId,
-        recipients,
-        confirmInheritedEditorAccess,
-      )
-    : { requiresConfirmation: false, inheritedEditorCount: 0 };
-  assertCurrentActor();
-  if (permissionResult.requiresConfirmation) return permissionResult;
-  if (recipients.length) onAccessPrepared?.();
+  if (target.type === "project" && isFolder)
+    throw new Error("Choose individual files for Project Documents.");
   const progress = await getDocumentChatShareAttempt(currentUserId, [
+    "COPY_V2",
     documentId,
     target.type,
     target.chatId,
+    target.taskId,
     introMessage.trim(),
   ]);
-  progress.save();
-  const send =
-    target.type === ShareTabType.CHANNEL
-      ? sendChannelMessage
-      : sendDirectMessage;
-  try {
+  if (!isFolder && !progress.attempt.sourceVersionId) {
+    const versions = await documentsApi.getVersions(documentId);
     assertCurrentActor();
-    if (introMessage.trim() && !progress.attempt.introSent) {
-      const response = await send(target.chatId, {
-        content: introMessage.trim(),
-        type: "TEXT",
-        clientRequestId: progress.attempt.introRequestId,
-      });
-      if (!response.success) throw new Error(ERRORS.SEND_FAILED);
-      progress.attempt.introSent = true;
+    const current = versions[0];
+    if (!current || current.id === "original")
+      throw new Error("The current file version could not be verified.");
+    progress.attempt.sourceVersionId = current.id;
+  }
+  progress.save();
+  const files = [
+    { id: documentId, versionId: progress.attempt.sourceVersionId },
+  ];
+  const resetPreparation = (error: unknown) => {
+    if (
+      isAxiosError(error) &&
+      [410, 412].includes(error.response?.status ?? 0)
+    ) {
+      assertCurrentActor();
+      progress.attempt.documentRequestId = crypto.randomUUID();
+      if (error.response?.status === 412)
+        delete progress.attempt.sourceVersionId;
       progress.save();
     }
+  };
+  if (target.type === "project") {
+    const copied = await fileCopyApi
+      .project(target.chatId, files, progress.attempt.documentRequestId)
+      .catch((error) => {
+        resetPreparation(error);
+        throw error;
+      });
     assertCurrentActor();
-    const response = await send(target.chatId, {
-      content: documentId,
-      type: "DOCUMENT",
-      clientRequestId: progress.attempt.documentRequestId,
-    });
-    if (!response.success) throw new Error(ERRORS.SEND_FAILED);
+    if (target.taskId)
+      await attachTaskDocuments(target.taskId, {
+        documentItemIds: copied.map((file) => file.id),
+        source: TaskDocumentAttachmentSource.PROJECT_DOCUMENT,
+        operationId: progress.attempt.documentRequestId,
+      });
+    assertCurrentActor();
     progress.complete();
-  } catch (error) {
-    throw new Error(ERRORS.SEND_FAILED, { cause: error });
-  }
 
-  return permissionResult;
+    return;
+  }
+  const chatType =
+    target.type === "channel"
+      ? ChatContextType.CHANNEL
+      : target.type === "direct"
+        ? ChatContextType.DIRECT_MESSAGE
+        : ChatContextType.MEETING;
+  let copies: Awaited<ReturnType<typeof copyDocumentsToChat>>;
+  try {
+    copies = await copyDocumentsToChat(
+      files,
+      { chatId: target.chatId, chatType },
+      new AbortController().signal,
+      progress.attempt.documentRequestId,
+    );
+  } catch (error) {
+    resetPreparation(error);
+    throw error;
+  }
+  assertCurrentActor();
+  const send = async (
+    content: string,
+    requestId: string,
+    attachment = false,
+  ) => {
+    assertCurrentActor();
+    const payload = {
+      content,
+      clientRequestId: requestId,
+      ...(attachment ? { medias: copies } : {}),
+    };
+    if (target.type === "meeting") {
+      if (!target.joinToken) throw new Error("Select the meeting again.");
+      const response = await sendMeetingMessage(target.joinToken, payload);
+      if (!response.success)
+        throw new Error("Unable to send the attachment. Retry this operation.");
+    } else {
+      const response = await (
+        target.type === "channel" ? sendChannelMessage : sendDirectMessage
+      )(target.chatId, { ...payload, type: "TEXT" });
+      if (!response.success)
+        throw new Error("Unable to send the attachment. Retry this operation.");
+    }
+  };
+  if (introMessage.trim() && !progress.attempt.introSent) {
+    await send(introMessage.trim(), progress.attempt.introRequestId);
+    progress.attempt.introSent = true;
+    progress.save();
+  }
+  assertCurrentActor();
+  await send("", progress.attempt.documentRequestId, true);
+  assertCurrentActor();
+  progress.complete();
 }

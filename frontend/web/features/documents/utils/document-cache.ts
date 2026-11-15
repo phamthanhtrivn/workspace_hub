@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { chatDocumentMetadataKey } from "@/features/chat/types/document.constants";
 import { documentKeys } from "../api/document-list.query";
 import { documentFolderAccessKey } from "./document-navigation";
+import { filePickerKey } from "../api/file-copy.api";
 
 export function invalidateDocumentShare(
   client: QueryClient,
@@ -41,6 +42,10 @@ export function invalidateDocumentPermissions(
   documentId?: string,
 ) {
   const requests: Promise<unknown>[] = [
+    client.resetQueries(
+      { queryKey: filePickerKey(userId) },
+      { cancelRefetch: false },
+    ),
     // Folder permissions can affect descendants not present in the event payload.
     client.resetQueries(
       { queryKey: documentKeys.lists(userId) },

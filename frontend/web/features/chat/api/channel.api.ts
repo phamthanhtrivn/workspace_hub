@@ -1,3 +1,4 @@
+import { copiedAttachmentDelivery } from "./copied-attachment-delivery";
 import { api } from "@/lib/axios";
 import type { PrivateChannelMembersResponse } from "../types/chat.types";
 import {
@@ -30,8 +31,14 @@ export const getChannelMembers = async (
   return normalizeApiResponse<ChannelMembersListResponse>(response.data);
 };
 
-export const addChannelMembers = async (channelId: string, userIds: string[]) => {
-  const response = await api.post(`/api/channels/${channelId}/members`, { userIds });
+export const addChannelMembers = async (
+  channelId: string,
+  userIds: string[],
+) => {
+  const response = await api.post(`/api/channels/${channelId}/members`, {
+    userIds,
+  });
+
   return normalizeApiResponse<{ count: number }>(response.data);
 };
 
@@ -40,10 +47,14 @@ export const getPrivateChannelMemberDirectory = async (
   params: { page: number; search?: string },
   signal?: AbortSignal,
 ): Promise<ApiResponse<PrivateChannelMembersResponse>> => {
-  const response = await api.get(`/api/channels/${channelId}/member-directory`, {
-    params: { ...params, search: params.search || undefined },
-    signal,
-  });
+  const response = await api.get(
+    `/api/channels/${channelId}/member-directory`,
+    {
+      params: { ...params, search: params.search || undefined },
+      signal,
+    },
+  );
+
   return normalizeApiResponse<PrivateChannelMembersResponse>(response.data);
 };
 
@@ -173,8 +184,18 @@ export const sendChannelMessage = async (
     mentions?: string[];
   },
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.post(`/api/channels/${channelId}/messages`, payload);
-  return normalizeApiResponse<ChatMessageResponse>(response.data);
+  return copiedAttachmentDelivery(
+    "channel:" + channelId,
+    payload,
+    async (next) => {
+      const response = await api.post(
+        `/api/channels/${channelId}/messages`,
+        next,
+      );
+
+      return normalizeApiResponse<ChatMessageResponse>(response.data);
+    },
+  );
 };
 
 export const markChannelMessageAsRead = async (
@@ -200,7 +221,10 @@ export const editChannelMessage = async (
 export const recallChannelMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(`/api/channels/messages/${messageId}/recall`);
+  const response = await api.patch(
+    `/api/channels/messages/${messageId}/recall`,
+  );
+
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
@@ -216,12 +240,17 @@ export const reactChannelMessage = async (
       `/api/channels/messages/${messageId}/reactions`,
       { data: { emoji } },
     );
+
     return normalizeApiResponse(response.data);
   }
 
-  const response = await api.post(`/api/channels/messages/${messageId}/reactions`, {
-    emoji,
-  });
+  const response = await api.post(
+    `/api/channels/messages/${messageId}/reactions`,
+    {
+      emoji,
+    },
+  );
+
   return normalizeApiResponse(response.data);
 };
 

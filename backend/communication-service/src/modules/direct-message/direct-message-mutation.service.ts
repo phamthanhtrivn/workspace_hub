@@ -1,3 +1,4 @@
+import { reserveImportedAttachments } from '../media/imported-attachment-reservation';
 import { ConflictException } from '@nestjs/common';
 import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
 import {
@@ -88,9 +89,6 @@ export class DirectMessageMutationService {
       requestId &&
       (attachmentMediaId ||
         summaryOptions ||
-        medias?.length ||
-        false ||
-        threadParentId ||
         (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
     )
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
@@ -100,7 +98,13 @@ export class DirectMessageMutationService {
           requestId,
           chatId: conversationId,
           chatType: 'DIRECT_MESSAGE',
-          payload: { content, type, mentions: mentions ?? [] },
+          payload: {
+            content,
+            type,
+            mentions: mentions ?? [],
+            ...(medias?.length ? { medias } : {}),
+            ...(threadParentId ? { threadParentId } : {}),
+          },
         }
       : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
@@ -143,6 +147,13 @@ export class DirectMessageMutationService {
         };
       }
 
+      await reserveImportedAttachments(
+        tx,
+        senderId,
+        conversationId,
+        'DIRECT_MESSAGE',
+        medias,
+      );
       const summaryReservation = attachmentMediaId
         ? await this.conversationAi.prepareAttachmentSummary(
             tx,

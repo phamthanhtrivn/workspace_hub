@@ -4,6 +4,7 @@ const shareAttemptSchema = z.object({
   introRequestId: z.string().uuid(),
   documentRequestId: z.string().uuid(),
   introSent: z.boolean(),
+  sourceVersionId: z.string().uuid().optional(),
 });
 
 export type DocumentChatShareAttempt = z.infer<typeof shareAttemptSchema>;

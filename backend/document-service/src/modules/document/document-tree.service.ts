@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ItemType, DocumentItem, Prisma } from '@prisma/client';
 
@@ -93,8 +93,15 @@ export class DocumentTreeService {
   async getFolderDescendantsWithPaths(
     folderId: string,
     rootName: string,
-  ): Promise<{ files: DocumentItem[]; pathMap: Map<string, string> }> {
+    maxEntries = Number.MAX_SAFE_INTEGER,
+  ): Promise<{
+    files: DocumentItem[];
+    pathMap: Map<string, string>;
+    directories: string[];
+  }> {
     const files: DocumentItem[] = [];
+    const directories: string[] = [];
+    const visited = new Set<string>();
     const pathMap = new Map<string, string>();
     const queue: { id: string; relativePath: string }[] = [
       { id: folderId, relativePath: rootName },
@@ -102,11 +109,21 @@ export class DocumentTreeService {
 
     while (queue.length > 0) {
       const { id: currentId, relativePath } = queue.shift()!;
+      if (visited.has(currentId))
+        throw new BadRequestException('Invalid folder hierarchy.');
+      visited.add(currentId);
+      directories.push(relativePath);
+      if (directories.length + files.length + queue.length > maxEntries)
+        throw new BadRequestException('Folder has too many entries to export.');
       const children = await this.prisma.documentItem.findMany({
         where: { parentFolderId: currentId, isArchived: false },
       });
 
       for (const child of children) {
+        if (directories.length + files.length + queue.length >= maxEntries)
+          throw new BadRequestException(
+            'Folder has too many entries to export.',
+          );
         const childPath = `${relativePath}/${child.name}`;
         if (child.type === ItemType.FOLDER) {
           queue.push({ id: child.id, relativePath: childPath });
@@ -117,6 +134,6 @@ export class DocumentTreeService {
       }
     }
 
-    return { files, pathMap };
+    return { files, pathMap, directories };
   }
 }

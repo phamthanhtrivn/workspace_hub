@@ -716,6 +716,9 @@
         ],
         "LIVEKIT_EGRESS_HEALTH_URL": [
           "backend/communication-service/src/infrastructure/livekit/livekit.service.ts"
+        ],
+        "DOCUMENT_SERVICE_URL": [
+          "backend/communication-service/src/modules/media/document-attachment-import.service.ts"
         ]
       },
       "variables": {
@@ -999,6 +1002,11 @@
               "meeting.status"
             ]
           },
+          "requiredLocal": true
+        },
+        "DOCUMENT_SERVICE_URL": {
+          "secret": false,
+          "source": "runtime",
           "requiredLocal": true
         }
       }

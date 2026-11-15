@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
+import { DocumentAttachmentImportService } from './document-attachment-import.service';
+import { DocumentImportCleanupService } from './document-import-cleanup.service';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { MediaAccessService } from './media-access.service';
 import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
@@ -21,6 +23,8 @@ import {
     VoiceTranscriptSourceController,
   ],
   providers: [
+    DocumentAttachmentImportService,
+    DocumentImportCleanupService,
     MediaService,
     MediaAccessService,
     MeetingPolicyService,

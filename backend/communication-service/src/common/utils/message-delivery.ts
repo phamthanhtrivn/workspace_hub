@@ -6,7 +6,7 @@ export interface MessageDeliveryIdentity {
   senderId: string;
   requestId: string;
   chatId: string;
-  chatType: 'CHANNEL' | 'DIRECT_MESSAGE';
+  chatType: 'CHANNEL' | 'DIRECT_MESSAGE' | 'MEETING';
   payload: unknown;
 }
 
