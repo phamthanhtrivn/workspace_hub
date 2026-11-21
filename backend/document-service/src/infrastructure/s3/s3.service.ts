@@ -11,6 +11,7 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  HeadBucketCommand,
   CopyObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -18,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Readable } from 'stream';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 import { UploadIntentService } from './upload-intent.service';
+import { isMissingS3Object, s3FailureDetails } from './s3-errors';
 import {
   UploadConfirmation,
   UploadScope,
@@ -88,6 +90,7 @@ export class S3Service {
           { expiresIn: 120 },
         )
       : undefined;
+
     return {
       etag: object.ETag,
       sizeBytes: object.ContentLength,
@@ -154,9 +157,39 @@ export class S3Service {
       });
 
       await this.s3Client.send(command);
+    } catch (error) {
+      if (await this.confirmObjectAbsent(s3Key)) return;
+
+      this.logger.error({
+        event: 's3_object_deletion_failed',
+        ...s3FailureDetails(error),
+      });
+      throw new InternalServerErrorException('Failed to delete file from S3', {
+        cause: error,
+      });
+    }
+  }
+
+  private async confirmObjectAbsent(s3Key: string): Promise<boolean> {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
+      );
+
+      return false;
+    } catch (error) {
+      if (!isMissingS3Object(error)) return false;
+    }
+
+    // A missing bucket must not make an unfinished cleanup look successful.
+    try {
+      await this.s3Client.send(
+        new HeadBucketCommand({ Bucket: this.bucketName }),
+      );
+
+      return true;
     } catch {
-      this.logger.error('S3 object deletion failed');
-      throw new InternalServerErrorException('Failed to delete file from S3');
+      return false;
     }
   }
 
@@ -221,6 +254,7 @@ export class S3Service {
         CopySource: `${this.bucketName}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`,
       }),
     );
+
     return key;
   }
 
@@ -282,6 +316,7 @@ export class S3Service {
       if (!response.Body) {
         throw new InternalServerErrorException('Empty S3 response body');
       }
+
       return response.Body as Readable;
     } catch {
       this.logger.error('S3 object streaming failed');

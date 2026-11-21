@@ -16,7 +16,6 @@ export class MeetingProviders {
   objects = new Map();
   calls = [];
   failures = new Map();
-  sessions = new Map();
   summaries = new Map();
   holds = new Map();
 
@@ -132,22 +131,6 @@ export class MeetingProviders {
         return send(200, entry);
       }
       return send(501, { code: 'unimplemented', msg: method });
-    }
-    if (url.pathname === '/sessions') {
-      if (
-        request.headers.authorization !==
-        `Bearer ${this.keys.CAPTION_SERVICE_TOKEN}`
-      )
-        return send(403, {});
-      this.sessions.set(body.meetingId, body);
-      return send(200, {
-        workerIdentity: 'caption-audit-worker',
-        language: 'vi',
-      });
-    }
-    if (url.pathname.startsWith('/sessions/')) {
-      this.sessions.clear();
-      return send(200, { released: true });
     }
     if (url.pathname === '/transcribe') {
       assert.equal(
@@ -266,7 +249,6 @@ export class MeetingProviders {
     await new Promise((resolve) => this.server.close(resolve));
     this.objects.clear();
     this.rooms.clear();
-    this.sessions.clear();
     this.summaries.clear();
   }
 }

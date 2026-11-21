@@ -297,7 +297,7 @@ export function registerParticipationTests(h) {
     );
   });
 
-  test('LIFECYCLE-01: ending a room clears joined members and blocks chat, captions and screen share', async () => {
+  test('LIFECYCLE-01: ending a room clears joined members and blocks chat and screen share', async () => {
     const meeting = await h.instant();
     await h.join(meeting);
     await h.request(`/${meeting.joinToken}/end`, {
@@ -320,7 +320,6 @@ export function registerParticipationTests(h) {
     assert.ok(ended.participants.every((p) => p.status !== 'JOINED'));
     for (const [path, method, body] of [
       ['messages', 'POST', { content: 'Late' }],
-      ['captions', 'POST', {}],
       ['screen-share/start', 'POST', {}],
     ]) {
       const response = await h.request(`/${meeting.joinToken}/${path}`, {

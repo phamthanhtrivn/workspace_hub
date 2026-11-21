@@ -24,11 +24,13 @@ Fragmented tools make it difficult for individuals and small teams to keep work 
 | Notifications | Categorized bell, real-time updates, foreground toast/sound, Web Push and email where configured; reminder delivery deduplication |
 | Communication | Spaces/channels, direct messages, threads, reactions, attachments, polls, notes, voice recording/playback and transcription |
 | Documents | Files/folders, versions, previews, sharing, public links, trash/archive workflows and controlled downloads |
-| Meetings | Scheduling, participation, devices, video/audio, screen sharing, meeting chat, recordings, sharing and owner-triggered AI summaries |
+| Meetings | Scheduling, admission, devices, video/audio, screen sharing, meeting chat/reactions, hand raising, recordings, sharing and owner-triggered AI summaries |
 | Productivity | Dashboard, Pomodoro focus/break sessions, task association, history/statistics and ambient audio |
 | AI | Personal notebooks with independent source copies, cited Q&A and saved notes, conversation bot and attachment summaries, Project/Calendar Work Assistant, meeting summaries and speech transcription |
 
 AI flags, model capability, provider quota and dependent services determine availability. Meeting summaries are explicitly requested after a recording completes; readers with current recording access share the saved result. Flashcards, quizzes and a mobile application are not claimed as implemented features.
+
+The [thesis interface samples](docs/thesis/interfaces/README.md) include an English Meeting Room preview with sample participants and the current room controls. These samples are for screenshots; they do not connect to a live meeting or run AI processing.
 
 ## System Architecture and Technology Stack
 

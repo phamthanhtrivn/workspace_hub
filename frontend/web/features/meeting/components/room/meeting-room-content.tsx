@@ -11,8 +11,6 @@ import { useMeetingHandStates } from "@/features/meeting/hooks/useMeetingHandSta
 import { useMeetingRoomInteractions } from "@/features/meeting/hooks/useMeetingRoomInteractions";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import { useMeetingScreenShare } from "@/features/meeting/hooks/useMeetingScreenShare";
-import { useMeetingCaptions } from "@/features/meeting/hooks/useMeetingCaptions";
-import { MeetingCaptions } from "./meeting-captions";
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { useAppSelector } from "@/store/store";
 import type {
@@ -66,7 +64,6 @@ export function MeetingRoomContent({
 }: MeetingRoomContentProps) {
   const connectionState = useConnectionState();
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const liveCaptions = useMeetingCaptions(joinToken, meetingId);
   const stageContainerRef = useRef<HTMLElement | null>(null);
   const reactionTimeoutIdsRef = useRef<number[]>([]);
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
@@ -226,14 +223,6 @@ export function MeetingRoomContent({
             {getRoomStatusLabel(connectionState)}
           </span>
           <MeetingRecordingBanner joinToken={joinToken} meetingId={meetingId} />
-          {liveCaptions.active && (
-            <span
-              className="rounded-md bg-info-soft px-2 py-1.5 text-xs font-semibold text-info-content"
-              role="status"
-            >
-              Live captions active
-            </span>
-          )}
           <span className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
             {formatElapsedTime(elapsedSeconds)}
           </span>
@@ -249,12 +238,6 @@ export function MeetingRoomContent({
             containerRef={stageContainerRef}
             reactions={roomReactions}
           />
-          {liveCaptions.enabled && (
-            <MeetingCaptions
-              captions={liveCaptions.captions}
-              error={liveCaptions.error}
-            />
-          )}
           <div className="flex min-h-full flex-col justify-start lg:justify-center">
             <MeetingRoomStage
               activeScreenShareTrack={activeScreenShareTrack}
@@ -361,10 +344,6 @@ export function MeetingRoomContent({
       </main>
 
       <MeetingRoomFooter
-        captionsEnabled={liveCaptions.enabled}
-        captionsAvailable={liveCaptions.available}
-        captionsPending={liveCaptions.pending}
-        onToggleCaptions={liveCaptions.toggle}
         activePanel={activePanel}
         joinToken={joinToken}
         meetingId={meetingId}

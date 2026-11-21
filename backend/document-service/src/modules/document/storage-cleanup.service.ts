@@ -6,6 +6,17 @@ import { S3Service } from '../../infrastructure/s3/s3.service';
 
 const CLEANUP_BATCH_SIZE = 50;
 const CLEANUP_RETRY_MS = 60_000;
+const CLEANUP_MAX_RETRY_MS = 60 * 60_000;
+const CLEANUP_MAX_RETRY_EXPONENT = Math.ceil(
+  Math.log2(CLEANUP_MAX_RETRY_MS / CLEANUP_RETRY_MS),
+);
+
+function retryDelay(attemptCount: number): number {
+  return Math.min(
+    CLEANUP_MAX_RETRY_MS,
+    CLEANUP_RETRY_MS * 2 ** Math.min(attemptCount, CLEANUP_MAX_RETRY_EXPONENT),
+  );
+}
 
 @Injectable()
 export class StorageCleanupService {
@@ -49,15 +60,18 @@ export class StorageCleanupService {
             where: { id: job.id },
           });
         } catch (error) {
+          const nextAttemptAt = new Date(
+            Date.now() + retryDelay(job.attemptCount),
+          );
           await this.prisma.storageCleanupJob.update({
             where: { id: job.id },
             data: {
               attemptCount: { increment: 1 },
-              nextAttemptAt: new Date(Date.now() + CLEANUP_RETRY_MS),
+              nextAttemptAt,
             },
           });
           this.logger.warn(
-            `Storage cleanup ${job.id} failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            `Storage cleanup ${job.id} failed: ${error instanceof Error ? error.message : 'Unknown error'}. Next retry: ${nextAttemptAt.toISOString()}`,
           );
         }
       }

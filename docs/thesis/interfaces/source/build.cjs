@@ -1,0 +1,22 @@
+const fs=require('node:fs');const path=require('node:path');const {createRequire}=require('node:module');
+const folder=path.resolve(__dirname,'..');const web=path.resolve(folder,'../../../frontend/web');
+const req=createRequire(path.join(web,'package.json'));
+async function main(){
+ fs.mkdirSync(path.join(folder,'assets'),{recursive:true});
+ fs.copyFileSync(req.resolve('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'),path.join(folder,'assets/inter-latin.woff2'));
+ fs.copyFileSync(path.join(path.dirname(req.resolve('@fontsource-variable/inter/package.json')),'LICENSE'),path.join(folder,'assets/INTER-LICENSE.txt'));
+ const compiled=req('next/dist/compiled/webpack/webpack');const wp=compiled.webpack;const webpack=wp;
+ const {compile}=req('@tailwindcss/node');const {Scanner}=req('@tailwindcss/oxide');
+ const css=await compile(fs.readFileSync(path.join(web,'app/globals.css'),'utf8'),{base:path.join(web,'app'),onDependency(){}});
+ const scanner=new Scanner({sources:[{base:web,pattern:'**/*.{ts,tsx}',negated:false},{base:__dirname,pattern:'**/*.{js,jsx}',negated:false}]});
+ const styles=css.build(scanner.scan());fs.writeFileSync(path.join(folder,'assets/system.css'),'@font-face{font-family:"Inter Variable";src:url("./inter-latin.woff2") format("woff2");font-weight:100 900;font-display:swap}\n'+styles);
+ const aliases={'@':web,'@tanstack/react-query$':path.join(__dirname,'queries.jsx'),'next/navigation$':path.join(__dirname,'navigation.jsx'),'next/link$':path.join(__dirname,'next-link.jsx'),'next/image$':path.join(__dirname,'next-image.jsx'),'next/dynamic$':path.join(__dirname,'next-dynamic.jsx'),'socket.io-client$':path.join(__dirname,'socket.js'),[path.join(web,'lib/seo')]:path.join(__dirname,'seo.js')};
+ aliases['@livekit/components-react$']=path.join(__dirname,'livekit.jsx');
+ const config={mode:'development',devtool:false,context:web,target:['web','es2022'],entry:path.join(__dirname,'entry.jsx'),output:{path:path.join(folder,'assets'),filename:'system-ui.js',chunkFilename:'system-[id].js',publicPath:'assets/'},resolve:{alias:aliases,extensions:['.tsx','.ts','.jsx','.js','.json'],modules:[path.join(web,'node_modules'),'node_modules'],fallback:{fs:false,path:false,crypto:false,stream:false,util:false}},resolveLoader:{modules:[path.join(web,'node_modules'),'node_modules']},module:{rules:[{test:/\.[jt]sx?$/,exclude:/node_modules/,use:path.join(__dirname,'tsx-loader.cjs')},{test:/\.css$/,use:path.join(__dirname,'css-loader.cjs')},{test:/\.(woff2?|png|jpg|svg|mp3|ogg)$/,type:'asset/resource'}]},plugins:[new wp.NormalModuleReplacementPlugin(/pomodoro-session-provider(?:\.tsx)?$/,path.join(__dirname,'pomodoro-state.jsx')),new wp.DefinePlugin({'process.env':JSON.stringify({NODE_ENV:'development',NEXT_PUBLIC_API_URL:'http://illustration.invalid',NEXT_PUBLIC_SITE_URL:'https://workspacehub.example',NEXT_PUBLIC_AI_ENABLED:'true',NEXT_PUBLIC_ENABLE_AI:'true'})})],optimization:{minimize:false,splitChunks:false},performance:{hints:false},stats:'errors-warnings'};
+ config.plugins.push(new wp.NormalModuleReplacementPlugin(/use-work-assistant(?:\.ts)?$/,path.join(__dirname,'work-state.jsx')));
+ config.plugins.push(new wp.NormalModuleReplacementPlugin(/(?:useMeetingParticipantViewPreferences|useMeetingHandStates|useMeetingRoomLifecycle|useMeetingChatNotificationPreference|useMeetingScreenShare|useMeetingRoomInteractions|useMeetingParticipantTile)(?:\.ts)?$/,path.join(__dirname,'room-state.jsx')));
+ await new Promise((resolve,reject)=>{const compiler=webpack(config);compiler.run((error,stats)=>{compiler.close(()=>{});if(error)return reject(error);if(stats.hasErrors())return reject(new Error(stats.toString({all:false,errors:true})));console.log(stats.toString({all:false,warnings:true}));resolve()})});
+ for(const file of fs.readdirSync(folder).filter(name=>/^\d{2}-.+\.html$/.test(name))){const title=fs.readFileSync(path.join(folder,file),'utf8').match(/<title>(.*?)<\/title>/)?.[1]||'WorkspaceHub';fs.writeFileSync(path.join(folder,file),`<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${title}</title><link rel="stylesheet" href="assets/system.css"></head><body class="min-h-screen" data-screen="${Number(file.slice(0,2))}"><div id="root"></div><script src="assets/system-ui.js"></script></body></html>`);}
+ console.log('Compiled original WorkspaceHub components and styles.');
+}
+main().catch(error=>{console.error(error);process.exitCode=1});
