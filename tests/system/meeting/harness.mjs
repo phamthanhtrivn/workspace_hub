@@ -29,7 +29,6 @@ export class MeetingHarness {
         'CALENDAR_TO_COMMUNICATION_KEY',
         'COMMUNICATION_TO_AI_KEY',
         'AI_TO_COMMUNICATION_KEY',
-        'CAPTION_SERVICE_TOKEN',
         'LIVEKIT_API_SECRET',
         'MEETING_STT_SERVICE_KEY',
         'LLM_API_KEY',
@@ -54,7 +53,6 @@ export class MeetingHarness {
       AWS_REGION: 'test-region',
       AWS_ACCESS_KEY: 'test-only',
       AWS_SECRET_KEY: 'test-only',
-      CAPTION_SERVICE_URL: this.providers.url,
       MEETING_SUMMARY_ENABLED: 'true',
       AI_SERVICE_URL: this.providers.url,
     });
@@ -383,12 +381,6 @@ export class MeetingHarness {
       this.room,
       this.worker,
     );
-    this.captions = make(
-      'meeting-captions.service',
-      'MeetingCaptionsService',
-      this.policy,
-      this.livekit,
-    );
     this.calendar = make(
       'calendar-meeting-sync.service',
       'CalendarMeetingSyncService',
@@ -408,7 +400,6 @@ export class MeetingHarness {
       this.messages,
       this.recordings,
       this.recordingRequests,
-      this.captions,
       this.preferences,
       this.bulk,
       this.calendar,
@@ -429,7 +420,6 @@ export class MeetingHarness {
         'meeting-history-preference.controller',
         'MeetingHistoryPreferenceController',
       ],
-      ['meeting-captions.controller', 'MeetingCaptionsController'],
       ['calendar-meeting-sync.controller', 'CalendarMeetingSyncController'],
       ['meeting.controller', 'MeetingController'],
       ['meeting-livekit-webhook.controller', 'MeetingLiveKitWebhookController'],

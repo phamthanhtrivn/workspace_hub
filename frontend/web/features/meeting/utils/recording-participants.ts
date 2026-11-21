@@ -1,5 +1,4 @@
 import { ParticipantKind } from "livekit-client";
-import { isCaptionWorker } from "./meeting-captions";
 
 export function isRecordingParticipant(participant: {
   identity: string;
@@ -10,7 +9,6 @@ export function isRecordingParticipant(participant: {
   return (
     !participant.isLocal &&
     !participant.permissions?.hidden &&
-    participant.kind !== ParticipantKind.EGRESS &&
-    !isCaptionWorker(participant.identity)
+    participant.kind !== ParticipantKind.EGRESS
   );
 }

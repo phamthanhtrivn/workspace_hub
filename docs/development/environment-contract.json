@@ -577,14 +577,6 @@
         "CALENDAR_TO_COMMUNICATION_KEY": [
           "backend/communication-service/src/modules/meeting/calendar-meeting-sync.controller.ts:28"
         ],
-        "CAPTION_SERVICE_TOKEN": [
-          "backend/communication-service/src/modules/meeting/services/meeting-captions.service.ts:20",
-          "backend/communication-service/src/modules/meeting/services/meeting-captions.service.ts:78"
-        ],
-        "CAPTION_SERVICE_URL": [
-          "backend/communication-service/src/modules/meeting/services/meeting-captions.service.ts:20",
-          "backend/communication-service/src/modules/meeting/services/meeting-captions.service.ts:74"
-        ],
         "COMMUNICATION_TO_AI_KEY": [
           "backend/communication-service/src/modules/conversation-ai/conversation-ai.service.ts:54",
           "backend/communication-service/src/modules/conversation-ai/conversation-ai.service.ts:155",
@@ -762,11 +754,6 @@
           "source": "runtime",
           "requiredLocal": false
         },
-        "CAPTION_SERVICE_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
         "PROJECT_SERVICE_URL": {
           "secret": false,
           "source": "runtime",
@@ -818,11 +805,6 @@
           "requiredLocal": false
         },
         "AWS_SECRET_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "CAPTION_SERVICE_TOKEN": {
           "secret": true,
           "source": "runtime",
           "requiredLocal": false

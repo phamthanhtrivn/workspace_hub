@@ -11,7 +11,6 @@ const { AxiosError, CanceledError, isCancel } = web('axios');
 const { QueryClient } = web('@tanstack/react-query');
 const { toast } = web('sonner');
 const { recordingApi } = web('./features/meeting/api/meeting-recording.api.ts');
-const { captionsApi } = web('./features/meeting/api/meeting-captions.api.ts');
 const { sendMeetingMessage, stopMeetingScreenShare, getMeetingMediaPresignedUrls, uploadMeetingMediaToS3 } = web('./features/meeting/api/meeting.api.ts');
 const { openMeetingRoomRequests, closeMeetingRoomRequests, meetingRoomRequestSignal } = web('./features/meeting/api/meeting-room-requests.ts');
 const { clearMeetingRoomQueries } = web('./features/meeting/utils/meeting-room-queries.ts');
@@ -97,9 +96,7 @@ test('leaving a room aborts in-flight reads and blocks late cleanup without affe
     await started.promise;
     closeMeetingRoomRequests('leaving-room');
     await assert.rejects(pending, isCancel);
-    for (const cleanup of [() => captionsApi.release('leaving-room'), () => stopMeetingScreenShare('leaving-room')]) {
-      await assert.rejects(cleanup(), error => { showMeetingActionError(error, 'Cleanup failed'); return isCancel(error); });
-    }
+    await assert.rejects(stopMeetingScreenShare('leaving-room'), error => { showMeetingActionError(error, 'Cleanup failed'); return isCancel(error); });
     assert.equal(requests, 1, 'closed-room cleanup must not hit the network');
     assert.equal(meetingRoomRequestSignal('/api/meetings/other-room/recordings/status'), undefined);
     assert.equal(meetingRoomRequestSignal('/api/meetings/leaving-room/access'), undefined);
