@@ -1,0 +1,7 @@
+import {ids,tasks,timestamp} from './fixtures';
+const noop=async()=>{};
+const query={isSuccess:true,isPending:false,isFetching:false,isError:false,hasNextPage:false,isFetchingNextPage:false,error:null,refetch:noop,fetchNextPage:noop,data:{pages:[]}};
+const references=tasks.slice(0,3).map(task=>({id:task.id,kind:'project',projectId:ids.project,title:task.title,url:'/projects/'+ids.project+'?taskId='+task.id,dueAt:task.dueDate}));
+const messages=[{id:'work-question',role:'user',content:'What should I focus on today? Consider my assigned tasks and calendar.',sources:[],created_at:timestamp},{id:'work-answer',role:'assistant',content:'Your first priority is **Implement document access controls**. It has high priority and is due on November 24.\n\n### Suggested plan\n\n1. Finish the shared-link expiry checks.\n2. Review the permission error messages.\n3. Prepare a short update for the sprint review.\n\nYou have a **Sprint review at 2:00 PM**. A 25-minute focus session before the meeting would fit your current schedule.\n\nThe calendar integration task is the next item to review with Daniel.',sources:references,created_at:timestamp,context:{scope:{audience:'mine'},fetchedAt:timestamp,timeZone:'Asia/Ho_Chi_Minh',days:7}}];
+export function useWorkAssistant(){return {messages,pending:null,reply:null,status:'',notice:'',streaming:false,error:'',history:query,conversations:query,createConversation:{isPending:false,isError:false},send:noop,stop:noop,retry:noop}}
+export function workError(error){return error?.message||''}
