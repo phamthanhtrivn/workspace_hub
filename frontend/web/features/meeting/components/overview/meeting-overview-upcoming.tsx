@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarDays, Plus } from "lucide-react";
 import { ViewAllAction } from "@/components/common/view-all-action";
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -20,6 +21,7 @@ interface MeetingOverviewUpcomingProps {
 }
 
 export function MeetingOverviewUpcoming({ query, now, onViewAll, onSchedule, onEdit }: MeetingOverviewUpcomingProps) {
+  useAccountTimezone();
   const upcoming = query.data?.data;
   const [nearest, ...following] = upcoming?.items ?? [];
 

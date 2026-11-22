@@ -1,3 +1,7 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { useId as useInputFieldId } from "react";
 import { SpaceResponse } from "@/features/chat/types/chat.types";
@@ -26,6 +30,7 @@ export function OverviewTab({
   onSpaceNameChange,
   onSave,
 }: OverviewTabProps) {
+  useAccountTimezone();
   const inputFieldId = useInputFieldId();
   return (
     <div className="space-y-5">
@@ -42,7 +47,7 @@ export function OverviewTab({
           label="Created Date"
           value={
             detail.createdAt
-              ? new Date(detail.createdAt).toLocaleDateString("en-US")
+              ? formatInTimezone(new Date(detail.createdAt), "en-US", { year: "numeric", month: "numeric", day: "numeric" })
               : "-"
           }
           compact

@@ -1,4 +1,6 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { getDisplayTimezone } from "@/lib/timezone";
 import { Button } from "@/components/ui/button";
 import type { WorkConversation } from "../types";
 
@@ -23,6 +25,7 @@ export default function WorkConversationList({
   onRetry: () => void;
   onSelect: (id: string) => void;
 }) {
+  useAccountTimezone();
   return (
     <section
       id="work-conversation-list"
@@ -65,7 +68,7 @@ export default function WorkConversationList({
                 dateTime={session.updatedAt}
                 className="text-xs font-normal text-muted-foreground"
               >
-                {new Intl.DateTimeFormat("en-US", {
+                {new Intl.DateTimeFormat("en-US", { timeZone: getDisplayTimezone(),
                   day: "2-digit",
                   month: "2-digit",
                   hour: "2-digit",

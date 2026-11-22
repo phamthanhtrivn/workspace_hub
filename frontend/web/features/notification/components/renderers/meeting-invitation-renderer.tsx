@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -53,6 +54,7 @@ export function MeetingInvitationListItemRenderer({
   notification: Notification;
   onClick: () => void;
 }) {
+  useAccountTimezone();
   const metadata = getMeetingInvitationMetadata(notification);
   const status = getMeetingStatus(notification);
   const senderName = notification.senderName || "Someone";
@@ -78,6 +80,7 @@ export function MeetingInvitationModalRenderer({
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
 }) {
+  useAccountTimezone();
   const metadata = getMeetingInvitationMetadata(notification);
   const router = useRouter();
   const dispatch = useAppDispatch();

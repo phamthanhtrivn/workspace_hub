@@ -1,10 +1,10 @@
+import { zonedDateKey } from "@/lib/timezone";
 import {
   getAllCalendarTasks,
   getCalendars,
   listCalendarPomodoroSessions,
 } from "@/features/calendar/api/calendar.api";
 import type { CalendarPomodoroSession } from "@/features/calendar/types/calendar.types";
-import { formatLocalDateKey } from "@/features/calendar/utils/calendar-date.utils";
 import { getTaskDueDate } from "@/features/calendar/utils/calendar-tasks.utils";
 import { fetchAllPages } from "@/features/project/api/pagination";
 import { getProjects } from "@/features/project/api/project.api";
@@ -99,7 +99,7 @@ export async function getPersonalDashboardTasks(
     const dueAt = Number.isNaN(dueDate.getTime())
       ? null
       : event.allDay
-        ? formatLocalDateKey(dueDate) || null
+        ? zonedDateKey(dueDate, event.timeZone || event.calendar?.timeZone) || null
         : dueDate.toISOString();
     return [
       {

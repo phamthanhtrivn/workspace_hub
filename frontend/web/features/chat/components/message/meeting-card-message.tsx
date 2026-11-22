@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import React from "react";
 import { Video, ExternalLink, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   meeting: propMeeting,
   onUserClick,
 }: MeetingCardMessageProps) {
+  useAccountTimezone();
   const router = useRouter();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();

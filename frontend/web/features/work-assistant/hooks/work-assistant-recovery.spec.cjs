@@ -35,6 +35,7 @@ function fixture(state = "COMPLETED", permitted = true, transport) {
     "features/work-assistant/hooks/use-work-assistant.ts",
     {
       react: {
+        useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
         useState: (initial) => [initial, () => {}],
         useRef: (value) => {
           const index = refCursor++;

@@ -14,7 +14,7 @@ import {
 } from "../constants/work-assistant-query";
 import { verifyWorkCacheAccess, workAccessDenied } from "../api/cache-access";
 import { cancelStream, confirmCancellation } from "../api/cancellation";
-import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import type { Audience, WorkMessage } from "../types";
 import {
   conversationContext,
@@ -62,13 +62,7 @@ export function useWorkAssistant(
       ),
   });
   const accessReady = access.isSuccess && !access.isFetching;
-  const account = useQuery({
-    queryKey: [...accountRoot, "account-settings"],
-    queryFn: getUserSettings,
-    retry: false,
-    staleTime: 60000,
-  });
-  const timeZone = account.data?.data.timezone;
+  const timeZone = useAccountTimezone();
   const history = useInfiniteQuery({
     ...WORK_ASSISTANT_READ_POLICY,
     queryKey: historyKey,

@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import Link from "next/link";
 import { Bot, Calendar, CheckSquare, ChevronDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -17,6 +20,7 @@ export default function WorkAssistantMessage({
 }: {
   message: WorkMessage;
 }) {
+  const timeZone = useAccountTimezone();
   const allowed = new Set(message.sources.map(taskHref));
   const isUser = message.role === "user";
 
@@ -62,7 +66,7 @@ export default function WorkAssistantMessage({
             <span aria-hidden="true">·</span>
             <time dateTime={message.context.fetchedAt}>
               {new Intl.DateTimeFormat("en-US", {
-                timeZone: message.context.timeZone,
+                timeZone,
                 day: "2-digit",
                 month: "2-digit",
                 hour: "2-digit",

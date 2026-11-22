@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Bell } from "lucide-react";
 import React from "react";
@@ -22,6 +23,7 @@ export const DefaultModalRenderer: React.FC<{
   notification: Notification;
   onClose: () => void;
 }> = ({ notification, onClose }) => {
+  useAccountTimezone();
   const category = getNotificationCategory(notification);
   const showResourceIcon = category === "PROJECT" || category === "DOCUMENT";
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,6 +19,7 @@ interface NotificationListRowProps extends NotificationListItemProps {
 
 /** List renderers own their content; row geometry and read state stay consistent. */
 export function NotificationListRow({ notification, onClick, title, description, badge, children, leading }: NotificationListRowProps) {
+  useAccountTimezone();
   return (
     <Button
       variant="unstyled"
@@ -36,7 +39,7 @@ export function NotificationListRow({ notification, onClick, title, description,
             {badge && <span className="mb-1 flex flex-wrap items-center gap-2">{badge}</span>}
             <span className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{title}</span>
           </span>
-          <time dateTime={notification.createdAt} title={new Date(notification.createdAt).toLocaleString()} className="shrink-0 whitespace-nowrap pt-0.5 text-xs font-normal leading-5 text-muted-foreground">
+          <time dateTime={notification.createdAt} title={formatInTimezone(new Date(notification.createdAt), "en-US", { dateStyle: "short", timeStyle: "short" })} className="shrink-0 whitespace-nowrap pt-0.5 text-xs font-normal leading-5 text-muted-foreground">
             {formatTimeAgo(new Date(notification.createdAt))}
           </time>
         </span>

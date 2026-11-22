@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
@@ -184,6 +185,7 @@ if (!isRegistryInitialized) {
 }
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
+  const accountTimezone = useAccountTimezone();
   const dispatch = useAppDispatch();
   const { unreadCount } = useAppSelector((state) => state.notification);
   const { accessToken, userId } = useAppSelector((state) => state.auth);
@@ -212,10 +214,11 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const dateRange: NotificationDateRange = React.useMemo(
     () =>
       getNotificationDateRange(timeFilter, {
+        timeZone: accountTimezone,
         customFromDate,
         customToDate,
       }),
-    [customFromDate, customToDate, timeFilter],
+    [customFromDate, customToDate, timeFilter, accountTimezone],
   );
   const isCustomRangeInvalid =
     timeFilter === "CUSTOM_RANGE" &&

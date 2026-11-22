@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { History } from "lucide-react";
 import { ViewAllAction } from "@/components/common/view-all-action";
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -20,6 +21,7 @@ interface MeetingOverviewRecentProps {
 const RECENT_MEETINGS_LIMIT = 4;
 
 export function MeetingOverviewRecent({ enabled, now, onViewHistory }: MeetingOverviewRecentProps) {
+  useAccountTimezone();
   const query = useMeetingHistory({ page: 1, limit: RECENT_MEETINGS_LIMIT, enabled, refetchOnWindowFocus: true });
   const history = query.data?.data;
 

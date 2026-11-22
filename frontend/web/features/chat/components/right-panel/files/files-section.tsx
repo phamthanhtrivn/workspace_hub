@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { StorageVideo, StorageImg } from "@/components/common/storage-media";
 import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
@@ -77,6 +80,7 @@ export default function FilesSection({
   onSeeAll,
   onOpenPreview,
 }: FilesSectionProps) {
+  useAccountTimezone();
   const displayItems = files.slice(0, 5);
   const hasMore = files.length > 5;
 

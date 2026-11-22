@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarClock } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -20,6 +21,7 @@ interface MeetingHistoryCardProps {
 }
 
 export function MeetingHistoryCard({ meeting, actions, selection }: MeetingHistoryCardProps) {
+  useAccountTimezone();
   return (
     <article className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-card p-4 text-card-foreground">
       {meeting.status === "LIVE" && (

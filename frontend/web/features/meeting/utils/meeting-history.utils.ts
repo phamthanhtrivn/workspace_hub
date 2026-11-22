@@ -1,3 +1,4 @@
+import { getDisplayTimezone } from "@/lib/timezone";
 import type { MeetingHistoryItem } from "../types/meeting.types";
 import { getMeetingTypeLabel } from "./meeting-labels.utils";
 
@@ -13,7 +14,7 @@ export function formatMeetingHistoryStartTime(value: string | null) {
     return "Not started";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-US", { timeZone: getDisplayTimezone(),
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

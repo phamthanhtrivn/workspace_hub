@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/common/user-avatar";
@@ -63,6 +64,7 @@ export function ProjectInvitationModalRenderer({
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
 }) {
+  useAccountTimezone();
   const metadata = getProjectInvitationMetadata(notification);
   const router = useRouter();
   const dispatch = useAppDispatch();

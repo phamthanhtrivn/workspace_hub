@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarClock, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/lib/date";
@@ -26,6 +27,7 @@ export function CalendarReminderModalRenderer({
   notification: Notification;
   onClose: () => void;
 }) {
+  useAccountTimezone();
   const router = useRouter();
   const canOpenCalendar = Boolean(notification.link);
 

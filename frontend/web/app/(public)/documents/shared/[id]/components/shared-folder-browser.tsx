@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { logActionError } from "@/lib/permission-feedback";
 
 import { useQuery } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ function SharedFolderBrowserInner({
   rootItem,
   rootId,
 }: SharedFolderBrowserProps) {
+  useAccountTimezone();
   const [currentFolderId, setCurrentFolderId] = useState<string>(rootId);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([
     { id: rootId, name: rootItem.name },

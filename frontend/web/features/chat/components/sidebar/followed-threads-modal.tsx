@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { UserAvatar } from "@/components/common/user-avatar";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -83,6 +84,7 @@ export default function FollowedThreadsModal({
   onClose,
   onSelectThread,
 }: FollowedThreadsModalProps) {
+  useAccountTimezone();
   const [searchQuery, setSearchQuery] = useState("");
   const {
     data = EMPTY_THREADS,

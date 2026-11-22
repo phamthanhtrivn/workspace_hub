@@ -1,3 +1,7 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { SpaceInvitation } from "@/features/chat/types/chat.types";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -23,6 +27,7 @@ export function InvitationsTab({
   onInvite,
   onResend,
 }: InvitationsTabProps) {
+  useAccountTimezone();
   const header = (
     <div className="mb-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -80,7 +85,7 @@ export function InvitationsTab({
                   invitation.invitedUserId}
               </p>
               <p className="text-xs text-muted-foreground">
-                {`Invited on ${new Date(invitation.createdAt).toLocaleDateString("en-US")}`}
+                {`Invited on ${formatInTimezone(new Date(invitation.createdAt), "en-US", { year: "numeric", month: "numeric", day: "numeric" })}`}
               </p>
             </div>
             <div className="flex items-center gap-1">

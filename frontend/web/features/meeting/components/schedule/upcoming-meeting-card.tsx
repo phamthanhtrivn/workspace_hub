@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { showMeetingActionError } from "../../utils/meeting-action-errors";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
@@ -41,12 +43,12 @@ function formatMeetingRange(startAt: string | null, endAt: string | null) {
   const end = new Date(endAt);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
 
-  return `${start.toLocaleDateString("en-US", {
+  return `${formatInTimezone(start, "en-US", {
     dateStyle: "medium",
-  })} · ${start.toLocaleTimeString("en-US", {
+  })} · ${formatInTimezone(start, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })} - ${end.toLocaleTimeString("en-US", {
+  })} - ${formatInTimezone(end, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
@@ -63,6 +65,7 @@ export function UpcomingMeetingCard({
   isHighlighted = false,
   onEdit,
 }: UpcomingMeetingCardProps) {
+  useAccountTimezone();
   const router = useRouter();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const cancelMeeting = useCancelScheduledMeeting(meeting.joinToken);

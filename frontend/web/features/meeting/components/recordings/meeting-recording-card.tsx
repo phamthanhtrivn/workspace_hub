@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import {
   CalendarDays,
   CheckCircle2,
@@ -86,6 +88,7 @@ export function MeetingRecordingCard({
   onRename,
   onDelete,
 }: MeetingRecordingCardProps) {
+  useAccountTimezone();
   const ready = recording.status === "COMPLETED";
   const presentation = recordingStatusPresentation[recording.status];
 
@@ -116,7 +119,7 @@ export function MeetingRecordingCard({
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-3.5 shrink-0" aria-hidden="true" />
               <time dateTime={recording.requestedAt}>
-                {new Date(recording.requestedAt).toLocaleString()}
+                {formatInTimezone(new Date(recording.requestedAt), "en-US", { dateStyle: "short", timeStyle: "short" })}
               </time>
             </span>
             {recording.durationSeconds != null && (

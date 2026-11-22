@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { CalendarClock, Play, UsersRound } from "lucide-react";
 import type { MeetingAccessResponse } from "../../types/meeting.types";
 import { MeetingButton } from "../ui/meeting-form-controls";
@@ -18,12 +20,12 @@ function formatScheduledRange(access: MeetingAccessResponse) {
   const end = new Date(access.scheduledEndAt);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
 
-  return `${start.toLocaleDateString("en-US", {
+  return `${formatInTimezone(start, "en-US", {
     dateStyle: "medium",
-  })} · ${start.toLocaleTimeString("en-US", {
+  })} · ${formatInTimezone(start, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })} - ${end.toLocaleTimeString("en-US", {
+  })} - ${formatInTimezone(end, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
@@ -35,6 +37,7 @@ export function MeetingWaitingHost({
   onBack,
   onStart,
 }: MeetingWaitingHostProps) {
+  useAccountTimezone();
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="w-full max-w-md rounded-lg border border-border bg-accent px-6 py-8 text-center">

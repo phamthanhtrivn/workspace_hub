@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import type { NoteSaveResult } from "@/components/notes/note.constants";
 import { AI_BOT, isAiBot } from "../../constants/chat-identity";
 import { useId as useControlledPopupId } from "react";
@@ -92,6 +95,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onPinMessage,
   onThreadReply,
 }: ChatMessageProps) {
+  const accountTimezone = useAccountTimezone();
   const { summarize, isRequesting, completed, closeSummary } = useAttachmentSummary(msg);
   const summaryFiles = msg.recalled ? [] : summaryAttachments(msg.medias);
   const controlledPopupId = useControlledPopupId();
@@ -105,7 +109,7 @@ const ChatMessage = React.memo(function ChatMessage({
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
 
-  const time = useMemo(() => formatDateTime(msg.createdAt), [msg.createdAt]);
+  const time = useMemo(() => formatDateTime(msg.createdAt, accountTimezone), [msg.createdAt, accountTimezone]);
   const isWithin24Hours = useMemo(() => {
     const now = new Date().getTime();
     const createdAt = new Date(msg.createdAt).getTime();

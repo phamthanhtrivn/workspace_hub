@@ -1,28 +1,11 @@
-import { parseDatePickerValue } from "@/components/ui/custom/date-time-picker.utils";
-
-export interface RecordingDateFilter {
-  from: string;
-  to: string;
-}
-
-/** Selected calendar days are inclusive in the viewer's timezone; the API end is exclusive. */
-export function recordingDateBounds({ from, to }: RecordingDateFilter) {
-  const start = from ? parseDatePickerValue(from) : undefined;
-  const end = to ? parseDatePickerValue(to) : undefined;
-  const invalid = Boolean(
-    (from && !start) || (to && !end) || (start && end && start > end),
-  );
-
-  return {
-    invalid,
-    fromDate: !invalid && start ? start.toISOString() : undefined,
-    toDate:
-      !invalid && end
-        ? new Date(
-            end.getFullYear(),
-            end.getMonth(),
-            end.getDate() + 1,
-          ).toISOString()
-        : undefined,
-  };
+import { getDisplayTimezone, zonedDayBounds } from "@/lib/timezone";
+export interface RecordingDateFilter { from: string; to: string }
+/** Selected days are inclusive in the account timezone; the API end is exclusive. */
+export function recordingDateBounds({ from, to }: RecordingDateFilter, timeZone = getDisplayTimezone()) {
+  try {
+    const fromDate = from ? zonedDayBounds(from, timeZone).startAt : undefined;
+    const toDate = to ? zonedDayBounds(to, timeZone).endAt : undefined;
+    if (from && to && from > to) return { invalid: true, fromDate: undefined, toDate: undefined };
+    return { invalid: false, fromDate, toDate };
+  } catch { return { invalid: true, fromDate: undefined, toDate: undefined }; }
 }

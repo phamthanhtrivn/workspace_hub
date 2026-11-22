@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { MeetingUserAvatar } from "../../common/meeting-user-avatar";
 
 import { useId } from "react";
@@ -40,6 +41,7 @@ export function MeetingMessageItem({
   onEdit,
   onRecall,
 }: MeetingMessageItemProps) {
+  const accountTimezone = useAccountTimezone();
   const optionsId = useId();
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
@@ -50,8 +52,8 @@ export function MeetingMessageItem({
   const senderName =
     profile?.fullName || profile?.email || "User";
   const createdAtLabel = useMemo(
-    () => formatDateTime(message.createdAt),
-    [message.createdAt],
+    () => formatDateTime(message.createdAt, accountTimezone),
+    [message.createdAt, accountTimezone],
   );
   const isWithin24Hours = useMemo(
     () =>

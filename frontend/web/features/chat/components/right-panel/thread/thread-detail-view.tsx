@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { AI_BOT, isAiBot } from "../../../constants/chat-identity";
 import { cn } from "@/lib/utils";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
@@ -106,6 +109,7 @@ export default function ThreadDetailView({
   isDirect = false,
   onBack,
 }: ThreadDetailViewProps) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();

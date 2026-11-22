@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { UserAvatar } from "@/components/common/user-avatar";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import {
@@ -39,6 +42,7 @@ export default function ThreadsSection({
   onSeeAll,
   onOpenThread,
 }: ThreadsSectionProps) {
+  useAccountTimezone();
   const memberProfiles = useChatMemberProfiles() || {};
 
   const { data, isLoading } = useQuery({

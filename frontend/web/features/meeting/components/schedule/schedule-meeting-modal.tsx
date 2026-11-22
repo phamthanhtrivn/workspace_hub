@@ -1,10 +1,13 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { MeetingUserAvatar } from "../common/meeting-user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
 import { useScheduleToday } from "@/hooks/use-schedule-today";
+import { Temporal } from "temporal-polyfill";
+import { fromZonedDateTimeInput, toZonedDateTimeInput } from "@/lib/timezone";
 import { MIN_SCHEDULED_MEETING_DURATION_MS } from "../../types/meeting.constants";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -102,15 +105,11 @@ function useMeetingInviteeSearch(query: string) {
 }
 
 function toDateTimeLocal(value: Date | string): string {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "";
-
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return toZonedDateTimeInput(value);
 }
 
-function fromDateTimeLocal(value: string): string {
-  return new Date(value).toISOString();
+function fromDateTimeLocal(value: string, originalInstant?: string | null): string {
+  return fromZonedDateTimeInput(value, undefined, originalInstant);
 }
 
 function getDateInputValue(value: string): string {
@@ -126,18 +125,16 @@ function composeDateTimeLocal(date: string, time: string): string {
 }
 
 function addMinutesToDateTimeLocal(value: string, minutes: number): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  date.setMinutes(date.getMinutes() + minutes);
-  return toDateTimeLocal(date);
+  try { return Temporal.PlainDateTime.from(value).add({ minutes }).toString({ smallestUnit: "minute" }); }
+  catch { return value; }
 }
 
-function formatTime(date: Date): string {
+function formatTime(clock: string): string {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  }).format(new Date(`2000-01-01T${clock}:00Z`));
 }
 
 function formatDuration(minutes: number): string {
@@ -166,12 +163,10 @@ function createStartTimeOptions(currentTime?: string): MeetingTimeOption[] {
   }
 
   return values.map((minutes) => {
-    const date = new Date(2000, 0, 1, 0, minutes);
+    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     return {
-      value: `${String(date.getHours()).padStart(2, "0")}:${String(
-        date.getMinutes(),
-      ).padStart(2, "0")}`,
-      label: formatTime(date),
+      value: clock,
+      label: formatTime(clock),
     };
   });
 }
@@ -180,8 +175,8 @@ function createEndTimeOptions(
   startAt: string,
   currentEndAt: string,
 ): MeetingTimeOption[] {
-  const start = new Date(startAt);
-  const currentEnd = new Date(currentEndAt);
+  const start = new Date(`${startAt}Z`);
+  const currentEnd = new Date(`${currentEndAt}Z`);
   if (Number.isNaN(start.getTime())) return [];
 
   const durations = [...MEETING_DURATION_OPTIONS];
@@ -194,23 +189,23 @@ function createEndTimeOptions(
   }
 
   return durations.map((minutes) => {
-    const end = new Date(start.getTime() + minutes * 60_000);
+    const endValue = addMinutesToDateTimeLocal(startAt, minutes);
     return {
-      value: toDateTimeLocal(end),
-      label: `${formatTime(end)} (${formatDuration(minutes)})`,
+      value: endValue,
+      label: `${formatTime(getTimeInputValue(endValue))} (${formatDuration(minutes)})`,
     };
   });
 }
 
 function createDefaultScheduleValues(): ScheduleMeetingValues {
-  const start = new Date();
-  start.setMinutes(0, 0, 0);
-  start.setHours(Math.min(23, Math.max(9, start.getHours() + 1)));
+  const localNow = toDateTimeLocal(new Date());
+  const hour = Math.min(23, Math.max(9, Number(localNow.slice(11, 13)) + 1));
+  const start = `${localNow.slice(0, 10)}T${String(hour).padStart(2, "0")}:00`;
 
   return {
     title: DEFAULT_SCHEDULED_MEETING_TITLE,
-    scheduledStartAt: toDateTimeLocal(start),
-    scheduledEndAt: addMinutesToDateTimeLocal(toDateTimeLocal(start), 60),
+    scheduledStartAt: start,
+    scheduledEndAt: addMinutesToDateTimeLocal(start, 60),
     recurrenceRule: null,
     description: "",
     inviteeIds: [],
@@ -272,6 +267,7 @@ export function ScheduleMeetingModal({
   meeting,
   onClose,
 }: ScheduleMeetingModalProps) {
+  useAccountTimezone();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const createMeeting = useCreateScheduledMeeting();
   const updateMeeting = useUpdateScheduledMeeting(meeting?.joinToken ?? "");
@@ -376,8 +372,8 @@ export function ScheduleMeetingModal({
           : undefined;
       const payload = {
         title: formValues.title.trim(),
-        scheduledStartAt: fromDateTimeLocal(formValues.scheduledStartAt),
-        scheduledEndAt: fromDateTimeLocal(formValues.scheduledEndAt),
+        scheduledStartAt: fromDateTimeLocal(formValues.scheduledStartAt, meeting?.scheduledStartAt),
+        scheduledEndAt: fromDateTimeLocal(formValues.scheduledEndAt, meeting?.scheduledEndAt),
         recurrenceRule: null,
         description: formValues.description.trim() || null,
         inviteeIds: formValues.inviteeIds,

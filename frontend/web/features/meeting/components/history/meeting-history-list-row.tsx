@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarClock, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
@@ -17,6 +18,7 @@ interface MeetingHistoryListRowProps {
 }
 
 export function MeetingHistoryListRow({ meeting, actions, selection }: MeetingHistoryListRowProps) {
+  useAccountTimezone();
   return (
     <article className="grid min-w-0 gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_10rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">

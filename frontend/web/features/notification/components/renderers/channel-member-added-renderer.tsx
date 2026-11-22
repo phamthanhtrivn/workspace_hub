@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useAppDispatch } from "@/store/store";
 import { setActiveChat, setActiveSpaceId } from "@/store/chat/chat-slice";
 import { ChatContextType } from "@/features/chat/types/chat.enums";
@@ -14,6 +15,7 @@ function ChannelMembershipModalRenderer({
   notification,
   onClose,
 }: NotificationRendererProps) {
+  useAccountTimezone();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const isOwnershipTransfer =

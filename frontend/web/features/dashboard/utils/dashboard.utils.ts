@@ -1,4 +1,5 @@
 import { Temporal } from "temporal-polyfill";
+import { getExclusiveAllDayEndDateKey } from "@/features/calendar/utils/calendar-date.utils";
 import type {
   CalendarEvent,
   CalendarPomodoroSession,
@@ -107,8 +108,10 @@ export function buildDayItems(
       (linkedToken && meetingTokens.has(linkedToken))
     )
       continue;
-    if (Date.parse(event.startAt) >= end || Date.parse(event.endAt) <= start)
-      continue;
+    if (event.allDay) {
+      const eventZone = event.timeZone || event.calendar?.timeZone || zone;
+      if (dateInZone(event.startAt, eventZone) > today || getExclusiveAllDayEndDateKey(event.endAt, event.startAt, eventZone) <= today) continue;
+    } else if (Date.parse(event.startAt) >= end || Date.parse(event.endAt) <= start) continue;
     const key = `event:${event.id}:${event.originalStartAt || event.startAt}`;
     items.set(key, {
       key,

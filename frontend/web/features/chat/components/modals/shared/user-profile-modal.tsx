@@ -1,4 +1,5 @@
 "use client";
+import { formatDateOnly } from "@/lib/timezone";
 import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
@@ -159,7 +160,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                   <Calendar size={18} className="text-muted-foreground" />
                   <span>
                     {userProfile?.dob
-                      ? new Date(userProfile.dob).toLocaleDateString("en-US")
+                      ? formatDateOnly(userProfile.dob, "en-US")
                       : "Date of birth not provided"}
                   </span>
                 </div>
