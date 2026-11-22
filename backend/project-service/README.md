@@ -56,6 +56,12 @@ npm run build
 This NestJS service is the active Project Service. Apply the SQL migrations in
 order before starting the service in a new environment.
 
+## Account timezone and task dates
+
+Timed task timestamps remain UTC. The web uses the user's saved account timezone for display, Calendar/Gantt placement and timed task editors, converting submitted wall times back to UTC. All-day tasks and project date-only fields retain their calendar dates; all-day deadlines become overdue after their date ends in the viewer's timezone. There is one timezone selector in account Settings. See [timezone behavior](../../docs/features/timezones.md).
+
+Task-card metadata serializes all-day deadlines as `YYYY-MM-DD`; timed deadlines retain ISO UTC timestamps. Previously saved card snapshots keep their recorded metadata until refreshed by source synchronization. This presentation contract does not change the task's stored timestamp.
+
 ## Project production fixes (September 2026)
 
 The lockfile includes patched `fast-uri` and `qs`. A scoped override pins

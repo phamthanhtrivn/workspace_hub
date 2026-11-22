@@ -12,6 +12,8 @@ Start with the guides below for local setup, deployment, feature behavior and ve
 | Verification | [Testing](../tests/README.md), [system verification](../tests/system/README.md) |
 | Thesis | [Interface index](thesis/interfaces/index.html), [interface guide](thesis/interfaces/README.md), [diagram files](#thesis-diagrams) |
 
+Account timezone behavior, UTC storage, all-day dates, searchable selection and the workspace clock are documented in [Timezones](features/timezones.md). The feature applies across modules without a timezone selector in every scheduling form.
+
 ## Thesis interface samples
 
 Open [thesis/interfaces/index.html](thesis/interfaces/index.html) to choose from 20 English interface samples. The previews reuse application components with sample data, including the populated dashboard, project tasks and calendar examples. They use local API and realtime adapters for screenshots and do not save changes to the application database.

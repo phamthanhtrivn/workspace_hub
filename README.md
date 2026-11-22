@@ -18,7 +18,7 @@ Fragmented tools make it difficult for individuals and small teams to keep work 
 
 | Area | Implemented capabilities |
 | --- | --- |
-| Accounts | Registration/email verification, sign-in, sessions, password recovery, profiles, avatars and preferences |
+| Accounts | Registration/email verification, sign-in, sessions, password recovery, profiles, avatars and preferences, including a searchable timezone selector and workspace clock |
 | Projects and tasks | Membership/roles, board/list/calendar/Gantt views, assignments, priorities, labels, checklists, comments and related documents/chat |
 | Calendar | Events and tasks, recurring occurrences, attendees, conference links, shared appearance controls and custom reminders |
 | Notifications | Categorized bell, real-time updates, foreground toast/sound, Web Push and email where configured; reminder delivery deduplication |
@@ -31,6 +31,8 @@ Fragmented tools make it difficult for individuals and small teams to keep work 
 AI flags, model capability, provider quota and dependent services determine availability. Meeting summaries are explicitly requested after a recording completes; readers with current recording access share the saved result. Flashcards, quizzes and a mobile application are not claimed as implemented features.
 
 The [thesis interface samples](docs/thesis/interfaces/README.md) include an English Meeting Room preview with sample participants and the current room controls. These samples are for screenshots; they do not connect to a live meeting or run AI processing.
+
+Dates and times across the workspace use the user's saved timezone (Vietnam UTC+07:00 by default), while timestamp storage remains UTC. Settings contains one timezone selector; timed forms use that preference and all-day dates retain their calendar day. See [timezone behavior](docs/features/timezones.md).
 
 ## System Architecture and Technology Stack
 
