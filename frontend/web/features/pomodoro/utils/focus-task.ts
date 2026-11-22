@@ -2,6 +2,7 @@ import type { Task, Project } from "../../project/types/project";
 import type { CalendarEvent } from "../../calendar/types/calendar.types";
 import type { PomodoroActiveTask, PomodoroFocusSource } from "../types/pomodoro";
 import { formatLocalDateKey, getExclusiveAllDayEndDateKey } from "../../calendar/utils/calendar-date.utils";
+import { getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
 
 export type FocusTaskScope = "today" | "all";
 
@@ -15,7 +16,7 @@ function dateKey(value: string, allDay = false): string {
   if (allDay || /^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 10);
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "";
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  return zonedDateKey(date);
 }
 
 function matchesDates(start: string | undefined, end: string | undefined, allDay: boolean, scope: FocusTaskScope, now: Date): boolean {
@@ -43,13 +44,14 @@ export function isProjectFocusActive(project: Pick<Project, "status" | "archived
   return !project.archived && project.status === "ACTIVE";
 }
 
-function calendarFocusDates(event: Pick<CalendarEvent, "startAt" | "endAt" | "allDay">) {
+function calendarFocusDates(event: Pick<CalendarEvent, "startAt" | "endAt" | "allDay"> & Partial<Pick<CalendarEvent, "timeZone">>) {
   // Calendar stores inclusive 23:59 ends as well as exclusive midnight ends.
   let start = event.startAt;
   let end = event.endAt;
   if (event.allDay) {
-    start = formatLocalDateKey(event.startAt);
-    const exclusiveEnd = getExclusiveAllDayEndDateKey(event.endAt, event.startAt);
+    const zone = event.timeZone || getDisplayTimezone();
+    start = zonedDateKey(event.startAt, zone);
+    const exclusiveEnd = getExclusiveAllDayEndDateKey(event.endAt, event.startAt, zone);
     if (!start || !exclusiveEnd) return null;
     const lastDay = new Date(`${exclusiveEnd}T00:00:00`);
     lastDay.setDate(lastDay.getDate() - 1);

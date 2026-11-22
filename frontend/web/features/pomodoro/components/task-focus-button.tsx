@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState } from "react";
 import { Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export function TaskFocusButton({ target, compact = false }: { target: PomodoroA
 }
 
 function ProjectFocusAction({ task, project: suppliedProject, compact }: { task: Task; project?: Project; compact?: boolean }) {
+  useAccountTimezone();
   const userId = useAppSelector((state) => state.auth.userId);
   const { data: queriedProject } = useProject(suppliedProject ? "" : task.projectId);
   const project = suppliedProject ?? queriedProject;
@@ -61,6 +63,7 @@ export function ProjectTaskFocusButton(props: { task: Task; project?: Project; c
 }
 
 export function CalendarTaskFocusButton({ event, compact }: { event: CalendarEvent; compact?: boolean }) {
+  useAccountTimezone();
   const userId = useAppSelector((state) => state.auth.userId);
   if (!userId || !isCalendarFocusEligible(event, userId)) return null;
   return <TaskFocusButton target={toCalendarFocusTask(event)} compact={compact} />;

@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { useState } from "react";
 import { CheckCircle2, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,7 @@ import { POMODORO_TASK_SETTINGS } from "../constants/pomodoro-task";
 import { LoadingState } from "@/components/ui/loading-state";
 
 function FocusHistory({ target }: { target: TaskFocusHistoryTarget }) {
+  useAccountTimezone();
   const [page, setPage] = useState(1);
   const { sessionRevision } = usePomodoroSessionActions();
   const { data: history, isLoading, isError, refetch } = useTaskFocusHistory(target, page, sessionRevision);
@@ -41,7 +44,7 @@ function FocusHistory({ target }: { target: TaskFocusHistoryTarget }) {
         </div> : (
           <ul className="divide-y divide-border">
             {history.sessions.map((session) => <li key={session.id} className="flex flex-wrap justify-between gap-1 py-2 text-xs text-muted-foreground">
-              <span>{new Date(session.startedAt).toLocaleString()} · {session.sessionType === "FOCUS" ? "Focus" : "Break"}</span>
+              <span>{formatInTimezone(new Date(session.startedAt), "en-US", { dateStyle: "short", timeStyle: "short" })} · {session.sessionType === "FOCUS" ? "Focus" : "Break"}</span>
               <span>{Math.floor(session.actualSeconds / 60)}m {session.actualSeconds % 60}s · {session.status.toLowerCase()}</span>
               {session.notes && <p className="w-full whitespace-pre-wrap break-words text-muted-foreground">{session.notes}</p>}
             </li>)}

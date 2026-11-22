@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 import { DATE_RANGE_MESSAGES, getDateRangeBounds } from "@/lib/date-range";
 import { POMODORO_REPORT_COPY as copy } from "../constants/pomodoro-report";
@@ -14,6 +15,7 @@ export function PomodoroReportDateFilters({ id, range, today, errors, onRangeCha
   errors: PomodoroReportRangeErrors;
   onRangeChange: (range: PomodoroReportRange) => void;
 }) {
+  useAccountTimezone();
   const bounds = getDateRangeBounds({ start: errors.startDate ? "" : range.startDate, end: errors.endDate ? "" : range.endDate, mode: "edit", dateOnly: true });
   const startMax = bounds.startMax && bounds.startMax < today ? bounds.startMax : today;
   const endDisabled = !range.startDate || Boolean(errors.startDate);

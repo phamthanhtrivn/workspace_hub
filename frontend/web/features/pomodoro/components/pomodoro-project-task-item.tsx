@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarDays, Check, Circle, CircleDashed, FolderKanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Project, Task } from "@/features/project/types/project";
@@ -12,6 +13,7 @@ import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { ProjectTaskFocusButton } from "./task-focus-button";
 
 export function PomodoroProjectTaskItem({ task, project }: { task: Task; project: Project }) {
+  useAccountTimezone();
   const { activeTask } = usePomodoroSessionActions();
   const current = sameFocusTask(activeTask, toProjectFocusTask(task, project));
   const inProgress = task.status === "IN_PROGRESS";

@@ -1,4 +1,7 @@
+"use client";
+
 import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { fromZonedDateTimeInput, getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { CalendarEvent, RecurrenceScope } from "../types/calendar.types";
@@ -26,23 +29,20 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
 
       try {
         const rawEnd = info.event.end ?? createEventEndFromStart(info.event.start);
-        // FullCalendar all-day end is exclusive midnight; convert to inclusive 23:59:59 of the last day
-        const end =
-          info.event.allDay &&
-          rawEnd.getHours() === 0 &&
-          rawEnd.getMinutes() === 0
-            ? (() => {
-                const d = new Date(rawEnd.getTime() - 1);
-                d.setHours(23, 59, 59, 999);
-                return d;
-              })()
-            : rawEnd;
+        const storageZone = model.timeZone || model.calendar?.timeZone || getDisplayTimezone();
+        // All-day values retain their calendar dates, including when moved by a viewer in another zone.
+        const startAt = info.event.allDay
+          ? fromZonedDateTimeInput(`${zonedDateKey(info.event.start)}T00:00`, storageZone)
+          : info.event.start.toISOString();
+        const endAt = info.event.allDay
+          ? fromZonedDateTimeInput(`${zonedDateKey(new Date(rawEnd.getTime() - 1))}T23:59:59.999`, storageZone)
+          : rawEnd.toISOString();
 
         await updateEventAsync({
           eventId: info.event.id,
           payload: {
-            startAt: info.event.start.toISOString(),
-            endAt: end.toISOString(),
+            startAt,
+            endAt,
             allDay: info.event.allDay,
             recurrenceScope,
 

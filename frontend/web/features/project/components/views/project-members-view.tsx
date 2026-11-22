@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMemo, useState } from "react";
 import { useProjectMemberFilters } from "../../hooks/use-project-member-filters";
@@ -57,6 +59,7 @@ export default function ProjectMembersView({
   canManagePermissions = false,
   currentUserId,
 }: ProjectMembersViewProps) {
+  useAccountTimezone();
   const { searchQuery, setSearchQuery, role: activeTab, setRole: setActiveTab } = useProjectMemberFilters();
   const [permissionMember, setPermissionMember] =
     useState<ProjectMember | null>(null);
@@ -168,7 +171,7 @@ export default function ProjectMembersView({
     try {
       const date = new Date(isoString);
 
-      return date.toLocaleDateString();
+      return formatInTimezone(date, "en-US", { year: "numeric", month: "numeric", day: "numeric" });
     } catch {
       return "—";
     }

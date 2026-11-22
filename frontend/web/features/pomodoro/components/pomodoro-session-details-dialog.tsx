@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useId } from "react";
 import { Coffee, StickyNote, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ export function PomodoroSessionDetailsDialog({ session, timeZone, onClose }: {
   timeZone?: string;
   onClose: () => void;
 }) {
+  useAccountTimezone();
   const descriptionId = useId();
   if (!session) return null;
   const details = presentPomodoroSession(session, timeZone);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { readableTextOnColor } from "@/lib/color";
 
 import {
@@ -46,14 +47,15 @@ export function CalendarTaskList({
   onToggleTask,
   onSelectTask,
 }: CalendarTaskListProps) {
+  const accountTimezone = useAccountTimezone();
   const [completedOpen, setCompletedOpen] = useState(false);
   const grouped = useMemo(
     () =>
       groupCalendarTasks(tasks, undefined, {
         allUpcoming: true,
         allOverdue: true,
-      }),
-    [tasks],
+      }, accountTimezone),
+    [tasks, accountTimezone],
   );
   const pendingCount =
     grouped.overdue.length + grouped.today.length + grouped.upcoming.length;
@@ -221,12 +223,13 @@ function TaskRowItem({
   onToggle?: () => void;
   onSelect: () => void;
 }) {
+  useAccountTimezone();
   const completed = Boolean(task.completedAt);
   const taskColor = task.color || task.calendar?.color || color;
   const dueDate = getTaskDueDate(task);
   const dateLabel = Number.isNaN(dueDate.getTime())
     ? ""
-    : formatTaskDueDate(dueDate.toISOString(), task.allDay, locale);
+    : formatTaskDueDate(dueDate.toISOString(), task.allDay, locale, undefined, task.allDay ? task.timeZone : undefined);
   const isRecurring = Boolean(task.recurrenceRule || task.recurrenceParentId);
   const projectTask = task.extendedProps?.projectTask as Task | undefined;
   const project = task.extendedProps?.project as Project | undefined;

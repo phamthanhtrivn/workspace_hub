@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import {
   AlertCircle,
   FolderKanban,
@@ -64,6 +65,7 @@ export function CalendarTasksDrawer({
   onToggleTask,
   onSelectTask,
 }: CalendarTasksDrawerProps) {
+  const accountTimezone = useAccountTimezone();
   const openerRef = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     // Retain the original trigger while Calendar modals temporarily replace the sheet.
@@ -115,8 +117,8 @@ export function CalendarTasksDrawer({
 
   const filteredTasks = useMemo(
     () =>
-      filterCalendarTasks(displayedTasks, timeFilter, effectiveStatusFilter),
-    [displayedTasks, timeFilter, effectiveStatusFilter],
+      filterCalendarTasks(displayedTasks, timeFilter, effectiveStatusFilter, undefined, accountTimezone),
+    [displayedTasks, timeFilter, effectiveStatusFilter, accountTimezone],
   );
 
 

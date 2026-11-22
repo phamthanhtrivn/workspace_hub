@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useId, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface CalendarDayTasksProps {
 export default function CalendarDayTasks({
   dateKey, tasks, hiddenCount, compact, onTaskClick, onCreateDate,
 }: CalendarDayTasksProps) {
+  useAccountTimezone();
   const [open, setOpen] = useState(false);
   const openingTask = useRef(false);
   const headingId = useId();

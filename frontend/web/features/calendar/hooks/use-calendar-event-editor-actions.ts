@@ -1,4 +1,7 @@
+"use client";
+
 import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { zonedDateKey, zonedDayBounds } from "@/lib/timezone";
 import { DateSelectArg } from "@fullcalendar/core";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -48,9 +51,7 @@ export function useCalendarEventEditorActions({
 
       let endAt: Date;
       if (selection.allDay) {
-        const lastSelectedDay = new Date(selection.end.getTime() - 1);
-        lastSelectedDay.setHours(23, 59, 59, 999);
-        endAt = lastSelectedDay;
+        endAt = new Date(selection.end.getTime() - 1);
       } else if (isSingleClickSelection) {
         endAt = createEventEndFromStart(selection.start);
       } else {
@@ -72,8 +73,7 @@ export function useCalendarEventEditorActions({
     (date: Date, allDay: boolean) => {
       let endAt: Date;
       if (allDay) {
-        endAt = new Date(date);
-        endAt.setHours(23, 59, 59, 999);
+        endAt = new Date(Date.parse(zonedDayBounds(zonedDateKey(date)).endAt) - 1);
       } else {
         endAt = createEventEndFromStart(date);
       }

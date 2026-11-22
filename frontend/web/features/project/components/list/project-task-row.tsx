@@ -1,6 +1,9 @@
 "use client";
 
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatDateOnly, formatInTimezone } from "@/lib/timezone";
+import { isTaskOverdue } from "../../utils/task-dates";
 import { Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +18,6 @@ import { getIssueKey, getIssueIcon, getPriorityIcon } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
 import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 
-function isOverdue(dueDate?: string, status?: string): boolean {
-  if (!dueDate || status === "DONE" || status === "CANCELLED") return false;
-  return new Date(dueDate) < new Date();
-}
 
 interface ProjectTaskRowProps {
   task: Task;
@@ -53,7 +52,8 @@ export default function ProjectTaskRow({
   onToggleExpanded,
   onStartCreateSubtask,
 }: ProjectTaskRowProps) {
-  const overdue = isOverdue(task.dueDate, task.status);
+  useAccountTimezone();
+  const overdue = !isTerminalTaskStatus(task.status) && isTaskOverdue(task);
   const issueKey = getIssueKey(task);
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
@@ -66,7 +66,7 @@ export default function ProjectTaskRow({
       : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100";
 
   const formattedDueDate = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString(undefined, {
+    ? (task.allDay ? formatDateOnly : formatInTimezone)(task.dueDate, "en-US", {
         day: "2-digit",
         month: "short",
       })

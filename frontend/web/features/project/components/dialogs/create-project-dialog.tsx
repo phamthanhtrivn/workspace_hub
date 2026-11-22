@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 
@@ -43,6 +44,7 @@ export default function CreateProjectDialog({
   onSubmit,
   isSubmitting = false,
 }: CreateProjectDialogProps) {
+  useAccountTimezone();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [today, setToday] = useState(() => getTodayDateValue());

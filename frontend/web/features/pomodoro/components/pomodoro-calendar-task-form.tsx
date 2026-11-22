@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState, useId, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { ListTodo } from "lucide-react";
@@ -30,6 +31,7 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
   onCreated: () => void;
   onSavingChange?: (saving: boolean) => void;
 }) {
+  useAccountTimezone();
   const formId = useId();
   const userId = useAppSelector((state) => state.auth.userId);
   const { data: calendars = [], isLoading, isError, refetch } = useCalendarCalendars();

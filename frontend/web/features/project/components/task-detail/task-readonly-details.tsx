@@ -1,10 +1,12 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { Check, Paperclip } from "lucide-react";
 import { useProjectMembers } from "@/features/project/hooks/use-projects";
 import { Avatar } from "../ui/avatar-stack";
 import { TaskStatusBadge, TaskPriorityBadge } from "../ui/status-badge";
 import { taskDateKey } from "@/features/project/utils/task-dates";
+import { formatDateOnly, formatInTimezone } from "@/lib/timezone";
 import type { ProjectMember, Task } from "@/features/project/types/project";
 
 const MEMBER_CACHE_STALE_TIME_MS = 5 * 60 * 1000;
@@ -12,11 +14,11 @@ const MEMBER_CACHE_STALE_TIME_MS = 5 * 60 * 1000;
 function formatTaskTime(value: string, allDay: boolean) {
   if (allDay) {
     const key = taskDateKey(value, true);
-    return new Date(`${key}T00:00:00`).toLocaleDateString("en-US", {
+    return formatDateOnly(key, "en-US", {
       day: "numeric", month: "short", year: "numeric",
     });
   }
-  return new Date(value).toLocaleString("en-US", {
+  return formatInTimezone(value, "en-US", {
     day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
@@ -33,6 +35,7 @@ function MemberName({ member, fallback }: { member?: ProjectMember; fallback: st
 }
 
 export function TaskReadonlyDetails({ task, projectId }: { task: Task; projectId: string }) {
+  useAccountTimezone();
   const membersQuery = useProjectMembers(projectId, {
     enabled: task.assignees.length > 0 || Boolean(task.reporterId),
     staleTime: MEMBER_CACHE_STALE_TIME_MS,

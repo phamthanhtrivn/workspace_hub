@@ -1,17 +1,23 @@
+"use client";
+
 import { CalendarApi, DatesSetArg } from "@fullcalendar/core";
 import FullCalendar from "@fullcalendar/react";
 import { RefObject, useCallback, useState } from "react";
 import { CALENDAR_INITIAL_VIEW } from "../types/calendar.constants";
 import { createInitialCalendarRange } from "../utils/calendar-event.utils";
+import { formatLocalDateKey } from "../utils/calendar-date.utils";
+import { zonedDateKey } from "@/lib/timezone";
+
+const calendarDay = (date = new Date()) => new Date(`${zonedDateKey(date)}T12:00:00`);
 
 export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
   const [calendarApi, setCalendarApi] = useState<CalendarApi | null>(null);
   const [range, setRange] = useState(createInitialCalendarRange);
   const [title, setTitle] = useState("");
   const [activeView, setActiveView] = useState(CALENDAR_INITIAL_VIEW);
-  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [currentDate, setCurrentDate] = useState(calendarDay);
   const [selectedDate, setSelectedDate] = useState<Date | null>(
-    () => new Date(),
+    calendarDay,
   );
 
   const handleDatesSet = useCallback(
@@ -22,7 +28,7 @@ export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
       });
       setTitle(arg.view.title);
       setActiveView(arg.view.type);
-      setCurrentDate(arg.view.calendar.getDate());
+      setCurrentDate(calendarDay(arg.view.calendar.getDate()));
       setCalendarApi(calendarRef.current?.getApi() ?? null);
     },
     [calendarRef],
@@ -47,7 +53,7 @@ export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
       if (direction === "next") api.next();
       if (direction !== "today") return;
 
-      const today = new Date();
+      const today = calendarDay();
       api.today();
       setSelectedDate(today);
       setCurrentDate(today);
@@ -59,7 +65,7 @@ export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
     (date: Date) => {
       setSelectedDate(date);
       const api = calendarApi ?? calendarRef.current?.getApi();
-      api?.gotoDate(date);
+      api?.gotoDate(formatLocalDateKey(date));
       setCurrentDate(date);
     },
     [calendarApi, calendarRef],

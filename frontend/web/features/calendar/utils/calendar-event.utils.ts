@@ -1,5 +1,7 @@
 import { EventInput } from "@fullcalendar/core";
 import { readableTextOnColor } from "@/lib/color";
+import { getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
+import { Temporal } from "temporal-polyfill";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -14,7 +16,6 @@ import {
   CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS,
 } from "../types/calendar.constants";
 import {
-  formatLocalDateKey,
   getExclusiveAllDayEndDateKey,
   isAllDayDateTimeRange,
 } from "./calendar-date.utils";
@@ -38,9 +39,9 @@ export function createInitialCalendarRange(): CalendarEventFilters {
 export function createDefaultEventDraft(
   calendarId?: string,
 ): CalendarEventDraft {
-  const startAt = new Date();
-  startAt.setMinutes(0, 0, 0);
-  startAt.setHours(startAt.getHours() + 1);
+  const startAt = new Date(Temporal.Instant.from(new Date().toISOString())
+    .toZonedDateTimeISO(getDisplayTimezone()).with({ minute: 0, second: 0, millisecond: 0 })
+    .add({ hours: 1 }).toInstant().toString());
 
   const endAt = createEventEndFromStart(startAt);
 
@@ -70,6 +71,7 @@ export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
   colorOverride?: string,
   currentUserId?: string | null,
+  displayTimeZone = getDisplayTimezone(),
 ): EventInput {
   const isTask = isTaskCalendarEvent(event);
   const normalizedSourceType = isTask
@@ -79,7 +81,7 @@ export function mapCalendarEventToFullCalendar(
     colorOverride || event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
   const eventColor = colorOverride || event.color || calendarColor;
   const allDay =
-    event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt);
+    event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt, event.timeZone || displayTimeZone);
   const myAttendee =
     event.attendees?.find((a) => a.userId === currentUserId) ??
     (!event.permissions?.canManage && event.permissions?.canRespond && event.attendees?.length
@@ -101,9 +103,9 @@ export function mapCalendarEventToFullCalendar(
   return {
     id: event.id,
     title: event.title,
-    start: allDay ? formatLocalDateKey(event.startAt) : event.startAt,
+    start: allDay ? zonedDateKey(event.startAt, event.timeZone || displayTimeZone) : event.startAt,
     end: allDay
-      ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt)
+      ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt, event.timeZone || displayTimeZone)
       : event.endAt,
     allDay,
     backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,

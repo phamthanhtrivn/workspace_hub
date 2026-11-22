@@ -2,6 +2,7 @@ import type { Task } from "../types/project";
 import type { GanttBarGeometry, GanttRange, GanttScale, GanttZoomMode } from "../types/gantt";
 import { GANTT_INITIAL_HORIZON_DAYS, GANTT_ZOOM_CONFIG } from "../constants/gantt.constants";
 import { taskDateKey } from "./task-dates";
+import { getDisplayTimezone } from "@/lib/timezone";
 
 export function toLocalDate(value: string): Date {
   return new Date(`${value.slice(0, 10)}T00:00:00`);
@@ -22,14 +23,14 @@ export function dayDifference(from: Date, to: Date): number {
     Date.UTC(from.getFullYear(), from.getMonth(), from.getDate())) / 86_400_000);
 }
 
-export function taskStart(task: Task): Date | undefined {
+export function taskStart(task: Task, timeZone = getDisplayTimezone()): Date | undefined {
   const value = task.startDate || task.dueDate;
-  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
+  return value ? toLocalDate(taskDateKey(value, task.allDay, timeZone)) : undefined;
 }
 
-export function taskEnd(task: Task): Date | undefined {
+export function taskEnd(task: Task, timeZone = getDisplayTimezone()): Date | undefined {
   const value = task.dueDate || task.startDate;
-  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
+  return value ? toLocalDate(taskDateKey(value, task.allDay, timeZone)) : undefined;
 }
 
 export function getInitialGanttAnchor(tasks: Task[], today: Date): Date {

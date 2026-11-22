@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { Coffee, StickyNote, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ interface PomodoroSessionHistoryItemProps {
 }
 
 export function PomodoroSessionHistoryItem({ session, showDates = false, reportView = false, timeZone, onViewDetails }: PomodoroSessionHistoryItemProps) {
+  useAccountTimezone();
   const details = presentPomodoroSession(session, timeZone);
   const SessionIcon = details.isFocus ? Timer : Coffee;
 

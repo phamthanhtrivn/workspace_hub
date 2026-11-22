@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
@@ -7,6 +10,7 @@ import type { CalendarEventEditorValues } from "../schemas/calendar-event-form.s
 import { addMinutesToDateTimeLocal, composeDateTimeLocal, getDateInputValue, getTimeInputValue } from "../utils/calendar-date.utils";
 
 export function useCalendarEventTime(form: UseFormReturn<CalendarEventEditorValues>, mode: "create" | "edit") {
+  useAccountTimezone();
   const { control, setValue } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });

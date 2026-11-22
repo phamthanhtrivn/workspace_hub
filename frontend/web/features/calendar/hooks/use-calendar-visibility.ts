@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { EventInput } from "@fullcalendar/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -22,6 +25,7 @@ export function useCalendarVisibility(
   calendars: WorkspaceCalendar[],
   events: CalendarEvent[],
 ) {
+  const accountTimezone = useAccountTimezone();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const [selectedCalendarIds, setSelectedCalendarIds] =
     useState<Set<string> | null>(null);
@@ -124,6 +128,7 @@ export function useCalendarVisibility(
               event.calendar?.color ||
               defaultCalendar?.color,
           currentUserId,
+          accountTimezone,
         ),
       );
   }, [
@@ -133,8 +138,7 @@ export function useCalendarVisibility(
     events,
     showCompletedTasks,
     tasksColor,
-    tasksVisible,
-  ]);
+    tasksVisible, accountTimezone]);
 
   const changeTasksColor = useCallback((color: string) => {
     if (!HEX_COLOR_PATTERN.test(color)) return;

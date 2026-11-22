@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useRef, useState, type BaseSyntheticEvent } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
@@ -24,6 +27,7 @@ import { fromDateTimeLocal } from "../utils/calendar-date.utils";
 import { createCalendarEventFormDefaults } from "../utils/calendar-event-form.utils";
 import { useCalendarEventTime } from "./use-calendar-event-time";
 import { useCalendarRecurrence } from "./use-calendar-recurrence";
+import { getDisplayTimezone } from "@/lib/timezone";
 
 interface UseCalendarEventFormInput {
   calendars: WorkspaceCalendar[];
@@ -38,6 +42,7 @@ export function useCalendarEventForm({
   event,
   onSubmit,
 }: UseCalendarEventFormInput) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const defaultCalendar =
     calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ??
@@ -45,6 +50,7 @@ export function useCalendarEventForm({
   const [defaults] = useState(() =>
     createCalendarEventFormDefaults({
       calendarId: defaultCalendar?.id ?? "",
+      calendarTimeZone: defaultCalendar?.timeZone,
       draft,
       event,
     }),
@@ -80,9 +86,10 @@ export function useCalendarEventForm({
   const isRecurring = Boolean(event?.recurrenceRule || event?.recurrenceParentId);
 
   const watchStartAt = time.startAt;
-  const conferenceStartTimestamp = new Date(
-    watchStartAt || defaults.values.startAt,
-  ).getTime();
+  const conferenceStartTimestamp = (() => {
+    try { return Date.parse(fromDateTimeLocal(watchStartAt || defaults.values.startAt)); }
+    catch { return Number.NaN; }
+  })();
   const refreshScheduleToday = time.refreshToday;
   const refreshToday = useCallback(() => {
     const nextNow = Date.now();
@@ -126,14 +133,17 @@ export function useCalendarEventForm({
     }
 
     const finalLocation = values.location.trim() || null;
+    const selectedCalendar = calendars.find(calendar => calendar.id === values.calendarId);
+    const storageZone = values.allDay ? event?.timeZone || selectedCalendar?.timeZone || getDisplayTimezone() : getDisplayTimezone();
     await onSubmit({
       conference: { enabled: values.sourceType !== EventSourceType.TASK && hasConference },
       calendarId: values.calendarId,
       title: values.title.trim(),
       description: values.description.trim() || null,
       location: finalLocation,
-      startAt: fromDateTimeLocal(values.startAt),
-      endAt: fromDateTimeLocal(values.endAt),
+      startAt: fromDateTimeLocal(values.startAt, storageZone, event?.startAt),
+      endAt: fromDateTimeLocal(values.endAt, storageZone, event?.endAt),
+      timeZone: storageZone,
       allDay: values.allDay,
       color: values.useEventColor ? values.color : null,
       recurrenceRule: recurrence.getRecurrenceRule(values.startAt),

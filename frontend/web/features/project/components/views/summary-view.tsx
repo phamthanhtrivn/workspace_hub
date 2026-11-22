@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import {
   Activity,
   CalendarClock,
@@ -18,6 +19,7 @@ import { PriorityDistributionBar } from "../summary/priority-distribution-bar";
 import { MemberWorkloadList } from "../summary/member-workload-list";
 
 import { formatTimeAgo } from "@/lib/date";
+import { formatDateOnly, formatInTimezone } from "@/lib/timezone";
 import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
 
 export default function SummaryView({
@@ -27,9 +29,10 @@ export default function SummaryView({
   tasks: Task[];
   members: ProjectMember[];
 }) {
-  const formatDate = (value?: string) =>
+  useAccountTimezone();
+  const formatDate = (value?: string, allDay = false) =>
     value
-      ? new Date(value).toLocaleDateString(undefined, {
+      ? (allDay ? formatDateOnly : formatInTimezone)(value, "en-US", {
           day: "2-digit",
           month: "2-digit",
         })
@@ -149,7 +152,7 @@ export default function SummaryView({
                     {task.title}
                   </span>
                   <span className="shrink-0 text-xs font-semibold text-warning-content">
-                    {formatDate(task.dueDate)}
+                    {formatDate(task.dueDate, task.allDay)}
                   </span>
                   <TaskStatusBadge status={task.status} compact />
                 </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { getAvailableCalendarFocusTasks, getAvailableProjectFocusTasks } from "../api/focus-tasks.api";
@@ -8,6 +9,7 @@ import type { PomodoroFocusSource } from "../types/pomodoro";
 import { POMODORO_TASK_SETTINGS } from "../constants/pomodoro-task";
 
 export function useFocusTaskOptions(source: PomodoroFocusSource | "all", open: boolean) {
+  useAccountTimezone();
   const userId = useAppSelector((state) => state.auth.userId);
   const day = taskDateKey(new Date().toISOString());
   const calendar = useQuery({

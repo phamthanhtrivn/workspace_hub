@@ -1,6 +1,8 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useMemo, useState } from "react";
+import { zonedDateKey } from "@/lib/timezone";
 import {
   type Task,
   TaskStatus,
@@ -125,9 +127,10 @@ export function useGanttTimeline({
   initialZoom = "day",
   containerWidth,
 }: UseGanttTimelineParams) {
+  const accountTimezone = useAccountTimezone();
   const [zoomMode, setZoomMode] = useState<GanttZoomMode>(initialZoom);
   const [anchorDate, setAnchorDate] = useState(() =>
-    getInitialGanttAnchor(tasks, toLocalDate(dateKey(new Date()))),
+    getInitialGanttAnchor(tasks, toLocalDate(zonedDateKey())),
   );
 
   const labelWidth = containerWidth
@@ -177,8 +180,8 @@ export function useGanttTimeline({
     const unscheduled: Task[] = [];
 
     for (const task of activeTasks) {
-      const start = taskStart(task);
-      const end = taskEnd(task);
+      const start = taskStart(task, accountTimezone);
+      const end = taskEnd(task, accountTimezone);
       if (start && end && Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())) {
         dated.push({ task, start, end });
       } else {
@@ -187,7 +190,7 @@ export function useGanttTimeline({
     }
 
     return { datedTasksRaw: dated, unscheduledTasks: unscheduled };
-  }, [activeTasks]);
+  }, [activeTasks, accountTimezone]);
 
   const predecessorsBySuccessor = useMemo(() => {
     const taskById = new Map(activeTasks.map((task) => [task.id, task]));
@@ -204,7 +207,7 @@ export function useGanttTimeline({
     return map;
   }, [activeTasks, dependencies]);
 
-  const todayKey = dateKey(new Date());
+  const todayKey = zonedDateKey();
   const todayDate = useMemo(() => toLocalDate(todayKey), [todayKey]);
   const range = useMemo(() => getGanttRange(anchorDate, zoomMode), [anchorDate, zoomMode]);
 
@@ -301,8 +304,7 @@ export function useGanttTimeline({
     weeks.length,
     weekWidth,
     days.length,
-    dayWidth,
-  ]);
+    dayWidth]);
 
   const todayOffset = useMemo(
     () => dayDifference(range.start, todayDate),
@@ -338,7 +340,7 @@ export function useGanttTimeline({
     setAnchorDate((current) => navigateGanttAnchor(current, zoomMode, direction));
   };
 
-  const jumpToToday = () => setAnchorDate(toLocalDate(dateKey(new Date())));
+  const jumpToToday = () => setAnchorDate(toLocalDate(zonedDateKey()));
   const jumpToTask = (task: Task) => {
     const start = taskStart(task);
     if (start && Number.isFinite(start.getTime())) setAnchorDate(new Date(start));

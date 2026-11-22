@@ -1,7 +1,5 @@
 import { DATE_RANGE_MESSAGES } from "@/lib/date-range";
 
-export const PROJECT_DATE_TIME_ZONE = "Asia/Ho_Chi_Minh";
-
 export const PROJECT_DATE_MESSAGES = {
   startDateInPast: DATE_RANGE_MESSAGES.startInPast,
   startDateRequiredForEndDate: DATE_RANGE_MESSAGES.startRequired,

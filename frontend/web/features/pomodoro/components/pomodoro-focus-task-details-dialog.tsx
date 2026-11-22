@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import Link from "next/link";
 import { ArrowUpRight, CircleDot, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function PomodoroFocusTaskDetailsDialog({ entry, current, disabled, onSel
   onDelete: () => void;
   onClose: () => void;
 }) {
+  useAccountTimezone();
   const { status } = usePomodoroSessionActions();
   const target = entry.source === "calendar" ? toCalendarFocusTask(entry.event) : toProjectFocusTask(entry.task, entry.project);
   const link = focusTaskLink(target);

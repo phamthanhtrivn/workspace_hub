@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
@@ -69,6 +70,7 @@ export default function ProjectSettingsDialog({
   ) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
+  useAccountTimezone();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [selectedColor, setSelectedColor] = useState(project.color);
