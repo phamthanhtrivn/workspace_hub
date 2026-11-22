@@ -34,6 +34,8 @@ The [thesis interface samples](docs/thesis/interfaces/README.md) include an Engl
 
 Dates and times across the workspace use the user's saved timezone (Vietnam UTC+07:00 by default), while timestamp storage remains UTC. Settings contains one timezone selector; timed forms use that preference and all-day dates retain their calendar day. See [timezone behavior](docs/features/timezones.md).
 
+Workspace navigation uses a full-height sidebar with module descriptions and account Settings at the bottom. The header contains breadcrumbs, desktop navigation collapse/expand, Help, notifications with an unread indicator, and the user menu. The original header/sidebar outer borders, saved collapse preferences and mobile navigation remain supported; see [UI guidance](DESIGN.md).
+
 ## System Architecture and Technology Stack
 
 ~~~mermaid

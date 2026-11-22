@@ -5,7 +5,7 @@ import { useId as useControlledPopupId } from "react";
 import React, { useRef, useState } from "react";
 
 import { useWorkspaceHelp } from "@/features/help/hooks/use-workspace-help";
-import { HelpCircle, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, HelpCircle, LogOut, Settings, User } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
 import { SIGN_OUT_COPY } from "@/features/auth/types/auth.constants";
@@ -46,16 +46,19 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         ref={triggerRef}
         type="button"
         onClick={() => setIsUserDropdownOpen((prev) => !prev)}
-        className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-sm font-semibold text-foreground ring-1 ring-ring transition hover:bg-border focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer"
+        className="flex h-11 shrink-0 items-center gap-2 rounded-control px-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
         aria-label="Open user menu"
       >
-        <UserAvatar
-          src={avatarUrl}
-          alt={fullName || "User"}
-          fill
-          className="rounded-full object-cover"
-          sizes="44px"
-        />
+        <span className="relative size-9 shrink-0 overflow-hidden rounded-full ring-2 ring-info-soft">
+          <UserAvatar
+            src={avatarUrl}
+            alt={fullName || "User"}
+            fill
+            className="rounded-full object-cover"
+            sizes="36px"
+          />
+        </span>
+        <ChevronDown aria-hidden="true" className={`hidden size-3.5 text-muted-foreground transition-transform motion-reduce:transition-none sm:block ${isUserDropdownOpen ? "rotate-180" : ""}`} />
       </Button>
 
       {isUserDropdownOpen && (
