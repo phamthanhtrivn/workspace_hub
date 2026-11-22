@@ -43,7 +43,10 @@ import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
 import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 import { LoadingState } from "@/components/ui/loading-state";
-import { DASHBOARD_ACCENTS } from "../constants/dashboard-appearance";
+import {
+  DASHBOARD_ACCENTS,
+  DASHBOARD_DEADLINE_TONES,
+} from "../constants/dashboard-appearance";
 
 const EventFormModal = dynamic(
   () =>
@@ -138,7 +141,7 @@ function PersonalDashboard() {
       icon: AlertCircle,
       href: "#my-tasks",
       theme: tasksReady && overdueCount > 0 ? "text-destructive-content" : "text-foreground",
-      iconTheme: tasksReady && overdueCount > 0 ? "bg-destructive-soft text-destructive-content" : "bg-secondary text-secondary-foreground",
+      iconTheme: DASHBOARD_DEADLINE_TONES.Overdue,
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",

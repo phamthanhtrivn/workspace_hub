@@ -9,6 +9,7 @@ import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
 import { useChatSocket } from "@/features/chat/hooks/socket/useChatSocket";
 import { Button } from "@/components/ui/button";
+import { WorkspaceClock } from "./workspace-clock";
 
 
 interface WorkspaceHeaderProps {
@@ -52,7 +53,8 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
         </div>
 
         {/* Right: Actions & User Profile */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          <WorkspaceClock onOpenSettings={() => onOpenSettings(UserSettingTab.GENERAL)} />
           <Button variant="ghost" size="icon" aria-label="Open Help & shortcuts" aria-keyshortcuts="?" title="Help & shortcuts (?)" onClick={openHelp} className="size-10 shrink-0"><CircleHelp aria-hidden="true" className="size-5" /></Button>
           <NotificationDropdown />
           <UserProfileDropdown onOpenSettings={onOpenSettings} />
