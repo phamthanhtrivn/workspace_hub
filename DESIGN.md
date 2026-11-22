@@ -88,6 +88,8 @@ The runtime source of truth is `frontend/web/app/globals.css`. Frontmatter recor
 
 ## Typography
 
+The WorkspaceHub mark uses four rounded, connected nodes with the approved blue gradient. Its source is `frontend/web/public/brand/workspacehub-mark.svg`, rendered through `WorkspaceLogo` without theme-dependent CSS. Keep existing logo containers and outer borders. The source SVG owns a 12-unit inner inset in its 128-unit canvas (about 4px in the 44px sidebar logo); all derived icons and social previews inherit this spacing, without additional CSS padding. Favicon/Apple touch/notification variants use an opaque dark background; notification badges use a white silhouette. Run `npm run generate:brand-icons` from `frontend/web` after editing the source SVG. The header clock alone uses 12-hour time with a smaller muted AM/PM label.
+
 Use Inter from `next/font` through the shared sans token. Application page titles use `text-page-title font-semibold` (22px/600); sections use `text-section-title font-semibold` (18px/600). Body and controls use 14px, metadata uses 12px, and dense task/chat content may use `text-compact` (13px). Reserve heavier weights for the brand mark and intentional document/message formatting. Public/auth display headings and the functional timer readout retain their larger scale. Use tabular numerals for durations and measured data.
 
 ## Layout

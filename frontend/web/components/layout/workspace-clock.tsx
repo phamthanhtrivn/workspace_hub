@@ -22,20 +22,31 @@ export function WorkspaceClock({
         timeZone,
       )
     : "--/--/----";
-  const time = now
-    ? formatInTimezone(
-        now,
-        "en-GB",
-        { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+  const timeParts = now
+    ? new Intl.DateTimeFormat("en-US", {
         timeZone,
-      )
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h12",
+      }).formatToParts(now)
+    : [];
+  const time = now
+    ? timeParts
+        .filter(({ type }) => type !== "dayPeriod")
+        .map(({ value }) => value)
+        .join("")
+        .trim()
     : "--:--";
+  const dayPeriod =
+    timeParts.find(({ type }) => type === "dayPeriod")?.value ?? "";
+  const spokenTime = [time, dayPeriod].filter(Boolean).join(" ");
+
   return (
     <Button
       variant="unstyled"
       onClick={onOpenSettings}
-      title={`${date} · ${time} · ${label}. Change timezone in Settings.`}
-      aria-label={`${date}, ${time}, ${label}. Open timezone settings`}
+      title={`${date} · ${spokenTime} · ${label}. Change timezone in Settings.`}
+      aria-label={`${date}, ${spokenTime}, ${label}. Open timezone settings`}
       className="flex h-11 min-w-0 shrink-0 flex-col items-start justify-center gap-0 rounded-control px-2 py-0 text-left font-normal text-foreground transition-colors duration-150 hover:bg-accent sm:flex-row sm:items-center sm:gap-3 sm:px-3"
     >
       <span
@@ -52,8 +63,15 @@ export function WorkspaceClock({
         dateTime={now?.toISOString()}
         className="flex flex-col whitespace-nowrap tabular-nums"
       >
-        <span className="text-base leading-5 font-semibold tracking-tight">
-          {time}
+        <span className="flex items-baseline gap-1.5">
+          <span className="text-base leading-5 font-semibold tracking-tight">
+            {time}
+          </span>
+          {dayPeriod && (
+            <span className="text-xs leading-4 font-medium text-muted-foreground">
+              {dayPeriod}
+            </span>
+          )}
         </span>
         <span className="hidden text-xs leading-4 text-muted-foreground sm:block">
           {date}

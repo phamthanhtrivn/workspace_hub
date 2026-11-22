@@ -4,6 +4,7 @@ import React from "react";
 import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { WorkspaceLogo } from "@/components/common/workspace-logo";
 
 interface SharedHeaderProps {
   isLoggedIn: boolean;
@@ -15,7 +16,7 @@ export function SharedHeader({ isLoggedIn }: SharedHeaderProps) {
     <header className="border-b border-border bg-card sticky top-0 z-40 px-6 py-4.5 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2">
         <div className="w-9 h-9 rounded-panel bg-primary flex items-center justify-center text-primary-foreground font-semibold">
-          W
+          <WorkspaceLogo alt="" className="size-9" />
         </div>
         <span className="text-sm font-semibold text-foreground tracking-tight">WorkspaceHub</span>
       </Link>

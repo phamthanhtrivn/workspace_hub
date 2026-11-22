@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Settings, X } from "lucide-react";
+import { WorkspaceLogo } from "@/components/common/workspace-logo";
 import { Button } from "@/components/ui/button";
 import { SheetPanel } from "@/components/ui/sheet";
 import {
@@ -62,7 +63,7 @@ export function WorkspaceSidebar({
             aria-hidden="true"
             className="grid size-11 shrink-0 place-items-center rounded-panel bg-brand-blue text-base font-semibold text-brand-ice"
           >
-            W
+            <WorkspaceLogo alt="" className="size-11" />
           </span>
           <span className={labelClassName}>
             <span className="block truncate text-lg leading-6 font-semibold tracking-tight">

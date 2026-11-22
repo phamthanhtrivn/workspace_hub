@@ -48,6 +48,8 @@ Backend production builds exclude TypeScript spec files. `test:typecheck` checks
 
 Shared conversion tests live in `frontend/web/lib/timezone.spec.ts`; timezone search tests live beside their utility under `frontend/web/features/user-setting/utils/`. Calendar recurrence tests live under `backend/calendar-service/src/modules/calendar-event/`, and preference validation uses JUnit under `backend/user-service/src/test/java/`. Existing calendar, recording and notification tests also cover their owning workflows. See [timezone behavior](../docs/features/timezones.md).
 
+The header's 12-hour AM/PM display, noon/midnight boundaries and timezone-driven day changes are covered by `frontend/web/components/layout/workspace-clock.spec.cjs`.
+
 ```powershell
 node tests/run-tests.mjs --project frontend/web --match timezone
 node tests/run-tests.mjs --project backend/calendar-service --match timezone

@@ -2,6 +2,7 @@ import { PRIVATE_ROBOTS } from "@/lib/seo";
 import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { AuthInteractionBoundary } from "@/features/auth/components/auth-interaction-provider";
+import { WorkspaceLogo } from "@/components/common/workspace-logo";
 
 export const metadata = { robots: PRIVATE_ROBOTS };
 
@@ -35,6 +36,7 @@ export default function AuthLayout({
               Back to main page
             </Link>
             <div className="max-w-2xl">
+              <WorkspaceLogo className="mb-6 size-14" />
               <div className="mb-8 inline-flex items-center gap-2 rounded-md border border-border/12 bg-overlay/10 px-3.5 py-2 text-sm font-medium text-brand-ice shadow-xl shadow-overlay/20 backdrop-blur-md">
                 <Sparkles className="h-4 w-4 text-brand-ice" />
                 Intelligent Workspace Platform

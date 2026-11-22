@@ -2,11 +2,12 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LANDING_LINKS } from "../landing-content";
+import { WorkspaceLogo } from "@/components/common/workspace-logo";
 
 export function LandingLogo() {
   return (
     <Link href="/" className="inline-flex shrink-0 items-center gap-2.5 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-xl bg-brand-blue text-lg font-bold text-brand-ice sm:size-10">W</span>
+      <span aria-hidden="true" className="flex size-9 items-center justify-center rounded-xl bg-brand-blue text-lg font-bold text-brand-ice sm:size-10"><WorkspaceLogo alt="" className="size-9 sm:size-10" /></span>
       <span className="text-base font-semibold tracking-tight sm:text-lg">WorkspaceHub</span>
     </Link>
   );

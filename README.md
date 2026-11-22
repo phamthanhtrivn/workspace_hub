@@ -36,6 +36,8 @@ Dates and times across the workspace use the user's saved timezone (Vietnam UTC+
 
 Workspace navigation uses a full-height sidebar with module descriptions and account Settings at the bottom. The header contains breadcrumbs, desktop navigation collapse/expand, Help, notifications with an unread indicator, and the user menu. The original header/sidebar outer borders, saved collapse preferences and mobile navigation remain supported; see [UI guidance](DESIGN.md).
 
+The connected four-node blue brand mark is a transparent SVG shared by the workspace, landing/footer, authentication, public sharing and social preview. Browser and notification icons are derived from that source; regenerate them with `npm run generate:brand-icons` in `frontend/web`. The header clock uses 12-hour time with AM/PM and the saved account timezone.
+
 ## System Architecture and Technology Stack
 
 ~~~mermaid

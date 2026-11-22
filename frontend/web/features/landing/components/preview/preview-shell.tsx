@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { LANDING_MODULES, type LandingModuleId } from "../../landing-content";
 import { PREVIEW_FRAME_CLASS_NAME } from "./preview-data";
 import { PreviewAvatar, PreviewIcon } from "./preview-ui";
+import { WorkspaceLogo } from "@/components/common/workspace-logo";
 
 const WORKSPACE_NAVIGATION = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,7 +22,7 @@ export function PreviewShell({ moduleId, children }: { moduleId: LandingModuleId
   return (
     <div data-module-preview={moduleId} role="region" aria-label={`${activeModule.label} interface preview, sample data`} className={cn("@container/preview flex min-w-0 overflow-hidden bg-background text-left font-sans text-sm text-foreground", PREVIEW_FRAME_CLASS_NAME)}>
       <aside aria-label="Illustrated workspace navigation" className="hidden w-24 shrink-0 flex-col items-center border-r border-border bg-sidebar px-4 py-5 @min-[1024px]/preview:flex">
-        <span className="grid size-11 shrink-0 place-items-center rounded-panel bg-brand-blue text-sm font-semibold text-brand-ice">W</span>
+        <span className="grid size-11 shrink-0 place-items-center rounded-panel bg-brand-blue text-sm font-semibold text-brand-ice"><WorkspaceLogo className="size-11" /></span>
         <div className="mt-8 flex flex-1 flex-col gap-1.5">{WORKSPACE_NAVIGATION.map(({ id, label, icon: Icon }) => <span key={id} title={label} className={cn("grid size-12 place-items-center rounded-control", id === moduleId ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground")}><Icon aria-hidden="true" className="size-5" /><span className="sr-only">{label}</span></span>)}</div>
         <PreviewIcon icon={Settings} label="Settings" /><PreviewAvatar name="Tri" className="mt-3 size-9" />
       </aside>
