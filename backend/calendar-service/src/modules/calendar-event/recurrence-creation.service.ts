@@ -51,7 +51,7 @@ export class RecurrenceCreationService {
             visibility: dto.visibility ?? EventVisibility.DEFAULT,
             sourceType: dto.sourceType ?? EventSourceType.USER,
             recurrenceRule: dto.recurrenceRule!,
-            timeZone: calendar.timeZone,
+            timeZone: dto.timeZone ?? calendar.timeZone,
           },
         });
         await this.relations.createSeriesRelations(tx, created.id, {
@@ -119,7 +119,7 @@ export class RecurrenceCreationService {
             visibility: dto.visibility ?? event.visibility,
             sourceType: event.sourceType,
             recurrenceRule: dto.recurrenceRule!,
-            timeZone: calendar.timeZone,
+            timeZone: dto.timeZone ?? calendar.timeZone,
           },
         });
         await this.relations.createSeriesRelations(tx, series.id, {
@@ -133,7 +133,7 @@ export class RecurrenceCreationService {
           this.recurrence.includesOccurrence(
             dto.recurrenceRule!,
             startAt,
-            calendar.timeZone,
+            series.timeZone,
             startAt,
           ) &&
           !dto.exceptionDates?.includes(startAt.toISOString())

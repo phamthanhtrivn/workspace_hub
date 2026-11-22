@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
 import { DATE_RANGE_MESSAGES, getDateRangeBounds, type DateRangeErrors } from "@/lib/date-range";
 
@@ -66,6 +67,7 @@ export default function TaskPropertiesPanel({
   onStartDateChange,
   onDueDateChange,
 }: TaskPropertiesPanelProps) {
+  useAccountTimezone();
   const controlledPopupId = useControlledPopupId();
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);

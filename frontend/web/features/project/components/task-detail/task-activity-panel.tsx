@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { ArrowRight, History } from "lucide-react";
 import type {
   ProjectMember,
@@ -28,6 +29,7 @@ export default function TaskActivityPanel({
   isError: boolean;
   onRefresh: () => void;
 }) {
+  useAccountTimezone();
   const { activityActor, activityValue } = createTaskActivityPresenter(
     members,
     tasks,

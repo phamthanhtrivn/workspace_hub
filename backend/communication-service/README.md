@@ -1,5 +1,7 @@
 # Communication Service
 
+Chat timestamps, meeting schedules/history and recording timestamps remain UTC instants. The web displays them using the user's saved account timezone, interprets meeting editor input in that zone and converts recording date filters to UTC day boundaries. No per-meeting or per-conversation timezone selector is required. See [account timezone](../../docs/features/timezones.md).
+
 Run this NestJS application on the host in its own terminal. Keep the existing
 private .env and use localhost infrastructure/service endpoints. LiveKit URL and
 credentials must match local infrastructure.

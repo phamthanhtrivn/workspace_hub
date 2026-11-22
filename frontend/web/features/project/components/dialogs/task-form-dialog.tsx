@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState } from "react";
 import { getDateRangeErrors, getInitialScheduleStart, hasDateRangeErrors } from "@/lib/date-range";
 import { useScheduleToday } from "@/hooks/use-schedule-today";
@@ -83,6 +84,7 @@ export default function TaskFormDialog({
   onSubmit: (values: TaskFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }) {
+  useAccountTimezone();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);

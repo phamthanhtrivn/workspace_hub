@@ -1,3 +1,6 @@
+import { Temporal } from "temporal-polyfill";
+import { fromZonedDateTimeInput, getDisplayTimezone, TIMEZONE_ERROR } from "./timezone";
+
 export const DATE_RANGE_MESSAGES = {
   startInPast: "Start date must be today or later.",
   startRequired: "Select a start date first.",
@@ -21,7 +24,7 @@ export interface DateRangeOptions {
 
 export interface DateRangeErrors { start?: string; end?: string }
 
-export function getTodayDateValue(now = new Date(), timeZone?: string): string {
+export function getTodayDateValue(now = new Date(), timeZone = getDisplayTimezone()): string {
   const parts = new Intl.DateTimeFormat("en", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit",
   }).formatToParts(now);
@@ -30,7 +33,9 @@ export function getTodayDateValue(now = new Date(), timeZone?: string): string {
 }
 
 function rangeTimestamp(value: string, dateOnly: boolean): number {
-  return new Date(dateOnly ? `${value.slice(0, 10)}T00:00` : value).getTime();
+  try {
+    return Date.parse(dateOnly ? `${Temporal.PlainDate.from(value.slice(0, 10))}T00:00Z` : fromZonedDateTimeInput(value));
+  } catch { return Number.NaN; }
 }
 
 export function getDateRangeErrors({
@@ -43,7 +48,7 @@ export function getDateRangeErrors({
     if (requireStart) errors.start = DATE_RANGE_MESSAGES.startRequired;
     if (end && !allowExistingEndWithoutStart) errors.end = DATE_RANGE_MESSAGES.startRequired;
   } else if (!Number.isFinite(rangeTimestamp(start, dateOnly))) {
-    errors.start = DATE_RANGE_MESSAGES.invalidDate;
+    errors.start = dateOnly ? DATE_RANGE_MESSAGES.invalidDate : TIMEZONE_ERROR;
   } else if (
     mode === "create" &&
     !allowPastStart &&
@@ -54,7 +59,7 @@ export function getDateRangeErrors({
   if (!end) {
     if (requireEnd) errors.end = DATE_RANGE_MESSAGES.endRequired;
   } else if (!Number.isFinite(rangeTimestamp(end, dateOnly))) {
-    errors.end = DATE_RANGE_MESSAGES.invalidDate;
+    errors.end = dateOnly ? DATE_RANGE_MESSAGES.invalidDate : TIMEZONE_ERROR;
   } else if (start && !errors.start) {
     const duration = rangeTimestamp(end, dateOnly) - rangeTimestamp(start, dateOnly);
     if (duration < 0) errors.end = DATE_RANGE_MESSAGES.endBeforeStart;
@@ -70,10 +75,8 @@ export function hasDateRangeErrors(errors: DateRangeErrors): boolean {
 }
 
 function offsetDateTime(value: string, offsetMs: number): string | undefined {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return undefined;
-  date.setTime(date.getTime() + offsetMs);
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+  try { return Temporal.PlainDateTime.from(value).add({ milliseconds: offsetMs }).toString({ smallestUnit: "minute" }); }
+  catch { return undefined; }
 }
 
 export function getDateRangeBounds({ start, end, mode, dateOnly = false,

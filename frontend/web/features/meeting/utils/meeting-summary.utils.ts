@@ -1,3 +1,5 @@
+import { getDisplayTimezone } from "@/lib/timezone";
+
 export function formatMeetingSummaryMinutes(totalMinutes: number) {
   const safeMinutes = Math.max(0, Math.round(totalMinutes));
   const hours = Math.floor(safeMinutes / 60);
@@ -18,7 +20,7 @@ export function formatMeetingSummaryLastMeetingAt(
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return fallback;
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en-US", { timeZone: getDisplayTimezone(),
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

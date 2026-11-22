@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -42,6 +44,7 @@ export function ContextNotificationModal({
   notification,
   onClose,
 }: NotificationRendererProps) {
+  useAccountTimezone();
   const router = useRouter();
   const link = getContextNotificationLink(notification);
   const details = getContextNotificationDetails(notification);
@@ -78,7 +81,7 @@ export function ContextNotificationModal({
               dateTime={notification.createdAt}
               className="text-xs text-muted-foreground"
             >
-              {new Date(notification.createdAt).toLocaleString()}
+              {formatInTimezone(new Date(notification.createdAt), "en-US", { dateStyle: "short", timeStyle: "short" })}
             </time>
           </div>
         </div>

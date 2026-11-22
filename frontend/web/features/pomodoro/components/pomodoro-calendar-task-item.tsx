@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useId, useState, type KeyboardEvent } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
@@ -32,6 +33,7 @@ export function PomodoroCalendarTaskItem({
   onMove,
   onRequestDelete,
 }: CalendarTaskRowProps) {
+  useAccountTimezone();
   const [isNoteExpanded, setIsNoteExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const notesId = useId();

@@ -1,8 +1,8 @@
 import { getDateRangeErrors, getTodayDateValue as getToday } from "@/lib/date-range";
-import { PROJECT_DATE_TIME_ZONE } from "../constants/project-form.constants";
+import { getDisplayTimezone } from "@/lib/timezone";
 
 export function getTodayDateValue(now = new Date()): string {
-  return getToday(now, PROJECT_DATE_TIME_ZONE);
+  return getToday(now, getDisplayTimezone());
 }
 
 export function getCreateProjectDateErrors(

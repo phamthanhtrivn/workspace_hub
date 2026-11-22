@@ -15,6 +15,7 @@ export function buildCalendarEventUpdate(
 ): UpdateCalendarEventPayload {
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
   const payload: UpdateCalendarEventPayload = {
+    ...(!isRecurring && values.recurrenceRule ? { timeZone: values.timeZone } : {}),
     recurrenceScope: values.recurrenceScope,
     ...(values.conference && values.conference.enabled !== Boolean(event.conference?.enabled) ? { conference: values.conference } : {}),
   };

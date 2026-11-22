@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ export function ListViewRow({
   onShareToChat,
   isProjectDocuments = false,
 }: ListViewRowProps) {
+  useAccountTimezone();
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = selection
     ? selection.selectedIds.has(item.id)

@@ -10,8 +10,8 @@ self.addEventListener("push", function (event) {
 
     const options = {
       body: data.content || "You have a new notification.",
-      icon: data.senderAvatar || "/vercel.svg",
-      badge: "/next.svg",
+      icon: data.senderAvatar || "/brand/workspacehub-icon.png",
+      badge: "/brand/workspacehub-badge.png",
       vibrate: [100, 50, 100],
       data: {
         link: data.link || "/chat",

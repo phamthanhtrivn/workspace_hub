@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
@@ -41,6 +42,7 @@ const PollMessage = React.memo(function PollMessage({
   onAddOption,
   onEditPoll,
 }: PollMessageProps) {
+  useAccountTimezone();
   const pollFieldId = React.useId();
   const [voting, setVoting] = useState(false);
   const votingRef = React.useRef(false);

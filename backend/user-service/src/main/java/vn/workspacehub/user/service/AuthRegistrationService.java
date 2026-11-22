@@ -56,7 +56,7 @@ public class AuthRegistrationService {
                 .user(savedUser)
                 .theme("light")
                 .language(AccountLanguage.VIETNAMESE.getValue())
-                .timezone("Asia/Ho_Chi_Minh")
+                .timezone(AccountTimezone.DEFAULT)
                 .build();
         accountSettingRepository.save(accountSetting);
     }

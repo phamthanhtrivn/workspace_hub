@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
@@ -24,6 +25,7 @@ interface PomodoroProjectTaskPanelProps {
 
 export function PomodoroProjectTaskPanel({ tasks, userId, filters, onFiltersChange, projectId, onProjectChange,
   isLoading, isError, onRetry }: PomodoroProjectTaskPanelProps) {
+  useAccountTimezone();
   const { busy, isReady } = usePomodoroSessionActions();
   const eligible = tasks.filter(({ task }) => isProjectFocusEligible(task, userId));
   const projects = [...new Map(eligible.map(({ project }) => [project.id, project])).values()];

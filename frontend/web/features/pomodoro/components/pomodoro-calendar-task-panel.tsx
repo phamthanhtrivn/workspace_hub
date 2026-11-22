@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
@@ -26,6 +27,7 @@ interface PomodoroCalendarTaskPanelProps {
 
 export function PomodoroCalendarTaskPanel({ tasks, userId, filters, onFiltersChange,
   isLoading, isError, onRetry, onCreateTask }: PomodoroCalendarTaskPanelProps) {
+  useAccountTimezone();
   const [savingOrder, setSavingOrder] = useState(false);
   const [orderError, setOrderError] = useState("");
   const { activeTask, startFocus, stopSession, selectTask, busy, isReady } = usePomodoroSessionActions();

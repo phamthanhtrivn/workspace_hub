@@ -1,3 +1,4 @@
+import { taskSyncDueDate } from "../task-sync/task-sync.types";
 import { enqueueProjectAccessSync } from "./project-access-sync";
 import {
   BadGatewayException,
@@ -144,6 +145,7 @@ export class ProjectChatWorkflowService {
         status: true,
         priority: true,
         dueDate: true,
+        allDay: true,
         version: true,
       },
     });
@@ -162,7 +164,7 @@ export class ProjectChatWorkflowService {
         channelId,
         task.status,
         task.priority,
-        task.dueDate ? task.dueDate.toISOString() : undefined,
+        taskSyncDueDate(task) ?? undefined,
         task.version.toString(),
       );
     } catch {

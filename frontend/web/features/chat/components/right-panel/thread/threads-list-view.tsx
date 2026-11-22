@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { UserAvatar } from "@/components/common/user-avatar";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { IconButton } from "@/components/ui/icon-button";
@@ -38,6 +39,7 @@ export default function ThreadsListView({
   isDirect = false,
   onClose,
 }: ThreadsListViewProps) {
+  useAccountTimezone();
   const dispatch = useAppDispatch();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);

@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { StorageVideo, StorageImg } from "@/components/common/storage-media";
 import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
@@ -156,6 +159,7 @@ export default function MediaDetailView({
   isDirect = false,
   onBack,
 }: MediaDetailViewProps) {
+  useAccountTimezone();
   const [activeFilter, setActiveFilter] = useState<FileFilter>(undefined);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [searchQuery, setSearchQuery] = useState("");

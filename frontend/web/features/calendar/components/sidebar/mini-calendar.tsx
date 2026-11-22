@@ -9,6 +9,8 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import { getMiniCalendarWeekdayLabel, isSameDate } from "../../utils/calendar-date.utils";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { zonedDateKey } from "@/lib/timezone";
 
 export const MiniCalendar = memo(function MiniCalendar({
   currentDate,
@@ -19,6 +21,7 @@ export const MiniCalendar = memo(function MiniCalendar({
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
 }) {
+  const timeZone = useAccountTimezone();
 
   const miniCalendarRef = useRef<FullCalendar | null>(null);
   const [visibleDate, setVisibleDate] = useState(currentDate);
@@ -96,6 +99,7 @@ export const MiniCalendar = memo(function MiniCalendar({
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         initialDate={currentDate}
+        now={zonedDateKey(new Date(), timeZone)}
         locale="en"
         firstDay={1}
         headerToolbar={false}

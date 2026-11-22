@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
 import { ArrowLeft, FileText } from "lucide-react";
@@ -19,6 +22,7 @@ export default function NoteDetailView({
   conversationId,
   onBack,
 }: NoteDetailViewProps) {
+  useAccountTimezone();
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");

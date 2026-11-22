@@ -1,5 +1,6 @@
 import type { Task } from "../types/project";
 import { taskDateKey } from "./task-dates";
+import { formatDateOnly, formatInTimezone } from "@/lib/timezone";
 
 export interface CalendarTaskSegment {
   task: Task;
@@ -71,7 +72,8 @@ export function formatCalendarTaskRange(task: Task): string {
     const dateOnly = task.allDay || value.length === 10;
     const date = new Date(dateOnly ? `${taskDateKey(value, true)}T00:00:00` : value);
     if (Number.isNaN(date.getTime())) return "";
-    return date.toLocaleString(undefined, {
+    if (dateOnly) return formatDateOnly(value, "en-US", { day: "numeric", month: "short", year: "numeric" });
+    return formatInTimezone(date, "en-US", {
       day: "numeric", month: "short", year: "numeric",
       ...(dateOnly ? {} : { hour: "2-digit", minute: "2-digit" }),
     });

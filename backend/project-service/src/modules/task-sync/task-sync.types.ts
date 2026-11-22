@@ -11,6 +11,7 @@ export interface TaskSyncEvent {
 }
 
 export interface SyncableTask {
+  allDay?: boolean;
   id: string;
   projectId: string;
   version: bigint;
@@ -19,6 +20,12 @@ export interface SyncableTask {
   priority: string;
   dueDate: Date | null;
   deletedAt: Date | null;
+}
+
+export function taskSyncDueDate(task: Pick<SyncableTask, 'dueDate' | 'allDay'>): string | null {
+  if (!task.dueDate) return null;
+  const timestamp = task.dueDate.toISOString();
+  return task.allDay ? timestamp.slice(0, 10) : timestamp;
 }
 
 export function taskSyncEvent(task: SyncableTask): TaskSyncEvent {
@@ -30,7 +37,7 @@ export function taskSyncEvent(task: SyncableTask): TaskSyncEvent {
     title: task.title,
     status: task.status,
     priority: task.priority,
-    dueDate: task.dueDate?.toISOString() ?? null,
+    dueDate: taskSyncDueDate(task),
     deleted: task.deletedAt !== null,
   };
 }

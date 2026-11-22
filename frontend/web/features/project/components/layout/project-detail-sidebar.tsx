@@ -197,26 +197,8 @@ export default function ProjectDetailSidebar({
           isCollapsed ? "lg:w-20" : "lg:w-62",
         )}
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-sm"
-          onClick={onToggle}
-          aria-label={
-            isCollapsed ? "Expand project sidebar" : "Collapse project sidebar"
-          }
-          aria-expanded={!isCollapsed}
-          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-border bg-card text-muted-foreground hover:bg-background hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring lg:flex shadow-panel"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </Button>
-
         <header
-          className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-[color-mix(in_srgb,var(--project-color)_8%,var(--sidebar))] px-3"
+          className="relative flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-[color-mix(in_srgb,var(--project-color)_8%,var(--sidebar))] px-3"
           style={getProjectColorStyle(project.color)}
         >
           <ProjectIdentityIcon icon={project.icon} color={project.color} size="lg" />
@@ -247,6 +229,25 @@ export default function ProjectDetailSidebar({
             className="ml-auto h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
           >
             <X className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={onToggle}
+            aria-label={
+              isCollapsed
+                ? "Expand project sidebar"
+                : "Collapse project sidebar"
+            }
+            aria-expanded={!isCollapsed}
+            className="absolute -right-4 top-1/2 z-30 hidden h-8 w-8 -translate-y-1/2 rounded-full border-border bg-card text-muted-foreground shadow-panel hover:bg-background hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring lg:flex"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </Button>
         </header>
 

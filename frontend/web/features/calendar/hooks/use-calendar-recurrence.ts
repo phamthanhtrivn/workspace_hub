@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toDateTimeLocal } from "../utils/calendar-date.utils";
 import {
   CALENDAR_FORM_COPY as copy,
   CALENDAR_FORM_LOCALE,
@@ -20,16 +21,17 @@ export function useCalendarRecurrence(
   defaultStart: Date,
   event?: CalendarEvent | null,
 ) {
-  const recurrenceStartAt = startAt || defaultStart.toISOString();
+  const defaultWallStart = new Date(toDateTimeLocal(defaultStart));
+  const recurrenceStartAt = startAt || toDateTimeLocal(defaultStart);
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
     event?.recurrenceRule || null,
   );
   const [recurrencePreset, setRecurrencePreset] =
     useState<CalendarRecurrencePreset>(() =>
-      getRecurrencePresetFromRule(event?.recurrenceRule, defaultStart),
+      getRecurrencePresetFromRule(event?.recurrenceRule, defaultWallStart),
     );
   const [customRecurrence, setCustomRecurrence] = useState(() =>
-    parseCustomRecurrenceRule(event?.recurrenceRule, defaultStart),
+    parseCustomRecurrenceRule(event?.recurrenceRule, defaultWallStart),
   );
   const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
   const [recurrenceDirty, setRecurrenceDirty] = useState(false);

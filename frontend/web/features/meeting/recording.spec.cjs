@@ -361,6 +361,7 @@ test("recording menu preserves actions, pending states and owner permission hint
   const { MeetingRecordingCard } = load(
     "features/meeting/components/recordings/meeting-recording-card.tsx",
     {
+      "@/features/user-setting/hooks/use-account-timezone": { useAccountTimezone: () => "Asia/Ho_Chi_Minh" },
       "@/components/ui/dropdown-menu": {
         DropdownMenu: "menu",
         DropdownMenuTrigger: "trigger",
@@ -480,7 +481,7 @@ test("inclusive local recording dates include the entire last day across dayligh
     const spring = recordingDateBounds({
       from: "2026-03-08",
       to: "2026-03-08",
-    });
+    }, "America/New_York");
     assert.equal(
       new Date(spring.toDate) - new Date(spring.fromDate),
       23 * 60 * 60 * 1000,
@@ -488,7 +489,7 @@ test("inclusive local recording dates include the entire last day across dayligh
     const autumn = recordingDateBounds({
       from: "2026-11-01",
       to: "2026-11-01",
-    });
+    }, "America/New_York");
     assert.equal(
       new Date(autumn.toDate) - new Date(autumn.fromDate),
       25 * 60 * 60 * 1000,

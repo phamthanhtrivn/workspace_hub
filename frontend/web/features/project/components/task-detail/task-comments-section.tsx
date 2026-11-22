@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import { MessageSquare, Pencil, Send, Trash2 } from "lucide-react";
@@ -32,6 +33,7 @@ export default function TaskCommentsSection({
   members,
   isReadOnly,
 }: TaskCommentsSectionProps) {
+  useAccountTimezone();
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState("");

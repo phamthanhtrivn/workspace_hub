@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { Clock3, RotateCw, Trash2 } from "lucide-react";
 import { Avatar } from "../ui/avatar-stack";
@@ -21,6 +23,7 @@ export default function PendingInvitationsList({
   projectId: string;
   invitations: ProjectInvitationWithUser[];
 }) {
+  useAccountTimezone();
   const cancelMutation = useCancelProjectInvitation(projectId);
   const resendMutation = useResendProjectInvitation(projectId);
   const { dialogProps, confirm } = useProjectConfirmDialog();
@@ -87,7 +90,7 @@ export default function PendingInvitationsList({
             resendMutation.variables === invitation.id;
 
           const expiryText = invitation.expiresAt
-            ? new Date(invitation.expiresAt).toLocaleDateString()
+            ? formatInTimezone(new Date(invitation.expiresAt), "en-US", { year: "numeric", month: "numeric", day: "numeric" })
             : "Unlimited";
 
           return (

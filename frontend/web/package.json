@@ -8,6 +8,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "generate:brand-icons": "node scripts/generate-brand-icons.mjs",
     "lint": "eslint",
     "lint:check": "eslint .",
     "lint:fix": "eslint . --fix",

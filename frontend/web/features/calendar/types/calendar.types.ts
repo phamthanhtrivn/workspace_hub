@@ -279,6 +279,7 @@ export interface CalendarGroupedTasks {
 }
 
 export interface CalendarEventFormValues {
+  timeZone?: string;
   conference?: { enabled: boolean };
   calendarId: string;
   title: string;
@@ -299,6 +300,7 @@ export interface CalendarEventFormValues {
 }
 
 export interface CreateCalendarEventPayload {
+  timeZone?: string;
   conference?: { enabled: boolean };
   calendarId: string;
   title: string;

@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDateTime } from "@/lib/date";
@@ -22,6 +25,7 @@ export default function NotesSection({
   onToggle,
   onSeeAll,
 }: NotesSectionProps) {
+  useAccountTimezone();
   const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);

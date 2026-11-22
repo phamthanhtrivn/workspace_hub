@@ -1,7 +1,6 @@
 import {
   UserLanguage,
   UserTheme,
-  UserTimezone,
 } from "./settings.enums";
 
 export type ApiValidationErrors = Record<string, string>;
@@ -31,7 +30,7 @@ export type UserProfile = {
 export type UserSettings = {
   theme: UserTheme;
   language: UserLanguage;
-  timezone: UserTimezone;
+  timezone: string;
   allowNewDirectMessages: boolean;
   muteNotification: boolean;
 };

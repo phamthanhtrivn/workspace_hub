@@ -1,16 +1,22 @@
+/* eslint-disable @next/next/no-img-element -- ImageResponse renders native image elements. */
 import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/page-metadata";
 import { SOCIAL_IMAGE } from "@/lib/seo";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { BRAND_ASSETS } from "@/lib/branding";
 
 export const dynamic = "force-static";
 
-export function GET() {
+export async function GET() {
+  const mark = await readFile(join(process.cwd(), "public", BRAND_ASSETS.mark));
+  const markUrl = `data:image/svg+xml;base64,${mark.toString("base64")}`;
   return new ImageResponse(
     <div style={{ display: "flex", width: "100%", height: "100%", flexDirection: "column",
       justifyContent: "space-between", padding: "68px 80px", background: "#101D40", color: "#F4F7FF" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
         <div style={{ display: "flex", width: 76, height: 76, alignItems: "center", justifyContent: "center",
-          background: "#243B73", borderRadius: 20, fontSize: 48, fontWeight: 700 }}>W</div>
+          background: "#243B73", borderRadius: 20, fontSize: 48, fontWeight: 700 }}><img src={markUrl} width={76} height={76} alt="" /></div>
         <div style={{ fontSize: 36, fontWeight: 700 }}>{SITE_NAME}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

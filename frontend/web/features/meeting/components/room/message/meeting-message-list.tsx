@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useEffect } from "react";
 import { formatDividerTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export function MeetingMessageList({
   onRecall,
   onReadMessage,
 }: MeetingMessageListProps) {
+  useAccountTimezone();
   useEffect(() => {
     const newestMessage = messages[messages.length - 1];
     if (!newestMessage || newestMessage.senderId === currentUserId) return;

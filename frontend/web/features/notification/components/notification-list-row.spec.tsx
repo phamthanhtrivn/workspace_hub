@@ -31,7 +31,7 @@ test("notification time is in the heading before the description and exposes its
   assert.match(markup, /dateTime="2026-11-11T00:00:00Z"/);
   assert.ok(
     markup.includes(
-      `title="${new Date(notification.createdAt).toLocaleString()}"`,
+      'title="11/11/26, 7:00 AM"',
     ),
   );
   assert.equal((markup.match(/<time\b/g) ?? []).length, 1);

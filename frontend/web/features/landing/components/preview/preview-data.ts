@@ -5,6 +5,13 @@ import { PREVIEW_PROJECT, PREVIEW_TASK } from "../../landing-content";
 export const PREVIEW_FRAME_CLASS_NAME = "h-[620px] sm:h-[720px] xl:h-[780px]";
 export const PREVIEW_DATE_LABEL = "Monday, October 26, 2026";
 export const PREVIEW_TIME_LABEL = "10:24 AM";
+export const PREVIEW_HEADER_CLOCK = {
+  dateTime: "2026-10-26T03:24:00Z",
+  date: "26/10/2026",
+  time: "10:24",
+  period: "AM",
+  offset: "UTC+07:00",
+} as const;
 
 export const PREVIEW_TEAM = [
   { name: "Tri", role: "Owner" },

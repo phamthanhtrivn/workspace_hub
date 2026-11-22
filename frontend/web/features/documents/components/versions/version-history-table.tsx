@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { IconButton } from "@/components/ui/icon-button";
 
 import React from "react";
@@ -32,6 +33,7 @@ export function VersionHistoryTable({
   onPreviewVersion,
   onDownload,
 }: VersionHistoryTableProps) {
+  useAccountTimezone();
   if (isLoading) {
     return (
       <div role="status" className="flex justify-center items-center py-10">

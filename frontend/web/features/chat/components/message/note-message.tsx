@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import type { NoteSaveResult } from "@/components/notes/note.constants";
 
 import React, { useState } from "react";
@@ -22,6 +23,7 @@ const NoteMessage = React.memo(function NoteMessage({
   onUserClick,
   onEditNote,
 }: NoteMessageProps) {
+  useAccountTimezone();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

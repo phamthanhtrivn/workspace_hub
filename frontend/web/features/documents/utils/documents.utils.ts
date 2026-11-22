@@ -1,3 +1,4 @@
+import { formatInTimezone } from "@/lib/timezone";
 import {
   EXTENSION_TO_TYPE,
   FILE_EXTENSIONS,
@@ -30,7 +31,7 @@ export const getDocumentDisplaySize = (
 ): number => item.containedSizeBytes ?? item.sizeBytes;
 
 export const formatDateShort = (dateStr: string): string => {
-  return new Date(dateStr).toLocaleDateString("vi-VN", {
+  return formatInTimezone(new Date(dateStr), "vi-VN", {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -40,7 +41,7 @@ export const formatDateShort = (dateStr: string): string => {
 
 export const formatDateLong = (dateStr: string): string => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString("vi-VN", {
+  return formatInTimezone(date, "vi-VN", {
     year: "numeric",
     month: "long",
     day: "numeric",

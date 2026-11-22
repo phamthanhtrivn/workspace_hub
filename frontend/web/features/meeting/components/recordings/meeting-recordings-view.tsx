@@ -26,8 +26,10 @@ import {
 } from "../../utils/recording-date-filter";
 import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
 import { LoadingState } from "@/components/ui/loading-state";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 
 export function MeetingRecordingsView() {
+  const timeZone = useAccountTimezone();
   const [search, setSearch] = useState("");
   const [dates, setDates] = useState<RecordingDateFilter>({ from: "", to: "" });
   const [params, setParams] = useState<RecordingQuery>({
@@ -35,7 +37,11 @@ export function MeetingRecordingsView() {
     limit: MEETING_LIST_PAGE_SIZE,
     scope: "all",
   });
-  const { query, remove, refresh } = useMeetingRecordings(params);
+  const dateBounds = recordingDateBounds(dates, timeZone);
+  const { query, remove, refresh } = useMeetingRecordings({ ...params,
+    fromDate: dateBounds.invalid ? undefined : dateBounds.fromDate,
+    toDate: dateBounds.invalid ? undefined : dateBounds.toDate,
+  });
   const hasFilters = Boolean(
     search.trim() || dates.from || dates.to || params.scope !== "all",
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import Link from "next/link";
 import { ArrowUpRight, Pause, Play, RefreshCw, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import { formatTimerClock, timerProgress, timerStatusLabel } from "../utils/pomo
 const secondaryButton = "border-(--mini-timer-foreground)/25 bg-transparent text-(--mini-timer-foreground) hover:bg-(--mini-timer-foreground)/10 hover:text-(--mini-timer-foreground) focus-visible:ring-(--mini-timer-foreground)";
 
 export function PomodoroIslandDetails() {
+  useAccountTimezone();
   const { status, mode, activeTask, timeLeft, totalDuration, cycleCount, config, pause, resume, start,
     stopSession, busy, isReady, completionStatus, retryCompletion, syncStatus, retrySync, configLoadError } = usePomodoroSession();
   const finished = status === "RUNNING" && timeLeft === 0;

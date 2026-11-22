@@ -74,7 +74,7 @@ public class UserService {
             }
         }
         if (request.getTimezone() != null) {
-            setting.setTimezone(request.getTimezone());
+            setting.setTimezone(AccountTimezone.validate(request.getTimezone()));
         }
         boolean privacyChanged = request.getAllowNewDirectMessages() != null
                 && setting.isAllowNewDirectMessages() != request.getAllowNewDirectMessages();

@@ -1,8 +1,9 @@
 import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
 import { POMODORO_REPORT_COPY as copy } from "../constants/pomodoro-report";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
+import { getDisplayTimezone } from "@/lib/timezone";
 
-export function presentPomodoroSession(session: PomodoroSessionRecord, timeZone?: string) {
+export function presentPomodoroSession(session: PomodoroSessionRecord, timeZone = getDisplayTimezone()) {
   const start = new Date(session.startedAt);
   const end = session.endedAt ? new Date(session.endedAt) : null;
   const dateOptions: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric", timeZone };

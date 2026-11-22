@@ -44,6 +44,20 @@ Fast tests do not load private `.env` files. Their default database/Redis URLs p
 
 Backend production builds exclude TypeScript spec files. `test:typecheck` checks those test sources separately; the web's normal typecheck already includes its specs.
 
+## Timezone coverage
+
+Shared conversion tests live in `frontend/web/lib/timezone.spec.ts`; timezone search tests live beside their utility under `frontend/web/features/user-setting/utils/`. Calendar recurrence tests live under `backend/calendar-service/src/modules/calendar-event/`, and preference validation uses JUnit under `backend/user-service/src/test/java/`. Existing calendar, recording and notification tests also cover their owning workflows. See [timezone behavior](../docs/features/timezones.md).
+
+The header's 12-hour AM/PM display, noon/midnight boundaries and timezone-driven day changes are covered by `frontend/web/components/layout/workspace-clock.spec.cjs`.
+
+```powershell
+node tests/run-tests.mjs --project frontend/web --match timezone
+node tests/run-tests.mjs --project backend/calendar-service --match timezone
+mvn -B -f backend/user-service/pom.xml -Dtest=AccountTimezoneTest test
+```
+
+Fast timezone tests use mocked providers and no application database. Remove temporary migration/verification scripts and stop only test processes created for a task after verification; retain checked-in regression specs and existing development environments.
+
 ## Integration tests
 
 Integration tests are separate from `npm test` and CI's fast suite. List them without starting anything:

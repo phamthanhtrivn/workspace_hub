@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import type { CSSProperties } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Clock, Plus } from "lucide-react";
@@ -58,6 +59,7 @@ function DroppableCalendarDay({
 }
 
 export default function ProjectCalendarWeek({ days, compact, formatTime, onTaskClick, onCreateDate }: CalendarWeekProps) {
+  useAccountTimezone();
   const layout = compact ? PROJECT_CALENDAR_LAYOUT.compact : PROJECT_CALENDAR_LAYOUT.desktop;
   const { visibleSegments, hiddenTaskCounts } = getCalendarWeekLayout(days, layout.visibleLanes);
   const weekStyle = {

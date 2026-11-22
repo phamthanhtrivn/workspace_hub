@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +26,7 @@ export default function SearchResultItem({
   isDirect,
   onClick,
 }: SearchResultItemProps) {
+  useAccountTimezone();
   const profile = message.senderProfile || memberProfiles[message.senderId];
   const isMe = message.senderId === currentUserId;
   const fullName = isMe

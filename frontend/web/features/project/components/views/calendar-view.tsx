@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
@@ -153,6 +154,7 @@ export default function CalendarView({
   onTaskReschedule,
   canEditTask,
 }: CalendarViewProps) {
+  useAccountTimezone();
   const isDesktop = useMediaQuery(PROJECT_CALENDAR_DESKTOP_QUERY);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [yearInput, setYearInput] = useState("");

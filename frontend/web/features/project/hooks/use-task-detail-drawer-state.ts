@@ -1,6 +1,8 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { TIMEZONE_ERROR } from "@/lib/timezone";
 import { useRef, useState } from "react";
 import { getDateRangeErrors, hasDateRangeErrors, type DateRangeErrors } from "@/lib/date-range";
 import { toast } from "sonner";
@@ -48,6 +50,7 @@ export function useTaskDetailDrawerState({
   canEditTask = false,
   canContributeTask = false,
 }: UseTaskDetailDrawerStateParams) {
+  useAccountTimezone();
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
 
   const schedulePending = useRef(false);
@@ -205,7 +208,7 @@ export function useTaskDetailDrawerState({
   const handleAllDayChange = async (allDay: boolean) => {
     if (!task || allDay === task.allDay) return;
     const convert = (value?: string | null) => value
-      ? toApiDateTime(allDay ? taskDateKey(value, true) : toDateTimeInput(value), allDay) : null;
+      ? toApiDateTime(allDay ? taskDateKey(value, false) : toDateTimeInput(taskDateKey(value, true)), allDay) : null;
     await saveSchedule({ allDay, startDate: convert(task.startDate), dueDate: convert(task.dueDate) }, "Task schedule updated");
   };
 
@@ -246,14 +249,16 @@ export function useTaskDetailDrawerState({
 
   const handleDueDateChange = async (value: string) => {
     if (!task) return;
-    await saveSchedule({ dueDate: toApiDateTime(value, task.allDay) }, "Due date updated");
+    try { await saveSchedule({ dueDate: toApiDateTime(value, task.allDay) }, "Due date updated"); }
+    catch { setScheduleError({ taskId: task.id, errors: { end: TIMEZONE_ERROR } }); toast.error(TIMEZONE_ERROR); }
   };
 
   const handleStartDateChange = async (value: string) => {
     if (!task) return;
-    await saveSchedule(value
+    try { await saveSchedule(value
       ? { startDate: toApiDateTime(value, task.allDay) }
-      : { startDate: null, dueDate: null }, "Start date updated");
+      : { startDate: null, dueDate: null }, "Start date updated"); }
+    catch { setScheduleError({ taskId: task.id, errors: { start: TIMEZONE_ERROR } }); toast.error(TIMEZONE_ERROR); }
   };
 
   const handleTabChange = (tab: TaskDetailTab) => {

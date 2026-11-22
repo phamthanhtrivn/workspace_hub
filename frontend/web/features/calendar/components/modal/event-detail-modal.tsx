@@ -3,6 +3,7 @@
 
 
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { getActionErrorMessage,  PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Check,
@@ -64,6 +65,7 @@ export function EventDetailModal({
   tasksColor?: string;
   busy?: boolean;
 }) {
+  useAccountTimezone();
   const { data: freshEvent } = useCalendarEvent(
     open && initialEvent ? initialEvent.id : null,
   );

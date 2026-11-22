@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight } from "lucide-react";
@@ -21,6 +24,7 @@ export default function PollsSection({
   onToggle,
   onSeeAll,
 }: PollsSectionProps) {
+  useAccountTimezone();
   const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);

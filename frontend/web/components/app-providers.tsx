@@ -7,6 +7,7 @@ import {
   ThemeToaster,
 } from "@/components/common/theme-provider";
 import { AccountThemeSync } from "@/features/user-setting/components/account-theme-sync";
+import { AccountTimezoneSync } from "@/features/user-setting/components/account-timezone-sync";
 import StoreProvider from "@/store/store-provider";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
@@ -29,6 +30,7 @@ export function AppProviders({
         <QueryProvider>
           <StoreProvider>
             <AccountThemeSync />
+            <AccountTimezoneSync />
             {children}
             <NotificationManagers />
           </StoreProvider>

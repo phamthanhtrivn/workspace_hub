@@ -1,4 +1,5 @@
 import { DATE_RANGE_MESSAGES, getTodayDateValue } from "@/lib/date-range";
+import { getDisplayTimezone } from "@/lib/timezone";
 import type { FocusPickerDateErrors, FocusPickerDateRange, FocusPickerTask } from "../types/focus-picker";
 
 function validDateKey(value: string): boolean {
@@ -37,11 +38,12 @@ export function focusPickerSchedule(entry: FocusPickerTask, timeZone: string) {
   const end = entry.source === "project" ? entry.task.dueDate : entry.event.endAt;
   const allDay = entry.source === "project" ? entry.task.allDay : entry.event.allDay;
   const projectDateOnly = entry.source === "project" && allDay;
-  const startDate = day(start, projectDateOnly, timeZone);
-  let endDate = day(end, projectDateOnly, timeZone);
+  const scheduleZone = entry.source === "calendar" && allDay ? entry.event.timeZone || getDisplayTimezone() : timeZone;
+  const startDate = day(start, projectDateOnly, scheduleZone);
+  let endDate = day(end, projectDateOnly, scheduleZone);
   // Calendar accepts inclusive 23:59 ends and exclusive midnight ends.
   if (entry.source === "calendar" && allDay && startDate && endDate && start && end &&
-    Date.parse(end) > Date.parse(start) && clock(end, timeZone) === "00:00:00" && new Date(end).getUTCMilliseconds() === 0) {
+    Date.parse(end) > Date.parse(start) && clock(end, scheduleZone) === "00:00:00" && new Date(end).getUTCMilliseconds() === 0) {
     endDate = previousDay(endDate);
   }
   const sortValue = start || end;

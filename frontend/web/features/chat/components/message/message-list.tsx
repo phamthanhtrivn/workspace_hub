@@ -1,10 +1,12 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import {
   GROUP_MESSAGES_THRESHOLD_MS,
   TIME_BLOCK_THRESHOLD_MS,
 } from "../../types/chat.constant";
 import ChatMessage from "./chat-message";
+import { zonedDateKey } from "@/lib/timezone";
 import TimeDivider from "./time-divider";
 import { RenderableChatMessage, MemberProfilesMap } from "./chat-message.types";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -82,6 +84,7 @@ export default function MessageList({
   conversationId,
   isDirectConversation,
 }: MessageListProps) {
+  useAccountTimezone();
   if (isLoading) {
     return (
       <LoadingState label="Loading..." layout="centered" className="flex justify-center items-center h-full text-muted-foreground" />
@@ -166,9 +169,7 @@ export default function MessageList({
         const currDate = new Date(msg.createdAt);
         const nextDate = new Date(nextMsg.createdAt);
         if (
-          currDate.getDate() !== nextDate.getDate() ||
-          currDate.getMonth() !== nextDate.getMonth() ||
-          currDate.getFullYear() !== nextDate.getFullYear()
+          zonedDateKey(currDate) !== zonedDateKey(nextDate)
         ) {
           showDividerAbove = true;
         }

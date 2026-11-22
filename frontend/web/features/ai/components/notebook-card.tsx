@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import Link from "next/link";
 import { BookOpen, Clock3, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ export function NotebookCard({
   notebook: NotebookListItem;
   onAction: (action: NotebookDialogAction) => void;
 }) {
+  useAccountTimezone();
   const updated = new Date(notebook.updated_at);
   const validDate = !Number.isNaN(updated.getTime());
 
@@ -77,9 +80,9 @@ export function NotebookCard({
           {validDate ? (
             <time
               dateTime={notebook.updated_at}
-              title={updated.toLocaleString("en-US")}
+              title={formatInTimezone(updated, "en-US", { dateStyle: "short", timeStyle: "short" })}
             >
-              {updated.toLocaleDateString("en-US", {
+              {formatInTimezone(updated, "en-US", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",

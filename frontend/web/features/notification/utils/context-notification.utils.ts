@@ -1,3 +1,4 @@
+import { formatInTimezone } from "@/lib/timezone";
 import {
   NotificationType,
   type Notification,
@@ -71,7 +72,7 @@ export function getContextNotificationDetails(
   ] as const) {
     const value = metadata[field];
     if (typeof value === "string" && Number.isFinite(Date.parse(value)))
-      add(label, new Date(value).toLocaleString());
+      add(label, formatInTimezone(new Date(value), "en-US", { dateStyle: "short", timeStyle: "short" }));
   }
   if (Array.isArray(metadata.changes)) {
     for (const change of metadata.changes) {

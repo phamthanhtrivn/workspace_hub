@@ -1,6 +1,8 @@
 "use client";
 
 import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { formatInTimezone } from "@/lib/timezone";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,6 +16,7 @@ export default function ProjectInvitationsScreen({
 }: {
   invitationId?: string;
 }) {
+  const timeZone = useAccountTimezone();
   const query = useQuery({
     queryKey: ["projects", "invitations", "mine"],
     queryFn: getMyProjectInvitations,
@@ -76,10 +79,10 @@ export default function ProjectInvitationsScreen({
             {invitation.expiresAt && (
               <p className="text-xs text-muted-foreground">
                 Expires on:{" "}
-                {new Date(invitation.expiresAt).toLocaleString(undefined, {
+                {formatInTimezone(invitation.expiresAt, "en-US", {
                   dateStyle: "medium",
                   timeStyle: "short",
-                })}
+                }, timeZone)}
               </p>
             )}
             <div className="flex gap-2.5 pt-1">

@@ -1,4 +1,7 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatDateOnly, formatInTimezone } from "@/lib/timezone";
+import { isTaskOverdue } from "../../utils/task-dates";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -32,10 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-function isOverdue(dueDate?: string): boolean {
-  if (!dueDate) return false;
-  return new Date(dueDate) < new Date();
-}
 
 export function getIssueKey(task: Task): string {
   return `TASK-${task.taskNumber}`;
@@ -74,9 +73,10 @@ export default function TaskCard({
   density?: "default" | "compact";
   canDrag?: boolean;
 }) {
+  useAccountTimezone();
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
-  const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
+  const overdue = isTaskOverdue(task) && !isTerminalTaskStatus(task.status);
   const issueKey = getIssueKey(task);
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
@@ -96,7 +96,7 @@ export default function TaskCard({
   };
 
   const formattedDueDate = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString(undefined, {
+    ? (task.allDay ? formatDateOnly : formatInTimezone)(task.dueDate, "en-US", {
         day: "2-digit",
         month: "short",
       })

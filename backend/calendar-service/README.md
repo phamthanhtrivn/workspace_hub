@@ -28,9 +28,13 @@ All routes use the `/api/calendar/pomodoro` prefix and the authenticated `x-user
 
 Session POST requires `sessionType`, `status`, ISO `startedAt`/`endedAt`, `plannedSeconds`, and `actualSeconds`. `eventId` and `taskId` are optional. An event must belong to the caller's calendar. The response also includes `durationMinutes` for the existing Pomodoro history UI. Task and project titles are optional snapshots; their IDs are not foreign keys to Project DB.
 
-Daily endpoints use `Asia/Ho_Chi_Minh` by default. Pass an IANA `timeZone` to use the viewer's calendar zone. Session timestamps remain stored as UTC instants.
+Daily endpoints use `Asia/Ho_Chi_Minh` by default. The web passes the user's account IANA `timeZone` for daily statistics and session queries. Session timestamps remain stored as UTC instants.
 
-The current Pomodoro page still uses browser storage and `/api/pomodoros` points at Project service. Its API client must be adapted to these Calendar routes before that page will synchronize with Calendar. The Calendar event detail uses these routes directly.
+The web Pomodoro API client uses these Calendar routes for saved sessions, daily statistics and timer synchronization. Browser storage retains local timer/ambient state where supported; it does not replace the service session history.
+
+## Timezone behavior
+
+The web displays Calendar in the signed-in user's account timezone. Timed form input converts from that zone to UTC before submission. New recurring series accept an optional validated IANA `timeZone`, captured from the account setting; subsequent edits preserve the series zone while it remains in the same calendar. All-day boundaries retain the original event/series/calendar dates, including after another viewer changes timezone or drags the entry. Existing UTC timestamps and schema fields are retained; no timezone migration is needed. See [account timezone](../../docs/features/timezones.md).
 
 ## Local configuration
 

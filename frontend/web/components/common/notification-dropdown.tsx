@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
@@ -184,6 +185,7 @@ if (!isRegistryInitialized) {
 }
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
+  const accountTimezone = useAccountTimezone();
   const dispatch = useAppDispatch();
   const { unreadCount } = useAppSelector((state) => state.notification);
   const { accessToken, userId } = useAppSelector((state) => state.auth);
@@ -212,10 +214,11 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const dateRange: NotificationDateRange = React.useMemo(
     () =>
       getNotificationDateRange(timeFilter, {
+        timeZone: accountTimezone,
         customFromDate,
         customToDate,
       }),
-    [customFromDate, customToDate, timeFilter],
+    [customFromDate, customToDate, timeFilter, accountTimezone],
   );
   const isCustomRangeInvalid =
     timeFilter === "CUSTOM_RANGE" &&
@@ -400,18 +403,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             type="button"
             variant="outline"
             size="icon"
-            className={`relative z-[80] h-11 w-11 rounded-full border bg-card transition focus-visible:ring-4 focus-visible:ring-ring ${
+            className={`relative size-9 shrink-0 rounded-xl border bg-card transition-colors ${
               isOpen
                 ? "border-info-outline bg-info-soft text-link"
-                : "border-border text-muted-foreground hover:bg-background"
+                : "border-border text-muted-foreground hover:bg-info-soft hover:text-info-content"
             }`}
             aria-label={unreadCount > 0 ? `Notifications, ${formatNotificationCount(unreadCount)} unread` : "Notifications"}
           >
-            <Bell size={22} className={isOpen ? "fill-info-content" : ""} />
+            <Bell aria-hidden="true" />
             {unreadCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-border bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
-                {formatNotificationCount(unreadCount)}
-              </span>
+              <span aria-hidden="true" className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive ring-2 ring-card" />
             ) : null}
           </Button>
         </PopoverTrigger>

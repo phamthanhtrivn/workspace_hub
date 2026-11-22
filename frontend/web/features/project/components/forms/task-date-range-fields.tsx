@@ -1,4 +1,5 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
 import { useId } from "react";
 import { DATE_RANGE_MESSAGES, getDateRangeBounds, type DateRangeErrors } from "@/lib/date-range";
@@ -30,6 +31,7 @@ export function TaskDateRangeFields({
   today,
   errors,
 }: TaskDateRangeFieldsProps) {
+  useAccountTimezone();
   const id = useId();
   const bounds = getDateRangeBounds({ start: startDate, end: dueDate, today, dateOnly: allDay, mode: "create" });
   return (

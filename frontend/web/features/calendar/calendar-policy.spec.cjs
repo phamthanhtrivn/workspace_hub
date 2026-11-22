@@ -6,7 +6,11 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { createSourceLoader, repositoryRoot } = require('../../../../tests/support/typescript.cjs');
 const projectRoot = path.join(repositoryRoot, 'frontend/web');
-const load = createSourceLoader(projectRoot);
+const loadSource = createSourceLoader(projectRoot);
+const load = (relative, stubs = {}, cache) => loadSource(relative, {
+  '@/features/user-setting/hooks/use-account-timezone': { useAccountTimezone: () => 'Asia/Ho_Chi_Minh' },
+  ...stubs,
+}, cache);
 const loadCalendarModule = load;
 const { getDateRangeErrors, getDateRangeBounds } = load('lib/date-range.ts');
 const base = { mode: 'create', today: '2026-11-11', minDurationMs: 900000 };
@@ -59,20 +63,20 @@ test('task form defaults and task detail use startAt/endAt without separate dead
 
 test('calendar tasks group and filter by endAt as the effective deadline', () => {
   const { getTaskDueDate, groupCalendarTasks, filterCalendarTasks } = loadCalendarModule('features/calendar/utils/calendar-tasks.utils.ts');
-  const reference = new Date(2026, 10, 12, 12, 0, 0);
+  const reference = new Date('2026-11-12T12:00:00+07:00');
   const overdueTask = {
     id: 'overdue-1',
     title: 'Overdue by endAt',
-    startAt: new Date(2026, 10, 10, 9, 0, 0).toISOString(),
-    endAt: new Date(2026, 10, 11, 17, 0, 0).toISOString(),
+    startAt: new Date('2026-11-10T09:00:00+07:00').toISOString(),
+    endAt: new Date('2026-11-11T17:00:00+07:00').toISOString(),
     allDay: false,
     completedAt: null,
   };
   const spanningTodayTask = {
     id: 'today-1',
     title: 'Started yesterday but ends today',
-    startAt: new Date(2026, 10, 11, 9, 0, 0).toISOString(),
-    endAt: new Date(2026, 10, 12, 18, 0, 0).toISOString(),
+    startAt: new Date('2026-11-11T09:00:00+07:00').toISOString(),
+    endAt: new Date('2026-11-12T18:00:00+07:00').toISOString(),
     allDay: false,
     completedAt: null,
   };
@@ -149,7 +153,7 @@ test('repeat remains usable when start date is temporarily cleared', () => {
 
 test('repeated form focus does not update clock state until the event becomes past', () => {
   const realNow = Date.now;
-  let currentNow = new Date('2030-01-01T09:00:00').getTime();
+  let currentNow = new Date('2030-01-01T09:00:00+07:00').getTime();
   let clockUpdates = 0;
   Date.now = () => currentNow;
   try {
@@ -191,7 +195,7 @@ test('event/task drafts preserve a past date and pass the actual create schema',
   const { createCalendarEventFormDefaults } = loadCalendarModule('features/calendar/utils/calendar-event-form.utils.ts');
   const { createCalendarEventFormSchema } = loadCalendarModule('features/calendar/schemas/calendar-event-form.schema.ts');
   for (const sourceType of ['USER', 'TASK']) {
-    const defaults = createCalendarEventFormDefaults({ calendarId: 'calendar', draft: { startAt: new Date(2020, 0, 1, 9), endAt: new Date(2020, 0, 1, 10), sourceType } });
+    const defaults = createCalendarEventFormDefaults({ calendarId: 'calendar', draft: { startAt: new Date('2020-01-01T09:00:00+07:00'), endAt: new Date('2020-01-01T10:00:00+07:00'), sourceType } });
     assert.equal(defaults.values.startAt, '2020-01-01T09:00');
     assert.equal(createCalendarEventFormSchema('create').safeParse({ ...defaults.values, title: 'Past entry' }).success, true);
   }

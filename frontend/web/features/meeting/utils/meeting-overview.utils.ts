@@ -1,10 +1,11 @@
+import { getDisplayTimezone } from "@/lib/timezone";
 import type { MeetingHistoryItem, UpcomingMeetingItem } from "../types/meeting.types";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const relativeTime = new Intl.RelativeTimeFormat("en-US", { numeric: "always" });
-const dateTime = new Intl.DateTimeFormat("en-US", {
+const dateTime = () => new Intl.DateTimeFormat("en-US", { timeZone: getDisplayTimezone(),
   month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
 });
 
@@ -14,7 +15,7 @@ function timestamp(value: string | null) {
 
 export function formatMeetingOverviewDate(value: string | null): string {
   const instant = timestamp(value);
-  return Number.isFinite(instant) ? dateTime.format(instant) : "Time unavailable";
+  return Number.isFinite(instant) ? dateTime().format(instant) : "Time unavailable";
 }
 
 function formatRelativeTime(milliseconds: number): string {

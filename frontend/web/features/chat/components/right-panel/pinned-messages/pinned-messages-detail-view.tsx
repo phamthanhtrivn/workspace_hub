@@ -1,3 +1,6 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
@@ -47,6 +50,7 @@ export default function PinnedMessagesDetailView({
   onBack,
   onJumpToMessage,
 }: PinnedMessagesDetailViewProps) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);

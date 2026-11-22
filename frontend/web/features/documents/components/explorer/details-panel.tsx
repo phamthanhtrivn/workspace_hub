@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import React from "react";
 import { SheetPanel } from "@/components/ui/sheet";
 import { DocumentItem } from "../../types/documents.types";
@@ -51,6 +52,7 @@ export function DetailsPanel({
   onDownload,
   onManageVersions,
 }: DetailsPanelProps) {
+  useAccountTimezone();
   if (!item) return null;
 
   const isFolder = item.type === DocumentItemType.FOLDER;

@@ -1,5 +1,7 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import React, { useState } from "react";
 import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +16,7 @@ import RevokeSessionModal from "./revoke-session-modal";
 import { Spinner } from "@/components/ui/spinner";
 
 const SessionsTab = React.memo(function SessionsTab() {
+  useAccountTimezone();
   const sessionsQuery = useUserSessionsQuery();
   const { data: sessionsResponse, isLoading } = sessionsQuery;
   const revokeSessionMutation = useRevokeUserSessionMutation();
@@ -87,7 +90,7 @@ const SessionsTab = React.memo(function SessionsTab() {
                   </p>
                   <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                     {session.location || session.ipAddress} • Expires:{" "}
-                    {new Date(session.expiresAt).toLocaleDateString("en-US")}
+                    {formatInTimezone(session.expiresAt, "en-US", { year: "numeric", month: "numeric", day: "numeric" })}
                   </p>
                 </div>
               </div>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useMemo } from "react";
 import { CheckSquare, ExternalLink, FolderGit2, Clock } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/date";
+import { formatDateOnly } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 import {
   TaskPriorityBadge,
@@ -25,6 +27,7 @@ export default function TaskCardMessage({
   className = "",
   variant = "default",
 }: TaskCardMessageProps) {
+  useAccountTimezone();
   const isThread = variant === "thread";
   const parsed = useMemo(() => {
     if (!content) {
@@ -159,7 +162,8 @@ export default function TaskCardMessage({
               isThread && "min-w-0 max-w-full [overflow-wrap:anywhere]",
             )}>
               <Clock size={12} className={cn("text-muted-foreground", isThread && "shrink-0")} />
-              <span>Due: {formatDateTime(parsed.dueDate)}</span>
+              <span>Due: {/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(parsed.dueDate)
+                ? formatDateOnly(parsed.dueDate, "en-GB") : formatDateTime(parsed.dueDate)}</span>
             </span>
           )}
         </div>}
