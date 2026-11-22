@@ -38,6 +38,8 @@ Workspace navigation uses a full-height sidebar with module descriptions and acc
 
 The connected four-node blue brand mark is a transparent SVG shared by the workspace, landing/footer, authentication, public sharing and social preview. Browser and notification icons are derived from that source; regenerate them with `npm run generate:brand-icons` in `frontend/web`. The header clock uses 12-hour time with AM/PM and the saved account timezone.
 
+Landing interface previews share the workspace's logo and navigation metadata, and mirror its current header/sidebar presentation, including AM/PM and UTC offset. Their clock and content remain fixed sample data. Keep the corresponding landing copy and previews in sync whenever a visible workspace feature changes.
+
 ## System Architecture and Technology Stack
 
 ~~~mermaid
