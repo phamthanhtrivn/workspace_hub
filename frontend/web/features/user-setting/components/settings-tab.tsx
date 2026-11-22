@@ -16,6 +16,8 @@ import { useSettingsDraft } from "../hooks/use-settings-draft";
 import { UserSettingTab } from "../types/settings.enums";
 import { SettingSelect, SettingSwitchCard } from "./ui/setting-form-controls";
 import { Spinner } from "@/components/ui/spinner";
+import { TimezoneSetting } from "./timezone-setting";
+import { resolveTimezone } from "@/lib/timezone";
 
 const THEME_OPTIONS = [
   { value: UserTheme.LIGHT, label: "Light" },
@@ -32,7 +34,8 @@ const SettingsTab = React.memo(function SettingsTab() {
   const dirty = settingsForm !== null && JSON.stringify(settingsForm) !== savedValue;
   useEffect(() => {
     if (settingsResponse?.data && !dirty) {
-      setSettingsForm(settingsResponse.data); setSavedValue(JSON.stringify(settingsResponse.data));
+      const settings = { ...settingsResponse.data, timezone: resolveTimezone(settingsResponse.data.timezone) };
+      setSettingsForm(settings); setSavedValue(JSON.stringify(settings));
     }
   }, [settingsResponse, dirty]);
 
@@ -64,7 +67,10 @@ const SettingsTab = React.memo(function SettingsTab() {
   };
   useSettingsDraft(UserSettingTab.GENERAL, {
     dirty, pending: settingsMutation.isPending, save: handleSaveSettings,
-    discard: () => { setSettingsForm(settingsResponse?.data ?? null); setSavedValue(JSON.stringify(settingsResponse?.data ?? null)); },
+    discard: () => {
+      const settings = settingsResponse?.data ? { ...settingsResponse.data, timezone: resolveTimezone(settingsResponse.data.timezone) } : null;
+      setSettingsForm(settings); setSavedValue(JSON.stringify(settings));
+    },
   });
 
   if (!settingsForm) return <QueryFeedback label="preferences" pending={isLoading} error={settingsQuery.isError} retrying={settingsQuery.isFetching} onRetry={() => settingsQuery.refetch()} />;
@@ -86,6 +92,8 @@ const SettingsTab = React.memo(function SettingsTab() {
         <p className="text-sm text-muted-foreground">
           Choose Light or Dark, then save your settings to apply it.
         </p>
+
+        <TimezoneSetting value={settingsForm.timezone} onChange={timezone => updateLocalSetting("timezone", timezone)} disabled={settingsMutation.isPending} />
 
         <h4 className="text-lg font-semibold text-foreground">Notifications</h4>
 
