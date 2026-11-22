@@ -24,6 +24,7 @@ export class RecurrenceFollowingMutationService {
     tx: Prisma.TransactionClient,
   ): Promise<string> {
     const series = event.recurrenceSeries!;
+    const timeZone = calendar.id === series.calendarId ? series.timeZone : calendar.timeZone;
     const cutoff = event.originalStartAt ?? event.startAt;
     const startDelta = dto.startAt
       ? new Date(dto.startAt).getTime() - event.startAt.getTime()
@@ -52,7 +53,7 @@ export class RecurrenceFollowingMutationService {
     this.recurrence.assertHasOccurrence(
       nextRule,
       nextStartAt,
-      calendar.timeZone,
+      timeZone,
     );
 
     await tx.recurrenceSeries.update({
@@ -93,7 +94,7 @@ export class RecurrenceFollowingMutationService {
         visibility: dto.visibility ?? series.visibility,
         sourceType: series.sourceType,
         recurrenceRule: nextRule,
-        timeZone: calendar.timeZone,
+        timeZone,
       },
     });
     await this.relations.createSeriesRelations(tx, nextSeries.id, {

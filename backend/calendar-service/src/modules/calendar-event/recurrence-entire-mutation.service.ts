@@ -24,6 +24,7 @@ export class RecurrenceEntireMutationService {
     tx: Prisma.TransactionClient,
   ): Promise<string> {
     const series = event.recurrenceSeries!;
+    const timeZone = calendar.id === series.calendarId ? series.timeZone : calendar.timeZone;
     const startDelta = dto.startAt
       ? new Date(dto.startAt).getTime() - event.startAt.getTime()
       : 0;
@@ -36,7 +37,7 @@ export class RecurrenceEntireMutationService {
     this.recurrence.assertHasOccurrence(
       dto.recurrenceRule ?? series.recurrenceRule,
       nextSeriesStart,
-      calendar.timeZone,
+      timeZone,
     );
     const recurrenceChanged =
       dto.recurrenceRule !== undefined &&
@@ -47,7 +48,7 @@ export class RecurrenceEntireMutationService {
       (dto.endAt !== undefined &&
         new Date(dto.endAt).getTime() !== event.endAt.getTime());
     const regenerate =
-      timeChanged || recurrenceChanged || calendar.timeZone !== series.timeZone;
+      timeChanged || recurrenceChanged || timeZone !== series.timeZone;
     let selectedOverridePreserved = false;
 
     await tx.recurrenceSeries.update({
@@ -66,7 +67,7 @@ export class RecurrenceEntireMutationService {
         status: dto.status,
         visibility: dto.visibility,
         recurrenceRule: dto.recurrenceRule ?? undefined,
-        timeZone: calendar.timeZone,
+        timeZone,
         recurrenceGeneratedUntil: regenerate ? null : undefined,
         cancelledAt: this.occurrences.getCancelledAt(dto.status),
       },

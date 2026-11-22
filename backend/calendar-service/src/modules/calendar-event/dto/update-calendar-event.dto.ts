@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsTimeZone,
   IsEnum,
   IsOptional,
   IsString,
@@ -20,6 +21,10 @@ import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 import { RecurrenceScope } from '../../../common/enums/calendar.enum';
 
 export class UpdateCalendarEventDto {
+  @IsOptional()
+  @IsTimeZone()
+  timeZone?: string;
+
   @IsOptional()
   @ValidateNested()
   @Type(() => CalendarConferenceDto)
