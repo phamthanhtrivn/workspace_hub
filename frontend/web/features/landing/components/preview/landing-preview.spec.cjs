@@ -20,6 +20,11 @@ test("Documents illustration shows shared file icons and unsupported preview gui
     "Sample unsupported file preview",
     "Preview is not supported for this file",
     "Download file",
+    "Sample document version management",
+    "Save current version",
+    "Sample version upload status",
+    "Sample version actions",
+    "Delete version",
   ]) {
     assert.ok(markup.includes(label), label);
   }

@@ -1,5 +1,8 @@
 import { MIME_TYPES } from "./documents.constants";
 
+export const TEXT_PREVIEW_TRUNCATED_NOTICE =
+  "\n\n... [Preview truncated. Download to read the full document] ...";
+
 export const PREVIEW_MESSAGES = {
   unsupportedTitle: "Preview is not supported for this file",
   unsupportedDescription:

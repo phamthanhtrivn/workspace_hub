@@ -24,6 +24,8 @@ import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
+import { SetCurrentVersionDto } from './dto/set-current-version.dto';
+import { DOCUMENT_VERSION_MESSAGES } from './types/document-version.constants';
 import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
@@ -543,6 +545,54 @@ export class DocumentController {
       message: 'New version created successfully',
       data: version,
     };
+  }
+
+  @Put(':id/versions/current')
+  async setCurrentVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
+  }
+
+  @Delete(':id/versions/:versionId')
+  async deleteVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Delete('public/:id/versions/:versionId')
+  async deletePublicVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Put('public/:id/versions/current')
+  async setPublicCurrentVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
   }
 
   @Get(':id/sharing')

@@ -5,6 +5,7 @@ import { UPLOAD_SUCCESS_DISMISS_DELAY_MS } from "../../types/documents.constants
 import { UploadState } from "../../types/documents.enums";
 import type { DocumentUploadEntry } from "../../types/upload.types";
 import { UploadProgress } from "./upload-progress";
+import { renderToStaticMarkup } from "react-dom/server";
 
 function upload(state: UploadState): DocumentUploadEntry {
   return {
@@ -15,6 +16,16 @@ function upload(state: UploadState): DocumentUploadEntry {
     progress: 100,
   };
 }
+
+test("upload queues expose a close control when finished", () => {
+  const markup = renderToStaticMarkup(
+    <UploadProgress
+      uploads={[upload(UploadState.SUCCESS)]}
+      onDismiss={() => {}}
+    />,
+  );
+  assert.match(markup, /Dismiss upload list/);
+});
 
 test("successful uploads dismiss after the configured delay and cancel on queue changes or unmount", (context) => {
   const effects: React.EffectCallback[] = [];

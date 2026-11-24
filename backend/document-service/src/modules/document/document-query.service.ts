@@ -227,6 +227,7 @@ export class DocumentQueryService {
     Array<
       DocumentVersion & {
         uploadedByEmail: string;
+        isCurrent: boolean;
         uploaderProfile: UserProfileSnapshotResponse | null;
       }
     >
@@ -247,7 +248,7 @@ export class DocumentQueryService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string }> =
+    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string; isCurrent: boolean }> =
       versions.length === 0
         ? [
             {
@@ -258,6 +259,7 @@ export class DocumentQueryService {
               sizeBytes: item.sizeBytes,
               uploadedBy: item.ownerUserId,
               uploadedByEmail: item.ownerEmail,
+              isCurrent: true,
               createdAt: item.createdAt,
             },
           ]
@@ -283,6 +285,7 @@ export class DocumentQueryService {
               uploadedBy: v.uploadedBy,
               createdAt: v.createdAt,
               uploadedByEmail: email,
+              isCurrent: v.s3Key === item.s3Key,
             };
           });
 

@@ -4,6 +4,15 @@ import { documentKeys } from "../api/document-list.query";
 import { documentFolderAccessKey } from "./document-navigation";
 import { filePickerKey } from "../api/file-copy.api";
 
+export function invalidateDocumentVersion(client: QueryClient, documentId: string) {
+  return Promise.allSettled([
+    client.invalidateQueries({ queryKey: ["documents"] }),
+    client.invalidateQueries({ queryKey: ["document-versions", documentId] }),
+    client.resetQueries({ queryKey: ["document-preview", documentId] }),
+    client.resetQueries({ queryKey: ["document-text-preview", documentId] }),
+  ]);
+}
+
 export function invalidateDocumentShare(
   client: QueryClient,
   userId: string,

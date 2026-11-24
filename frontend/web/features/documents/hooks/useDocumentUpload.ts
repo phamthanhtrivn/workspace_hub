@@ -11,6 +11,8 @@ import type { DocumentNameConflict } from "../types/documents.types";
 import type { DocumentUploadDestination, DocumentUploadEntry, DocumentVersionUploadTarget, PendingDocumentUpload } from "../types/upload.types";
 import { isUploadPending, uploadDestinationKey, uploadDisplayProgress } from "../utils/upload-progress";
 import { useFileDropZone } from "./use-file-drop-zone";
+import { VERSION_MESSAGES } from "../types/document-version.constants";
+import { invalidateDocumentVersion } from "../utils/document-cache";
 
 export interface UseDocumentUploadOptions {
   currentFolderId: string | null;
@@ -77,10 +79,11 @@ export function useDocumentUpload({
     onSuccess: (_, { job, overwriteItemId }) => {
       updateUpload(job.entry.id, { state: UploadState.SUCCESS, progress: 100, error: undefined });
       failedFiles.current.delete(job.entry.id);
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
       void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
       if (job.destination.version) {
-        void queryClient.invalidateQueries({ queryKey: ["document-versions", job.destination.version.documentId] });
+        void invalidateDocumentVersion(queryClient, job.destination.version.documentId);
+      } else {
+        void queryClient.invalidateQueries({ queryKey: ["documents"] });
       }
       toast.success(job.destination.version ? "New version uploaded successfully!"
         : overwriteItemId ? `Overwrote ${job.file.name} successfully!` : `Uploaded ${job.file.name} successfully!`);
@@ -141,14 +144,19 @@ export function useDocumentUpload({
     }
   }, [mutateAsync, requestOverwriteConfirmation, updateUpload]);
 
-  const uploadFile = useCallback(async (files: FileList | File[] | File) => {
+  const uploadFile = useCallback(async (files: FileList | File[] | File, targetOverride?: DocumentVersionUploadTarget) => {
     if (!enabled || !files) return;
     if (batchRunning.current) {
       toast.info("Uploads are already running. Wait for this queue to finish before adding more files.");
       return;
     }
     const selected = files instanceof File ? [files] : Array.from(files);
-    const destination: DocumentUploadDestination = { folderId: currentFolderId, projectId, version: versionTarget };
+    const version = targetOverride ?? versionTarget;
+    if (version && selected.length !== 1) {
+      toast.error(VERSION_MESSAGES.singleFile);
+      return;
+    }
+    const destination: DocumentUploadDestination = { folderId: currentFolderId, projectId, version };
     await runBatch(selected.map(file => ({
       file, destination,
       entry: { id: crypto.randomUUID(), fileName: file.name, sizeBytes: file.size, state: UploadState.QUEUED, progress: 0 },

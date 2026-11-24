@@ -8,17 +8,24 @@ import { UPLOAD_SUCCESS_DISMISS_DELAY_MS } from "../../types/documents.constants
 import type { DocumentUploadEntry } from "../../types/upload.types";
 import { isUploadPending } from "../../utils/upload-progress";
 import { UploadFileRow } from "./upload-file-row";
+import { DialogPortal } from "@/components/ui/dialog";
+import { FLOATING_UTILITY_LAYER_CLASS } from "@/components/ui/floating-utility-layer";
+import { VERSION_MESSAGES } from "../../types/document-version.constants";
 
 interface UploadProgressProps {
   uploads: DocumentUploadEntry[];
   onRetry?: (id: string) => void;
   onDismiss?: () => void;
+  floating?: boolean;
+  versionUpload?: boolean;
 }
 
 export function UploadProgress({
   uploads,
   onRetry,
   onDismiss,
+  floating = false,
+  versionUpload = false,
 }: UploadProgressProps) {
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
@@ -49,15 +56,20 @@ export function UploadProgress({
     (upload) => upload.state === UploadState.SKIPPED,
   ).length;
   const title = pending
-    ? "Uploading files"
+    ? versionUpload
+      ? VERSION_MESSAGES.uploading
+      : "Uploading files"
     : failed
       ? "Uploads need attention"
-      : "Uploads finished";
+      : versionUpload
+        ? VERSION_MESSAGES.uploadFinished
+        : "Uploads finished";
 
-  return (
+  const widget = (
     <section
-      aria-label="File uploads"
-      className="absolute bottom-4 right-4 z-40 w-96 max-w-[calc(100%-2rem)] overflow-hidden rounded-panel border border-border bg-card shadow-panel"
+      aria-label={versionUpload ? "Version uploads" : "File uploads"}
+      data-modal-companion={floating ? "floating-utility" : undefined}
+      className={`${floating ? `fixed ${FLOATING_UTILITY_LAYER_CLASS}` : "absolute z-40"} bottom-4 right-4 w-96 max-w-[calc(100%-2rem)] overflow-hidden rounded-panel border border-border bg-card shadow-panel`}
     >
       <header className="flex items-center gap-2 border-b border-border px-4 py-3">
         <div className="min-w-0 flex-1">
@@ -83,12 +95,16 @@ export function UploadProgress({
             <ChevronDown aria-hidden="true" />
           )}
         </Button>
-        {!pending && onDismiss && (
+        {(!pending || floating) && onDismiss && (
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Dismiss upload list"
+            aria-label={
+              floating && pending
+                ? "Hide upload progress"
+                : "Dismiss upload list"
+            }
             onClick={onDismiss}
             className="relative focus-visible:z-10"
           >
@@ -113,6 +129,8 @@ export function UploadProgress({
       )}
     </section>
   );
+
+  return floating ? <DialogPortal>{widget}</DialogPortal> : widget;
 }
 
 export default React.memo(UploadProgress);

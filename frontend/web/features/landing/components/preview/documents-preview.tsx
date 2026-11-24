@@ -2,6 +2,7 @@ import { ChevronRight, Folder, Grid2X2, HardDrive, List, MoreHorizontal, Plus, S
 import { DocumentIcon } from "@/features/documents/components/common/document-icon";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { DocumentPreviewExample } from "./document-preview-example";
+import { DocumentVersionsExample } from "./document-versions-example";
 import { DocumentsCard } from "@/features/documents/components/ui/documents-card";
 import { PREVIEW_DOCUMENTS } from "./preview-data";
 import { PreviewShell } from "./preview-shell";
@@ -29,6 +30,7 @@ export function DocumentsPreview() {
           })}</div>
           <p className="mt-5 text-xs text-muted-foreground">{PREVIEW_DOCUMENTS.length} items</p>
           <DocumentPreviewExample />
+          <DocumentVersionsExample />
         </div>
       </div>
     </div>

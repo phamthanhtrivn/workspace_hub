@@ -12,6 +12,7 @@ import StoreProvider from "@/store/store-provider";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
 import { DocumentTitleManager } from "./document-title-manager";
+import { VersionUploadProvider } from "@/features/documents/components/versions/version-upload-provider";
 
 export function AppProviders({
   children,
@@ -31,7 +32,7 @@ export function AppProviders({
           <StoreProvider>
             <AccountThemeSync />
             <AccountTimezoneSync />
-            {children}
+            <VersionUploadProvider>{children}</VersionUploadProvider>
             <NotificationManagers />
           </StoreProvider>
         </QueryProvider>

@@ -15,7 +15,12 @@ import {
 } from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
-import { DEFAULT_MIME_TYPE } from "../types/documents.constants";
+import { DOCUMENT_VERSION_ROUTES } from "../types/document-version.constants";
+import {
+  DEFAULT_MIME_TYPE,
+  MAX_TEXT_PREVIEW_SIZE,
+} from "../types/documents.constants";
+import { TEXT_PREVIEW_TRUNCATED_NOTICE } from "../types/document-preview.constants";
 import { SHARED_DOCUMENT_ACCESS_REQUEST } from "../utils/shared-document-access";
 import type { DocumentBulkRequest } from "../types/document-bulk.types";
 
@@ -242,6 +247,19 @@ export const documentsApi = {
     return response.data;
   },
 
+  getTextPreview: async (
+    url: string,
+    signal?: AbortSignal,
+  ): Promise<string> => {
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error("Could not load text preview.");
+    const text = await response.text();
+
+    return text.length > MAX_TEXT_PREVIEW_SIZE
+      ? text.slice(0, MAX_TEXT_PREVIEW_SIZE) + TEXT_PREVIEW_TRUNCATED_NOTICE
+      : text;
+  },
+
   getPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/preview`, {
       ...SHARED_DOCUMENT_ACCESS_REQUEST,
@@ -264,6 +282,35 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/${id}/versions`);
 
     return response.data.data;
+  },
+
+  setCurrentVersion: async (
+    id: string,
+    versionId: string,
+    isPublic = false,
+  ): Promise<DocumentItem> => {
+    const response = await api.put(
+      isPublic
+        ? DOCUMENT_VERSION_ROUTES.publicCurrent(id)
+        : DOCUMENT_VERSION_ROUTES.current(id),
+      { versionId },
+      isPublic ? SHARED_DOCUMENT_ACCESS_REQUEST : undefined,
+    );
+
+    return response.data.data;
+  },
+
+  deleteVersion: async (
+    id: string,
+    versionId: string,
+    isPublic = false,
+  ): Promise<void> => {
+    await api.delete(
+      isPublic
+        ? DOCUMENT_VERSION_ROUTES.publicVersion(id, versionId)
+        : DOCUMENT_VERSION_ROUTES.version(id, versionId),
+      isPublic ? SHARED_DOCUMENT_ACCESS_REQUEST : undefined,
+    );
   },
 
   createVersion: async (

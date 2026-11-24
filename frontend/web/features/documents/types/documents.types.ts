@@ -77,6 +77,7 @@ export interface DocumentVersion {
   id: string;
   documentItemId: string;
   versionNumber: number;
+  isCurrent: boolean;
   s3Key: string;
   sizeBytes: number;
   uploadedBy: string;
