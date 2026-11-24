@@ -166,10 +166,10 @@ Keep existing volumes and allow AI jobs time to checkpoint. Details and group-sp
 ~~~powershell
 node tests/run-tests.mjs --all
 node tests/run-tests.mjs --suite system
-node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs backend/scripts/local-docker-env.test.mjs
+node --test tests/support/discovery.spec.mjs backend/scripts/local-security/*.test.mjs backend/scripts/tests/*.test.mjs backend/scripts/file-copy-maintenance/*.test.mjs
 mvn -B -f backend/user-service/pom.xml test
 ~~~
 
-Run test typechecking/builds from the changed application. Docker/database integration is opt-in and uses its own isolation requirements. Fast tests use provider doubles and do not certify SMTP, model output quality or real recording. See [testing](tests/README.md).
+Run test typechecking/builds from the changed application. Docker/database integration is opt-in and uses its own isolation requirements. Fast tests use provider doubles and do not certify SMTP, model output quality or real recording. See [testing](tests/README.md) and the [backend tooling guide](backend/scripts/README.md) for the purpose and layout of shared scripts.
 
 Production uses separate APP, INFRA and REALTIME configurations; AI has its own production stack. See [deployment](deploy/README.md). A full Docker local application stack is deferred. Browse the [documentation index](docs/README.md) for feature and operational guides.

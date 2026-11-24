@@ -5,7 +5,8 @@ import { createRequire } from 'node:module';
 import { LOCAL_SERVICE_DIRECTORIES } from './contract.mjs';
 import { REPOSITORY_ROOT, readEnvironment } from './env-files.mjs';
 
-export const DATABASE_PLAN_PATH = 'backend/.env.security-db-plan.json';
+export const DATABASE_PLAN_PATH = 'backend/scripts/local-security/.env.db-plan.json';
+const LEGACY_DATABASE_PLAN_PATH = 'backend/.env.security-db-plan.json';
 const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
 const { Client } = require('pg');
 export const identifier = (name) => {
@@ -21,7 +22,11 @@ export async function connect(configuration) {
 }
 
 export function loadDatabasePlan(root = REPOSITORY_ROOT) {
-  const planPath = resolve(root, DATABASE_PLAN_PATH);
+  const currentPath = resolve(root, DATABASE_PLAN_PATH);
+  // Existing local checkouts can still read their old private file. New plans
+  // belong beside the database tooling and are excluded by the .env.* rule.
+  const legacyPath = resolve(root, LEGACY_DATABASE_PLAN_PATH);
+  const planPath = existsSync(currentPath) ? currentPath : existsSync(legacyPath) ? legacyPath : currentPath;
   if (existsSync(planPath)) {
     const plan = JSON.parse(readFileSync(planPath, 'utf8'));
     if (plan.version !== 1 || !plan.admin || !plan.services) throw new Error('Invalid existing private database plan.');

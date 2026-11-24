@@ -1686,15 +1686,6 @@
         "MEETING_MEDIA_HOSTS": [
           "backend/ai-service/api/src/config/env.config.ts:33"
         ],
-        "MEETING_STT_CPU_THREADS": [
-          "backend/scripts/start-local-speech.mjs"
-        ],
-        "MEETING_STT_MODEL_PATH": [
-          "backend/scripts/start-local-speech.mjs"
-        ],
-        "MEETING_STT_PYTHON": [
-          "backend/scripts/start-local-speech.mjs"
-        ],
         "MEETING_STT_SERVICE_KEY": [
           "backend/ai-service/api/src/config/env.config.ts:7"
         ],
@@ -1985,21 +1976,6 @@
         "MEETING_MEDIA_HOSTS": {
           "secret": false,
           "source": "runtime",
-          "requiredLocal": false
-        },
-        "MEETING_STT_CPU_THREADS": {
-          "secret": false,
-          "source": "launcher",
-          "requiredLocal": false
-        },
-        "MEETING_STT_MODEL_PATH": {
-          "secret": false,
-          "source": "launcher",
-          "requiredLocal": false
-        },
-        "MEETING_STT_PYTHON": {
-          "secret": false,
-          "source": "launcher",
           "requiredLocal": false
         },
         "MEETING_STT_SERVICE_KEY": {

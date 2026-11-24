@@ -5,7 +5,7 @@ Start with the guides below for local setup, deployment, feature behavior and ve
 | Area | Guides |
 | --- | --- |
 | Architecture | [System architecture](architecture/system-architecture.md) |
-| Development | [Local setup](development/local-setup.md), [environment](development/environment.md), [private storage](development/private-storage.md) |
+| Development | [Local setup](development/local-setup.md), [environment](development/environment.md), [private storage](development/private-storage.md), [backend tooling](../backend/scripts/README.md) |
 | Deployment | [Production](deployment/production.md), [migrations](deployment/migrations.md), [security rollout](deployment/security-rollout.md) |
 | Features | [Calendar reminders](features/calendar-reminders.md), [chat mentions](features/chat-mentions.md), [file copies and sharing](features/document-chat-sharing.md), [AI request lifecycle](features/ai-request-lifecycle.md), [conversation AI language](features/conversation-ai-language.md), [voice messages](features/voice-messages.md), [socket recovery](features/socket-session-recovery.md) |
 | Frontend | [Design tokens](frontend/design-tokens.md), [SEO metadata](frontend/seo-metadata.md) |

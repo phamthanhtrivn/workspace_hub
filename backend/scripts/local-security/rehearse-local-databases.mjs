@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { connect, identifier, loadDatabasePlan } from './local-security/database-plan.mjs';
-import { applyFullMigrations } from './local-security/full-migrations.mjs';
+import { connect, identifier, loadDatabasePlan } from './database-plan.mjs';
+import { applyFullMigrations } from './full-migrations.mjs';
 
 export async function rehearseFreshDatabases(plan = loadDatabasePlan()) {
   const admin = await connect(plan.admin);

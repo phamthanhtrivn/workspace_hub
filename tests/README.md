@@ -12,6 +12,9 @@ backend/user-service/src/test/java/                  # JUnit tests
 frontend/web/{features,components,hooks,lib,store}/**/*.spec.*
 tests/support/                                      # Discovery and TS loaders
 tests/system/                                       # Cross-service contracts and integration harnesses
+backend/scripts/tests/                              # Setup/reset command regressions
+backend/scripts/local-security/*.test.mjs            # Env and private-plan regressions
+backend/scripts/file-copy-maintenance/*.test.mjs      # Scoped maintenance regressions
 ```
 
 Aggregate policy tests stay beside the owning feature when they exercise several pieces of the same workflow. Files are retained for behavioral coverage, not deleted just because a refactor broke a fixture. Wrapper files that only import other discovered specs are unnecessary.
@@ -32,7 +35,7 @@ From the repository root:
 ```powershell
 node tests/run-tests.mjs --all
 node tests/run-tests.mjs --project frontend/web
-node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs
+node --test tests/support/discovery.spec.mjs backend/scripts/local-security/*.test.mjs backend/scripts/tests/*.test.mjs backend/scripts/file-copy-maintenance/*.test.mjs
 mvn -B -f backend/user-service/pom.xml test
 ```
 
@@ -85,7 +88,7 @@ node tests/run-tests.mjs --suite system
 
 These require the normal dependencies of the participating backend services and web. Docker integration remains explicitly opted in using its existing `WORKSPACEHUB_SECURITY_INTEGRATION` or `WORKSPACEHUB_MEETING_INTEGRATION` flag. See [system tests](system/README.md). The security and meeting harnesses create isolated infrastructure; their meeting suite does not run the AI summary pipeline.
 
-No Python worker test files were removed or invented in this cleanup. The checked-in fast AI tests cover the Node API/pipeline with provider doubles; they do not certify real OCR, Whisper, model-provider quality, SMTP or LiveKit recording.
+The checked-in fast AI tests cover the Node API/pipeline with provider doubles; they do not certify real OCR, Whisper, model-provider quality, SMTP or LiveKit recording.
 
 ## CI
 

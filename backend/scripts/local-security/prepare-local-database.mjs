@@ -1,8 +1,8 @@
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadDatabasePlan, DATABASE_PLAN_PATH } from './local-security/database-plan.mjs';
-import { applyDatabaseRoles, verifyDatabaseRoles } from './local-security/database-roles.mjs';
-import { readEnvironment, setEnvironment, commitEnvironments } from './local-security/env-files.mjs';
+import { loadDatabasePlan, DATABASE_PLAN_PATH } from './database-plan.mjs';
+import { applyDatabaseRoles, verifyDatabaseRoles } from './database-roles.mjs';
+import { readEnvironment, setEnvironment, commitEnvironments } from './env-files.mjs';
 
 async function main() {
   const args = process.argv.slice(2);
