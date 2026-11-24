@@ -78,6 +78,7 @@ export class ModuleFileSnapshotService {
         ? await this.prisma.documentVersion.findFirst({
             where: {
               documentItemId: source.id,
+              s3Key: source.s3Key ?? undefined,
             },
             orderBy: { versionNumber: 'desc' },
           })

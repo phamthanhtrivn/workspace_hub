@@ -14,7 +14,8 @@ function fixture() {
       introSent: false,
     };
   let failAttachment = false,
-    completed = 0;
+    completed = 0,
+    versionHistory = [{ id: "version-1", isCurrent: true }];
   const send = (kind) => async (id, payload) => {
     calls.push({ kind, id, payload });
     if (failAttachment && payload.medias) {
@@ -55,7 +56,7 @@ function fixture() {
           getVersions: async () => {
             calls.push({ kind: "versions" });
 
-            return [{ id: "version-1" }];
+            return versionHistory;
           },
         },
       },
@@ -83,6 +84,9 @@ function fixture() {
   return {
     calls,
     attempt,
+    setVersions: (versions) => {
+      versionHistory = versions;
+    },
     completed: () => completed,
     failNextAttachment: () => {
       failAttachment = true;
@@ -96,6 +100,32 @@ function fixture() {
       }),
   };
 }
+
+test("Send a copy uses the chosen Current version instead of the newest upload", async () => {
+  const f = fixture();
+  f.setVersions([
+    { id: "newer-upload", isCurrent: false },
+    { id: "chosen-current", isCurrent: true },
+  ]);
+  await f.run({ target: { type: "direct", chatId: "destination" } });
+  assert.equal(
+    f.calls.find((call) => call.kind === "copy").files[0].versionId,
+    "chosen-current",
+  );
+});
+
+test("a pinned batch version is reused without fetching a different Current between recipients", async () => {
+  const f = fixture();
+  await f.run({
+    target: { type: "direct", chatId: "destination" },
+    sourceVersionId: "batch-version",
+  });
+  assert.equal(f.calls.filter((call) => call.kind === "versions").length, 0);
+  assert.equal(
+    f.calls.find((call) => call.kind === "copy").files[0].versionId,
+    "batch-version",
+  );
+});
 for (const type of ["channel", "direct", "meeting"])
   test(`${type} receives an independent upload-style attachment without source grants`, async () => {
     const f = fixture();

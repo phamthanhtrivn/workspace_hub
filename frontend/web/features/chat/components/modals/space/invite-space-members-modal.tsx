@@ -2,6 +2,7 @@
 
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
+import { SelectedUserChip } from "@/components/common/selected-user-chip";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
@@ -127,23 +128,16 @@ function InviteSpaceMembersModalForm({
         <div className={`${dialogLayout.body} p-6 flex flex-col gap-4 overflow-y-auto`}>
           {/* Selected Users Chips */}
           {selectedUsers.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2 bg-background rounded-panel border border-border max-h-24 overflow-y-auto">
+            <div aria-label="Selected space invitation members" className="flex flex-wrap gap-1.5 p-2 bg-background rounded-panel border border-border max-h-24 overflow-y-auto">
               {selectedUsers.map((user) => (
-                <div
+                <SelectedUserChip
                   key={user.id}
-                  className="flex items-center gap-1.5 bg-info-soft border border-border text-info-content text-xs px-2.5 py-1 rounded-lg"
-                >
-                  <span>
-                    {user.fullName} ({user.email})
-                  </span>
-                  <IconButton label="Remove selected member" showTooltip={false} size="icon-sm" aria-label="Remove selected member"
-                    type="button"
-                    onClick={() => handleRemoveUser(user.id)}
-                    className="hover:bg-info-soft rounded text-info-content hover:text-info-content p-0.5 cursor-pointer"
-                  >
-                    <X size={12} />
-                  </IconButton>
-                </div>
+                  name={user.fullName || user.email}
+                  email={user.email}
+                  avatarUrl={user.avatarUrl}
+                  disabled={isInviting}
+                  onRemove={() => handleRemoveUser(user.id)}
+                />
               ))}
             </div>
           )}
@@ -177,7 +171,7 @@ function InviteSpaceMembersModalForm({
                     <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border">
                       <UserAvatar
                         src={user?.avatarUrl}
-                        alt="Avatar"
+                        alt={user.fullName || user.email}
                         width={28}
                         height={28}
                         className="rounded-full animate-fade-in object-cover"

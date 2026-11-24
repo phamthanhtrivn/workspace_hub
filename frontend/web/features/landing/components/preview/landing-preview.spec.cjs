@@ -28,10 +28,22 @@ test("Documents illustration shows shared file icons and unsupported preview gui
     "Sample restricted file access",
     "Shared by email",
     "Restricted",
+    "Sample Send a copy to existing DMs",
+    "Channels: choose one Space and one Channel.",
   ]) {
     assert.ok(markup.includes(label), label);
   }
   assert.doesNotMatch(markup, /<iframe|<button|<input|<textarea/);
+});
+
+test("Messages illustration includes selected invitation member avatar chips", () => {
+  const { MessagesPreview } = load(
+    "features/landing/components/preview/messages-preview.tsx",
+  );
+  const markup = renderToStaticMarkup(React.createElement(MessagesPreview));
+  assert.match(markup, /Sample selected space invitation member/);
+  assert.match(markup, /Invite Members to Space/);
+  assert.doesNotMatch(markup, /<button|<input|<textarea/);
 });
 
 test("Pomodoro illustration follows the centered timer, source panels and report layout", () => {

@@ -4,6 +4,7 @@ import { DocumentItemType, DocumentRole, LinkAccess } from "@/features/documents
 import { LINK_ACCESS_LABELS, PERMISSION_ROLE_LABELS } from "@/features/documents/types/documents.constants";
 import { DocumentPreviewExample } from "./document-preview-example";
 import { DocumentVersionsExample } from "./document-versions-example";
+import { SendCopyExample } from "./send-copy-example";
 import { DocumentsCard } from "@/features/documents/components/ui/documents-card";
 import { PREVIEW_DOCUMENTS } from "./preview-data";
 import { PreviewShell } from "./preview-shell";
@@ -37,6 +38,7 @@ export function DocumentsPreview() {
             <PreviewBadge tone="info">{PERMISSION_ROLE_LABELS[DocumentRole.VIEWER]}</PreviewBadge>
           </div>
           <DocumentVersionsExample />
+          <SendCopyExample />
         </div>
       </div>
     </div>

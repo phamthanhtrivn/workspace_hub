@@ -1,4 +1,4 @@
-import { Bold, ChevronDown, FileText, FolderKanban, Globe, Hash, Info, Italic, Link2, MessageSquareText, Mic, Paperclip, Plus, Send, Smile, Video } from "lucide-react";
+import { Bold, ChevronDown, FileText, FolderKanban, Globe, Hash, Info, Italic, Link2, MessageSquareText, Mic, Paperclip, Plus, Send, Smile, Video, X } from "lucide-react";
 import { PREVIEW_PROJECT } from "../../landing-content";
 import { PREVIEW_CHAT_CHANNELS, PREVIEW_CHAT_MESSAGES, PREVIEW_TEAM } from "./preview-data";
 import { PreviewShell } from "./preview-shell";
@@ -15,6 +15,7 @@ export function MessagesPreview() {
           {PREVIEW_CHAT_CHANNELS.map(channel => <div key={channel} className={`my-0.5 flex items-center gap-2.5 rounded-control px-3 py-2 text-[13px] ${channel === "research" ? "bg-primary-soft font-semibold text-primary-soft-foreground" : "text-muted-foreground"}`}>{channel === "general" ? <Globe aria-hidden="true" className="size-4" /> : <Hash aria-hidden="true" className="size-4" />}{channel}</div>)}
           <p className="mb-2 mt-7 flex justify-between px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Direct messages<Plus aria-hidden="true" className="size-3.5" /></p>
           {PREVIEW_TEAM.filter(member => member.name !== "Tri").map(member => <div key={member.name} className="flex items-center gap-2.5 px-3 py-2 text-[13px]"><PreviewAvatar name={member.name} /><span>{member.name}</span><span className="ml-auto size-1.5 rounded-full bg-success" /></div>)}
+          <div aria-label="Sample selected space invitation member" className="mt-5 border-t border-border px-3 pt-4"><p className="mb-3 text-xs font-semibold text-muted-foreground">Invite Members to Space</p><span className="inline-flex items-center gap-2 rounded-lg border border-border bg-info-soft p-1.5 text-xs text-info-content"><PreviewAvatar name="Minh" />Minh<X aria-hidden="true" className="size-3.5" /></span></div>
         </div>
       </aside>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">

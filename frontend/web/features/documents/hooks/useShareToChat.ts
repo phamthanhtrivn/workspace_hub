@@ -1,27 +1,22 @@
-"use client";
-import { useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { store, useAppSelector } from "@/store/store";
+﻿"use client";
+
+import { useMemo, useState } from "react";
+import { useAppSelector } from "@/store/store";
 import {
   useSpacesQuery,
   useSpaceChannelsQuery,
   useDirectMessagesQuery,
 } from "@/features/chat/hooks/useChatQueries";
 import { SpaceRole } from "@/features/chat/types/chat.enums";
-import { getProjects } from "@/features/project/api/project.api";
-import { getProjectTasks } from "@/features/project/api/task.api";
-import { fetchAllPages } from "@/features/project/api/pagination";
-import { getProjectPermissions } from "@/features/project/project-permissions";
-import { invalidateProjectChange } from "@/features/project/api/project-invalidation";
-import { getActionErrorMessage } from "@/lib/permission-feedback";
-import { fileCopyApi } from "../api/file-copy.api";
 import type { DocumentItem } from "../types/documents.types";
-import {
-  shareDocumentToChat,
-  type DocumentChatShareTarget,
-} from "../utils/share-document-to-chat";
-import { DocumentItemType } from "../types/documents.enums";
+import type {
+  DocumentCopyTab,
+  DocumentCopyTarget,
+} from "../types/document-copy.types";
+import { DOCUMENT_COPY_MESSAGES } from "../types/document-copy.constants";
+import { getDirectCopyRecipients } from "../utils/document-copy-recipients";
+import { useDocumentCopyDelivery } from "./use-document-copy-delivery";
+
 export function useShareToChat({
   item,
   onSuccess,
@@ -33,30 +28,26 @@ export function useShareToChat({
   enabled?: boolean;
 }) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const [activeTab, setActiveTab] =
-    useState<DocumentChatShareTarget["type"]>("channel");
-  const [chosenChatId, setSelectedChatId] = useState("");
-  const [chosenSpaceId, setSelectedSpaceId] = useState("");
-  const [taskId, setTaskId] = useState("");
+  const [initialActor] = useState(currentUserId);
+  const actorChanged = currentUserId !== initialActor;
+  const actor = enabled && item && !actorChanged ? currentUserId : null;
+  const [activeTab, setActiveTab] = useState<DocumentCopyTab>("channel");
+  const [chosenSpaceId, setChosenSpaceId] = useState("");
+  const [chosenChannelId, setChosenChannelId] = useState("");
+  const [selectedDirectIds, setSelectedDirectIds] = useState<string[]>([]);
   const [introMessage, setIntroMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const sharing = useRef(false);
-  const queryClient = useQueryClient();
-  const actor = enabled && item ? currentUserId : null;
-  const { data: spaces = [] } = useSpacesQuery(actor);
+  const delivery = useDocumentCopyDelivery(item, actor, onSuccess);
+  const locked = actorChanged || delivery.configurationLocked;
+  const spacesQuery = useSpacesQuery(activeTab === "channel" ? actor : null);
+  const spaces = spacesQuery.data ?? [];
   const selectedSpaceId = spaces.some((space) => space.id === chosenSpaceId)
     ? chosenSpaceId
     : (spaces[0]?.id ?? "");
-  const { data: channelsData } = useSpaceChannelsQuery(
-    selectedSpaceId,
-    undefined,
-    { enabled: !!actor && activeTab === "channel" && !!selectedSpaceId },
-  );
-  const channels = (channelsData?.channels ?? []).filter((channel) => {
-    const member = channel.members?.find(
-      (member) => member.userId === currentUserId,
-    );
+  const channelsQuery = useSpaceChannelsQuery(selectedSpaceId, undefined, {
+    enabled: !!actor && activeTab === "channel" && !!selectedSpaceId,
+  });
+  const channels = (channelsQuery.data?.channels ?? []).filter((channel) => {
+    const member = channel.members?.find((member) => member.userId === actor);
 
     return (
       !!member &&
@@ -64,152 +55,112 @@ export function useShareToChat({
         channel.setting?.allowSendMessage !== false)
     );
   });
-  const { data: conversations } = useDirectMessagesQuery(
-    actor && activeTab === "direct" ? actor : null,
+  const selectedChannel = channels.find(
+    (channel) => channel.id === chosenChannelId,
   );
-  const directConversations = conversations?.directMessages ?? [];
-  const projects = useQuery({
-    queryKey: ["document-copy-targets", currentUserId, "projects"],
-    enabled: !!actor && activeTab === "project",
-    staleTime: 30000,
-    gcTime: 300000,
-    queryFn: () =>
-      fetchAllPages(async (page, limit) => {
-        const result = await getProjects({ page, limit });
-
-        return { items: result.data, meta: result.meta };
-      }),
-  });
-  const writableProjects = (projects.data ?? []).filter(
-    (project) =>
-      getProjectPermissions(project, project.members, currentUserId)
-        .canEditDocuments,
+  const directQuery = useDirectMessagesQuery(
+    activeTab === "direct" ? actor : null,
   );
-  const meetings = useQuery({
-    queryKey: ["document-copy-targets", currentUserId, "meetings"],
-    queryFn: fileCopyApi.meetings,
-    enabled: !!actor && activeTab === "meeting",
-    staleTime: 0,
-    retry: false,
-  });
-  const tasks = useQuery({
-    queryKey: ["document-copy-targets", currentUserId, "tasks", chosenChatId],
-    queryFn: () => getProjectTasks(chosenChatId),
-    enabled:
-      !!actor &&
-      activeTab === "project" &&
-      writableProjects.some((project) => project.id === chosenChatId),
-    staleTime: 30000,
-  });
-  const project = writableProjects.find(
-    (project) => project.id === chosenChatId,
+  const directRecipients = useMemo(
+    () =>
+      actor
+        ? getDirectCopyRecipients(directQuery.data?.directMessages ?? [], actor)
+        : [],
+    [actor, directQuery.data],
   );
-  const attachableTasks = (tasks.data ?? []).filter(
-    (task) =>
-      project &&
-      !task.completedAt &&
-      getProjectPermissions(
-        project,
-        project.members,
-        currentUserId,
-      ).canEditTask(task),
+  const selectedRecipients = directRecipients.filter((recipient) =>
+    selectedDirectIds.includes(recipient.conversationId),
   );
-  const availableIds =
+  const targets: DocumentCopyTarget[] =
     activeTab === "channel"
-      ? channels.map((channel) => channel.id)
-      : activeTab === "direct"
-        ? directConversations.map((conversation) => conversation.id)
-        : activeTab === "meeting"
-          ? (meetings.data ?? []).map((meeting) => meeting.id)
-          : writableProjects.map((project) => project.id);
-  const selectedChatId = availableIds.includes(chosenChatId)
-    ? chosenChatId
-    : "";
-  const changeTab = (tab: typeof activeTab) => {
-    setActiveTab(tab);
-    setSelectedChatId("");
-    setTaskId("");
-    setError("");
+      ? selectedChannel
+        ? [
+            {
+              type: "channel",
+              chatId: selectedChannel.id,
+              label: `#${selectedChannel.name}`,
+            },
+          ]
+        : []
+      : selectedRecipients.map((recipient) => ({
+          type: "direct",
+          chatId: recipient.conversationId,
+          label: recipient.name,
+        }));
+  const targetError =
+    activeTab === "direct"
+      ? directQuery.isError
+      : spacesQuery.isError || channelsQuery.isError;
+  const targetsLoading =
+    activeTab === "direct"
+      ? directQuery.isLoading
+      : spacesQuery.isLoading || (!!selectedSpaceId && channelsQuery.isLoading);
+  const failedCount =
+    delivery.batch?.deliveries.filter((target) => target.status === "failed")
+      .length ?? 0;
+  const changeTab = (tab: DocumentCopyTab) => {
+    if (!locked && (tab === "channel" || tab === "direct")) setActiveTab(tab);
   };
-  const handleShare = async () => {
-    if (!item || !selectedChatId || !currentUserId || sharing.current) return;
-    sharing.current = true;
-    setIsSubmitting(true);
-    setError("");
-    const assertCurrentActor = () => {
-      if (store.getState().auth.userId !== currentUserId)
-        throw new Error("Your account changed. Reopen sharing.");
-    };
-    try {
-      await shareDocumentToChat({
-        documentId: item.id,
-        currentUserId,
-        introMessage,
-        isFolder: item.type === DocumentItemType.FOLDER,
-        assertCurrentActor,
-        target: {
-          type: activeTab,
-          chatId: selectedChatId,
-          taskId:
-            activeTab === "project" &&
-            attachableTasks.some((task) => task.id === taskId)
-              ? taskId
-              : undefined,
-          joinToken: meetings.data?.find(
-            (meeting) => meeting.id === selectedChatId,
-          )?.joinToken,
-        },
-      });
-      assertCurrentActor();
-      if (activeTab === "project")
-        await invalidateProjectChange(queryClient, {
-          projectId: selectedChatId,
-          resource: taskId ? "TASK_DOCUMENT" : "DOCUMENT",
-          taskId: taskId || undefined,
-        });
-      toast.success(
-        activeTab === "project"
-          ? "File added to Project Documents"
-          : "Attachment sent",
-      );
-      onSuccess();
-    } catch (cause) {
-      if (store.getState().auth.userId === currentUserId)
-        setError(
-          getActionErrorMessage(
-            cause,
-            cause instanceof Error
-              ? cause.message
-              : "Unable to send this copy. Try again.",
-          ),
-        );
-    } finally {
-      sharing.current = false;
-      setIsSubmitting(false);
+  const setSelectedSpaceId = (id: string) => {
+    if (!locked) {
+      setChosenSpaceId(id);
+      setChosenChannelId("");
     }
   };
+  const setSelectedChannelId = (id: string) => {
+    if (!locked) setChosenChannelId(id);
+  };
+  const toggleDirect = (id: string) => {
+    if (
+      locked ||
+      !directRecipients.some((recipient) => recipient.conversationId === id)
+    )
+      return;
+    setSelectedDirectIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((selected) => selected !== id)
+        : [...previous, id],
+    );
+  };
+  const retryTargets = () =>
+    activeTab === "direct"
+      ? directQuery.refetch()
+      : Promise.allSettled([spacesQuery.refetch(), channelsQuery.refetch()]);
 
   return {
     activeTab,
     changeTab,
-    selectedChatId,
-    setSelectedChatId,
     selectedSpaceId,
     setSelectedSpaceId,
-    taskId,
-    setTaskId,
-    introMessage,
-    setIntroMessage,
-    isSubmitting,
-    error,
+    selectedChannelId: selectedChannel?.id ?? "",
+    setSelectedChannelId,
     spaces,
     channels,
-    directConversations,
-    writableProjects,
-    meetings,
-    tasks: attachableTasks,
-    handleShare,
-    currentUserId,
-    targetError: projects.isError || meetings.isError || tasks.isError,
+    directRecipients,
+    selectedRecipients,
+    toggleDirect,
+    introMessage,
+    setIntroMessage: (message: string) => {
+      if (!locked) setIntroMessage(message);
+    },
+    locked,
+    isSubmitting: delivery.isSubmitting,
+    batch: delivery.batch,
+    error: actorChanged
+      ? DOCUMENT_COPY_MESSAGES.accountChanged
+      : delivery.error,
+    failedCount,
+    targetError,
+    targetsLoading,
+    retryTargets,
+    canSubmit:
+      !actorChanged &&
+      !delivery.isSubmitting &&
+      (delivery.batch
+        ? failedCount > 0
+        : targets.length > 0 && !targetError && !targetsLoading),
+    selectedCount: delivery.batch?.deliveries.length ?? targets.length,
+    handleShare: () =>
+      delivery.send(delivery.batch?.deliveries ?? targets, introMessage),
   };
 }
