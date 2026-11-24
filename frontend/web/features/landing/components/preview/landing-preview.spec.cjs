@@ -9,6 +9,23 @@ const {
 } = require("../../../../../../tests/support/typescript.cjs");
 const load = createSourceLoader(path.resolve(__dirname, "../../../.."));
 
+test("Documents illustration shows shared file icons and unsupported preview guidance without live viewers", () => {
+  const { DocumentsPreview } = load(
+    "features/landing/components/preview/documents-preview.tsx",
+  );
+  const markup = renderToStaticMarkup(React.createElement(DocumentsPreview));
+  for (const label of [
+    "Interview notes.docx",
+    "Project timeline.xlsx",
+    "Sample unsupported file preview",
+    "Preview is not supported for this file",
+    "Download file",
+  ]) {
+    assert.ok(markup.includes(label), label);
+  }
+  assert.doesNotMatch(markup, /<iframe|<button|<input|<textarea/);
+});
+
 test("Pomodoro illustration follows the centered timer, source panels and report layout", () => {
   const { PomodoroPreview } = load(
     "features/landing/components/preview/pomodoro-preview.tsx",

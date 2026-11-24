@@ -278,13 +278,6 @@ export default function SharedDocumentView({ id }: { id: string }) {
           }
         />
 
-        {previewError && (
-          <QueryFeedback
-            label="document preview"
-            error
-            onRetry={() => setRetryKey((value) => value + 1)}
-          />
-        )}
         {/* Preview Panel */}
         <SharedPreview
           item={item}
@@ -294,6 +287,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
           loadingText={loadingText}
           error={previewError}
           onDownload={handleDownload}
+          onRetry={() => setRetryKey((value) => value + 1)}
         />
       </main>
 

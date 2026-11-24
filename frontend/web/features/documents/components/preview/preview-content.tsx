@@ -1,23 +1,14 @@
-"use client";
+﻿"use client";
 
 import React from "react";
+import { Music } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { DocumentPreviewItem } from "../../types/documents.types";
 import { PreviewFileType } from "../../types/documents.enums";
+import { PREVIEW_MESSAGES } from "../../types/document-preview.constants";
 import { formatBytes } from "../../utils/documents.utils";
-import { OFFICE_VIEWER_BASE_URL } from "../../types/documents.constants";
-import {
-  X,
-  Download,
-  FileText,
-  Video,
-  Music,
-  Image as ImageIcon,
-  File as FileIcon,
-  ExternalLink,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-
+import { OfficePreview } from "./office-preview";
+import { PreviewStatus } from "./preview-status";
 
 interface PreviewContentProps {
   item: DocumentPreviewItem;
@@ -28,6 +19,8 @@ interface PreviewContentProps {
   loadingText: boolean;
   error: Error | string | null;
   handleDownload: () => void;
+  onRetry?: () => void;
+  retrying?: boolean;
   fitToContainer?: boolean;
 }
 
@@ -40,177 +33,155 @@ export const PreviewContent = React.memo(function PreviewContent({
   loadingText,
   error,
   handleDownload,
+  onRetry,
+  retrying,
   fitToContainer = false,
 }: PreviewContentProps) {
+  const sourceKey = `${item.id}:${previewUrl}`;
+  const [failedSource, setFailedSource] = React.useState<string | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
+  const mediaFailed = failedSource === sourceKey;
+  const retryPreview = () => {
+    setFailedSource(null);
+    setAttempt((previous) => previous + 1);
+    onRetry?.();
+  };
+  const failPreview = () => setFailedSource(sourceKey);
+
+  if (error) {
+    return (
+      <PreviewStatus
+        failed
+        onDownload={handleDownload}
+        onRetry={retryPreview}
+        retrying={retrying}
+      />
+    );
+  }
+  if (previewType === PreviewFileType.UNKNOWN) {
+    return <PreviewStatus onDownload={handleDownload} />;
+  }
   if (isUrlLoading || (previewType === PreviewFileType.TEXT && loadingText)) {
     return (
-      <div role="status" className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-20">
+      <div
+        role="status"
+        className="flex h-full flex-col items-center justify-center gap-3 py-20 text-muted-foreground"
+      >
         <Spinner size={32} />
-        <span className="text-sm font-semibold">
-          Loading preview...
-        </span>
+        <span className="text-sm font-semibold">Loading preview...</span>
       </div>
     );
   }
-
-  if (error || !previewUrl) {
+  if (!previewUrl || mediaFailed) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 py-20">
-        <div className="bg-destructive-soft p-4 rounded-full text-destructive-content">
-          <X size={32} />
-        </div>
-        <div>
-          <h4 className="font-semibold text-foreground">
-            Preview not available
-          </h4>
-          <p className="text-xs text-muted-foreground font-semibold mt-1">
-            This file type cannot be previewed directly in the browser.
-          </p>
-        </div>
-        <Button variant="default"
-          onClick={handleDownload}
-          className="flex items-center gap-2 rounded-control hover:opacity-90 px-4 py-2.5 text-xs font-semibold cursor-pointer transition-opacity"
-        >
-          <Download size={14} />
-          <span>Download file</span>
-        </Button>
-      </div>
+      <PreviewStatus
+        failed
+        description={
+          mediaFailed ? PREVIEW_MESSAGES.mediaErrorDescription : undefined
+        }
+        onDownload={handleDownload}
+        onRetry={retryPreview}
+        retrying={retrying}
+      />
     );
   }
 
   switch (previewType) {
     case PreviewFileType.IMAGE:
       return (
-        <div className={`flex items-center justify-center w-full h-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} bg-overlay/2 rounded-panel p-2 overflow-hidden`}>
+        <div
+          className={`flex h-full w-full items-center justify-center ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} overflow-hidden rounded-panel bg-overlay/2 p-2`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- Authorized preview URLs are short-lived and cannot use the image optimizer. */}
           <img
+            key={`${sourceKey}:${attempt}`}
             src={previewUrl}
             alt={item.name}
-            className={`max-w-full ${fitToContainer ? "max-h-full" : "max-h-[68vh]"} object-contain rounded-panel border border-border`}
+            onError={failPreview}
+            className={`max-w-full ${fitToContainer ? "max-h-full" : "max-h-[68vh]"} rounded-panel border border-border object-contain`}
           />
         </div>
       );
-
     case PreviewFileType.PDF:
       return (
-        <div className={`w-full ${fitToContainer ? "h-full min-h-0" : "h-[70vh]"} rounded-panel overflow-hidden border border-border bg-background`}>
+        <div
+          className={`w-full ${fitToContainer ? "h-full min-h-0" : "h-[70vh]"} overflow-hidden rounded-panel border border-border bg-background`}
+        >
           <iframe
+            key={`${sourceKey}:${attempt}`}
             src={`${previewUrl}#toolbar=0`}
-            className="w-full h-full border-0"
             title={item.name}
+            onError={failPreview}
+            className="h-full w-full border-0"
           />
         </div>
       );
-
     case PreviewFileType.VIDEO:
       return (
-        <div className="flex items-center justify-center w-full bg-media-background text-media-foreground rounded-panel overflow-hidden border border-input">
+        <div className="flex w-full items-center justify-center overflow-hidden rounded-panel border border-input bg-media-background text-media-foreground">
           <video
+            key={`${sourceKey}:${attempt}`}
             controls
             autoPlay
+            aria-label={item.name}
+            onError={failPreview}
             className={`w-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} outline-none`}
             src={previewUrl}
           />
         </div>
       );
-
     case PreviewFileType.AUDIO:
       return (
-        <div className="flex flex-col items-center justify-center w-full p-8 py-16 bg-background border border-border rounded-panel">
-          <div className="bg-success-soft p-5 rounded-full text-success-content mb-6 animate-pulse">
-            <Music size={48} />
+        <div className="flex w-full flex-col items-center justify-center rounded-panel border border-border bg-background p-8 py-16">
+          <div className="mb-6 rounded-panel bg-success-soft p-5 text-success-content">
+            <Music aria-hidden="true" size={48} />
           </div>
-          <span className="block font-semibold text-foreground text-center mb-1 max-w-md truncate">
+          <span className="mb-1 block max-w-full break-all text-center font-semibold text-foreground">
             {item.name}
           </span>
-          <span className="block text-xs font-semibold text-muted-foreground mb-6">
+          <span className="mb-6 block text-xs font-semibold text-muted-foreground">
             {formatBytes(item.sizeBytes)}
           </span>
           <audio
+            key={`${sourceKey}:${attempt}`}
             controls
             autoPlay
+            aria-label={item.name}
+            onError={failPreview}
             src={previewUrl}
             className="w-full max-w-lg outline-none"
           />
         </div>
       );
-
     case PreviewFileType.TEXT:
-      if (textContent !== null) {
-        return (
-          <div className={`w-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} bg-background border border-border rounded-panel p-4 overflow-auto text-left`}>
-            <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-all leading-relaxed">
-              {textContent}
-            </pre>
-          </div>
-        );
-      }
-      return null;
-
+      return textContent !== null ? (
+        <div
+          className={`w-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} overflow-auto rounded-panel border border-border bg-background p-4 text-left`}
+        >
+          <pre className="whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-foreground">
+            {textContent}
+          </pre>
+        </div>
+      ) : (
+        <PreviewStatus
+          failed
+          onDownload={handleDownload}
+          onRetry={retryPreview}
+          retrying={retrying}
+        />
+      );
     case PreviewFileType.OFFICE:
-      const officeViewerUrl = `${OFFICE_VIEWER_BASE_URL}?src=${encodeURIComponent(previewUrl)}`;
       return (
-        <div className={`w-full ${fitToContainer ? "h-full min-h-0" : "h-[70vh]"} rounded-panel overflow-hidden border border-border bg-background relative group`}>
-          <iframe
-            src={officeViewerUrl}
-            className="w-full h-full border-0"
-            title={item.name}
-          />
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-panel bg-card border border-border px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-background transition-all cursor-pointer animate-in fade-in shadow-panel"
-          >
-            <ExternalLink size={12} />
-            <span>Open directly</span>
-          </a>
-        </div>
+        <OfficePreview
+          key={`${sourceKey}:${attempt}`}
+          name={item.name}
+          previewUrl={previewUrl}
+          fitToContainer={fitToContainer}
+          onDownload={handleDownload}
+          onError={failPreview}
+        />
       );
-
     default:
-      return (
-        <div className="flex flex-col items-center justify-center text-center p-8 py-16 bg-background border border-border rounded-panel">
-          <div className="bg-muted p-5 rounded-full text-muted-foreground mb-6">
-            <FileIcon size={44} />
-          </div>
-          <h4 className="font-semibold text-foreground max-w-md truncate mb-1">
-            {item.name}
-          </h4>
-          <p className="text-xs text-muted-foreground font-semibold mb-6">
-            {item.mimeType} • {formatBytes(item.sizeBytes)}
-          </p>
-          <p className="text-xs text-muted-foreground font-semibold mb-6 max-w-sm">
-            No preview available for this file type
-          </p>
-          <Button variant="default"
-            onClick={handleDownload}
-            className="flex items-center gap-2 rounded-control hover:opacity-90 px-5 py-3 text-xs font-semibold cursor-pointer transition-opacity"
-          >
-            <Download size={14} />
-            <span>Download to device</span>
-          </Button>
-        </div>
-      );
-  }
-});
-
-interface PreviewIconProps {
-  previewType: PreviewFileType;
-}
-
-export const PreviewIcon = React.memo(function PreviewIcon({
-  previewType,
-}: PreviewIconProps) {
-  switch (previewType) {
-    case PreviewFileType.IMAGE:
-      return <ImageIcon size={22} className="text-info-content" />;
-    case PreviewFileType.VIDEO:
-      return <Video size={22} className="text-info-content" />;
-    case PreviewFileType.AUDIO:
-      return <Music size={22} className="text-success-content" />;
-    case PreviewFileType.PDF:
-      return <FileText size={22} className="text-destructive-content" />;
-    default:
-      return <FileIcon size={22} className="text-muted-foreground" />;
+      return <PreviewStatus onDownload={handleDownload} />;
   }
 });
