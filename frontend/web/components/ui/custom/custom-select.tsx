@@ -78,7 +78,7 @@ export function CustomSelect<TValue extends string = string>({
       className={cn(
         "min-w-0",
         sizeToOptions &&
-          "inline-grid w-fit max-w-full shrink-0 grid-cols-1 align-middle",
+          "inline-grid w-max max-w-full shrink-0 grid-cols-1 align-middle",
         className,
       )}
     >
@@ -89,7 +89,7 @@ export function CustomSelect<TValue extends string = string>({
           className={cn(
             "invisible col-start-1 row-start-1 flex items-center justify-between gap-2 border px-3 py-2",
             triggerClasses,
-            "pointer-events-none h-auto min-h-9 w-auto min-w-0 whitespace-nowrap",
+            "pointer-events-none m-0 h-auto min-h-9 w-max min-w-0 max-w-full overflow-hidden whitespace-nowrap",
           )}
         >
           <span className="grid w-max min-w-0">
@@ -134,10 +134,7 @@ export function CustomSelect<TValue extends string = string>({
           <SelectValue placeholder={placeholder}>
             {triggerLabel ??
               (selectedOption ? (
-                <OptionLabel
-                  option={selectedOption}
-                  truncate={!sizeToOptions}
-                />
+                <OptionLabel option={selectedOption} />
               ) : (
                 placeholder
               ))}
@@ -206,11 +203,7 @@ function OptionLabel<TValue extends string>({
           {option.icon}
         </span>
       ) : null}
-      <span
-        className={
-          truncate ? "truncate" : "whitespace-normal [overflow-wrap:anywhere]"
-        }
-      >
+      <span className={truncate ? "truncate" : "whitespace-nowrap"}>
         {option.label}
       </span>
       {typeof option.count === "number" && option.count > 0 ? (
