@@ -1,6 +1,7 @@
-import { ChevronRight, Folder, Grid2X2, HardDrive, List, MoreHorizontal, Plus, Share2, Star, Trash2 } from "lucide-react";
+import { ChevronRight, Folder, Grid2X2, HardDrive, List, Lock, MoreHorizontal, Plus, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentIcon } from "@/features/documents/components/common/document-icon";
-import { DocumentItemType } from "@/features/documents/types/documents.enums";
+import { DocumentItemType, DocumentRole, LinkAccess } from "@/features/documents/types/documents.enums";
+import { LINK_ACCESS_LABELS, PERMISSION_ROLE_LABELS } from "@/features/documents/types/documents.constants";
 import { DocumentPreviewExample } from "./document-preview-example";
 import { DocumentVersionsExample } from "./document-versions-example";
 import { DocumentsCard } from "@/features/documents/components/ui/documents-card";
@@ -30,6 +31,11 @@ export function DocumentsPreview() {
           })}</div>
           <p className="mt-5 text-xs text-muted-foreground">{PREVIEW_DOCUMENTS.length} items</p>
           <DocumentPreviewExample />
+          <div aria-label="Sample restricted file access" className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-semibold">Shared by email</span>
+            <PreviewBadge><Lock aria-hidden="true" className="size-3" />{LINK_ACCESS_LABELS[LinkAccess.NONE]}</PreviewBadge>
+            <PreviewBadge tone="info">{PERMISSION_ROLE_LABELS[DocumentRole.VIEWER]}</PreviewBadge>
+          </div>
           <DocumentVersionsExample />
         </div>
       </div>

@@ -1,15 +1,18 @@
 "use client";
 
 import React from "react";
-import { FileText, Globe, Download, History, Edit3 } from "lucide-react";
+import { FileText, Globe, Lock, Download, History, Edit3 } from "lucide-react";
 import { DocumentItem } from "@/features/documents/types/documents.types";
-import { DocumentRole } from "@/features/documents/types/documents.enums";
+import {
+  DocumentRole,
+  LinkAccess,
+} from "@/features/documents/types/documents.enums";
+import { LINK_ACCESS_LABELS } from "@/features/documents/types/documents.constants";
 import {
   formatBytes,
   getDocumentRoleMetadata,
 } from "@/features/documents/utils/documents.utils";
 import { Button } from "@/components/ui/button";
-
 
 interface SharedDetailsProps {
   item: DocumentItem;
@@ -30,8 +33,9 @@ export function SharedDetails({
     badgeText: roleBadgeText,
     badgeColor: roleBadgeColor,
     Icon: RoleIcon,
-    showOpenInWorkspace,
   } = getDocumentRoleMetadata(userRole);
+  const linkAccess = item.linkAccess ?? LinkAccess.NONE;
+  const AccessIcon = linkAccess === LinkAccess.NONE ? Lock : Globe;
 
   return (
     <div className="bg-card rounded-dialog border border-border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -43,7 +47,8 @@ export function SharedDetails({
           <h1 className="text-base font-semibold text-foreground truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
             <span>{item.name}</span>
             {onRename && (
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 onClick={onRename}
                 title="Rename document"
                 className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-background rounded-control transition-all cursor-pointer shrink-0"
@@ -60,12 +65,8 @@ export function SharedDetails({
 
             {/* General Link Access Badge */}
             <div className="flex items-center gap-1 text-muted-foreground bg-muted rounded-lg px-2 py-0.5 font-semibold uppercase text-xs tracking-wide border border-border">
-              <Globe size={10} />
-              <span>
-                {userRole === DocumentRole.EDITOR
-                  ? "Anyone with the link (Edit)"
-                  : "Anyone with the link (View)"}
-              </span>
+              <AccessIcon aria-hidden="true" size={10} />
+              <span>{LINK_ACCESS_LABELS[linkAccess]}</span>
             </div>
 
             {/* Custom User Role Badge */}
@@ -81,7 +82,8 @@ export function SharedDetails({
 
       <div className="flex items-center gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-border pt-4 md:pt-0">
         {onViewVersions && (
-          <Button variant="unstyled"
+          <Button
+            variant="unstyled"
             onClick={onViewVersions}
             className="flex items-center justify-center gap-1.5 rounded-control border border-border hover:bg-background text-muted-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer w-full md:w-auto"
           >
@@ -90,7 +92,8 @@ export function SharedDetails({
           </Button>
         )}
         {onDownload && (
-          <Button variant="unstyled"
+          <Button
+            variant="unstyled"
             onClick={onDownload}
             className="flex items-center justify-center gap-2 rounded-control bg-primary hover:bg-primary text-primary-foreground px-5 py-3 text-xs font-semibold cursor-pointer transition-all w-full md:w-auto"
           >

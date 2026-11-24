@@ -25,6 +25,9 @@ test("Documents illustration shows shared file icons and unsupported preview gui
     "Sample version upload status",
     "Sample version actions",
     "Delete version",
+    "Sample restricted file access",
+    "Shared by email",
+    "Restricted",
   ]) {
     assert.ok(markup.includes(label), label);
   }

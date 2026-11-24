@@ -1,4 +1,4 @@
-import { DocumentTypeDescription } from "./documents.enums";
+import { DocumentTypeDescription, LinkAccess } from "./documents.enums";
 
 // ─── Pagination ────────────────────────────────────────────────────────────────
 
@@ -306,6 +306,19 @@ export const LINK_ACCESS_LABEL_IDS: Record<string, string> = {
   NONE: "documents.linkAccess.restricted",
   VIEWER: "documents.linkAccess.viewer",
   EDITOR: "documents.linkAccess.editor",
+};
+
+export const LINK_ACCESS_LABELS: Record<LinkAccess, string> = {
+  [LinkAccess.NONE]: "Restricted",
+  [LinkAccess.VIEWER]: "Anyone with the link (Viewer)",
+  // Legacy public Editor links grant viewing; named grants determine editing.
+  [LinkAccess.EDITOR]: "Anyone with the link (Viewer)",
+};
+
+export const LINK_ACCESS_DESCRIPTIONS: Record<LinkAccess, string> = {
+  [LinkAccess.NONE]: "Only people with granted access can open with this link",
+  [LinkAccess.VIEWER]: "Anyone on the internet with this link can view this item",
+  [LinkAccess.EDITOR]: "Anyone on the internet with this link can view this item",
 };
 
 export const LINK_ACCESS_DESCRIPTION_IDS: Record<string, string> = {
