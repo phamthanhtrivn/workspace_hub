@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { FileText, Globe, Lock, Download, History, Edit3 } from "lucide-react";
+import { Globe, Lock, Download, History, Edit3 } from "lucide-react";
+import { DocumentIcon } from "@/features/documents/components/common/document-icon";
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import {
   DocumentRole,
@@ -40,9 +41,7 @@ export function SharedDetails({
   return (
     <div className="bg-card rounded-dialog border border-border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div className="flex items-center gap-4 min-w-0">
-        <div className="p-3 bg-info-soft text-info-content rounded-panel shrink-0">
-          <FileText size={28} />
-        </div>
+        <DocumentIcon item={item} iconSize={28} className="rounded-panel p-3" />
         <div className="min-w-0">
           <h1 className="text-base font-semibold text-foreground truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
             <span>{item.name}</span>
