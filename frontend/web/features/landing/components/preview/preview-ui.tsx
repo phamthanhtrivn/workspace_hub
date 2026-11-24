@@ -43,8 +43,8 @@ export function PreviewSelect({ children }: { children: ReactNode }) {
   return <PreviewAction className="justify-between gap-5">{children}<ChevronDown aria-hidden="true" /></PreviewAction>;
 }
 
-export interface PreviewNavigationItem { label: string; icon: LucideIcon; active?: boolean; count?: string }
+export interface PreviewNavigationItem { label: string; icon: LucideIcon; iconClassName?: string; active?: boolean; count?: string }
 
 export function PreviewNavigation({ items, className }: { items: readonly PreviewNavigationItem[]; className?: string }) {
-  return <div className={cn("flex gap-1.5", className)}>{items.map(({ label, icon: Icon, active, count }) => <div key={label} className={cn("flex shrink-0 items-center gap-3 rounded-control px-3 py-3 text-sm font-semibold", active ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground")}><Icon aria-hidden="true" className="size-[18px] shrink-0" /><span className="whitespace-nowrap">{label}</span>{count && <span className="ml-auto text-xs">{count}</span>}</div>)}</div>;
+  return <div className={cn("flex gap-1.5", className)}>{items.map(({ label, icon: Icon, iconClassName, active, count }) => <div key={label} className={cn("flex shrink-0 items-center gap-3 rounded-control px-3 py-3 text-sm font-semibold", active ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground")}><Icon aria-hidden="true" className={cn("size-[18px] shrink-0", iconClassName)} /><span className="whitespace-nowrap">{label}</span>{count && <span className="ml-auto text-xs">{count}</span>}</div>)}</div>;
 }

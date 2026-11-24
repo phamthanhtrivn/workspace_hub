@@ -162,18 +162,22 @@ export const meetingDashboardNavItems = [
   {
     id: MeetingDashboardNavItemId.OVERVIEW,
     label: "Overview",
+    iconClassName: "text-info-content",
   },
   {
     id: MeetingDashboardNavItemId.UPCOMING,
     label: "Upcoming",
+    iconClassName: "text-success-content",
   },
   {
     id: MeetingDashboardNavItemId.PREVIOUS,
     label: "Previous",
+    iconClassName: "text-warning-content",
   },
   {
     id: MeetingDashboardNavItemId.RECORDINGS,
     label: "Recordings",
+    iconClassName: "text-destructive-content",
   },
 ] as const;
 

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface FeatureSidebarItemProps {
   icon: LucideIcon;
+  iconClassName?: string;
   label: string;
   active: boolean;
   disabled?: boolean;
@@ -12,6 +13,7 @@ interface FeatureSidebarItemProps {
 
 export function FeatureSidebarItem({
   icon: Icon,
+  iconClassName,
   label,
   active,
   disabled,
@@ -39,7 +41,7 @@ export function FeatureSidebarItem({
             : "bg-transparent text-muted-foreground group-hover/sidebar-item:bg-background group-hover/sidebar-item:text-foreground group-focus-visible/sidebar-item:bg-background group-focus-visible/sidebar-item:text-foreground",
         )}
       >
-        <Icon aria-hidden="true" />
+        <Icon aria-hidden="true" className={iconClassName} />
       </span>
       <span className="min-w-0 truncate text-left">{label}</span>
     </Button>

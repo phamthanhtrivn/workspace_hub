@@ -1,6 +1,7 @@
-import { ChevronRight, Folder, Grid2X2, HardDrive, List, Lock, MoreHorizontal, Plus, Share2, Star, Trash2 } from "lucide-react";
+import { ChevronRight, Folder, Grid2X2, HardDrive, List, Lock, MoreHorizontal, Plus, Star } from "lucide-react";
+import { DOCUMENT_NAVIGATION_ITEMS } from "@/features/documents/types/document-navigation.constants";
 import { DocumentIcon } from "@/features/documents/components/common/document-icon";
-import { DocumentItemType, DocumentRole, LinkAccess } from "@/features/documents/types/documents.enums";
+import { DocumentItemType, DocumentRole, DocumentViewType, LinkAccess } from "@/features/documents/types/documents.enums";
 import { LINK_ACCESS_LABELS, PERMISSION_ROLE_LABELS } from "@/features/documents/types/documents.constants";
 import { DocumentPreviewExample } from "./document-preview-example";
 import { DocumentVersionsExample } from "./document-versions-example";
@@ -10,10 +11,7 @@ import { PREVIEW_DOCUMENTS } from "./preview-data";
 import { PreviewShell } from "./preview-shell";
 import { PreviewAction, PreviewBadge, PreviewHeading, PreviewNavigation, PreviewSearch, PreviewSelect } from "./preview-ui";
 
-const DOCUMENT_NAVIGATION = [
-  { label: "My files", icon: Folder, active: true }, { label: "Shared", icon: Share2 },
-  { label: "Starred", icon: Star }, { label: "Trash", icon: Trash2 },
-] as const;
+const DOCUMENT_NAVIGATION = DOCUMENT_NAVIGATION_ITEMS.map(item => ({ ...item, active: item.id === DocumentViewType.MY_FILES }));
 
 export function DocumentsPreview() {
   return <PreviewShell moduleId="documents">

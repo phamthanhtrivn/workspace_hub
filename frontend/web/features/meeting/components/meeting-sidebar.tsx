@@ -8,7 +8,6 @@ import {
 } from "../types/meeting.constants";
 import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
 
-
 interface MeetingSidebarProps {
   activeItemId: MeetingDashboardNavItemId;
   onItemSelect: (itemId: MeetingDashboardNavItemId) => void;
@@ -41,6 +40,7 @@ export function MeetingSidebar({
             <FeatureSidebarItem
               key={item.id}
               icon={meetingNavIconById[item.id]}
+              iconClassName={item.iconClassName}
               label={item.label}
               active={item.id === activeItemId}
               disabled={!enabledMeetingNavItems.has(item.id)}
