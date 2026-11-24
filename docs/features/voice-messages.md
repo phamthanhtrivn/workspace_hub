@@ -45,11 +45,7 @@ After retries are exhausted, the existing player retry action remains available.
 
 ## Setup and rollout
 
-1. Prepare the speech runtime in `backend/docker/ai/compose.yml` through the [combined Docker stack](../../backend/docker/README.md). For host execution, run
-   `node backend/scripts/start-local-speech.mjs` from the repository root.
-   FFmpeg must be available at `MEETING_FFMPEG_PATH`; prepare the local multilingual
-   model before starting speech-worker. Keep the existing service keys and media
-   allowlist configured on the participating services.
+1. Start the speech runtime in `backend/docker/ai/compose.yml` through the [combined Docker stack](../../backend/docker/README.md). The Docker build prepares the multilingual model and the AI jobs image provides FFmpeg. Keep the existing service keys and media allowlist configured on the participating services; do not start a second host speech process against the same local setup.
 2. Build AI API (`npm run build` in `backend/ai-service/api`), then run its existing
    migration command (`npm run migrate`). Migration `006_voice_transcripts.sql`
    creates the transcript table; `007_shared_voice_transcripts.sql` consolidates
@@ -87,14 +83,8 @@ These fast checks use provider doubles for background dispatch and browser
 recording. They do not verify the complete AI transcript pipeline, real FFmpeg,
 PostgreSQL delivery constraints or local Whisper inference.
 
-From `backend/ai-service/speech-worker`, using the configured Python environment:
-
-```powershell
-python -m unittest test_app.py
-```
-
-The Python contract tests use a fake recognizer and require `httpx` for FastAPI's
-TestClient in the test environment. They do not download a model or establish
-recognition quality on real audio. Also verify real recording/playback in Chrome
-and Safari, shared results after logging in again, revoked membership, responsive layout,
-and light/dark themes against a running stack before release.
+Verify real recording/playback in Chrome and Safari, recognition quality on real
+audio, shared results after logging in again, revoked membership, responsive
+layout, and light/dark themes against a running stack before release. The current
+speech-worker directory has no standalone Python test suite; the focused Node
+checks above do not establish real Whisper recognition quality.

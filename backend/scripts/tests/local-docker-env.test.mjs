@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { prepareDockerEnvironments, writeDockerEnvironments } from './prepare-local-docker-env.mjs';
-import { validateDockerEnvironment } from './validate-local-docker-env.mjs';
-import { parse } from './local-security/env-files.mjs';
+import { prepareDockerEnvironments, writeDockerEnvironments } from '../prepare-local-docker-env.mjs';
+import { validateDockerEnvironment } from '../validate-local-docker-env.mjs';
+import { parse } from '../local-security/env-files.mjs';
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'wh-docker-env-'));

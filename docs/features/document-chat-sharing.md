@@ -92,8 +92,8 @@ New sends create independent attachments instead of DOCUMENT cards. The old chat
 Apply all three schema migrations before using the following command from the repository root. It reads private host env files and refuses non-local database URLs. Inspection is the default; neither service startup nor a dry run deletes data.
 
 ```powershell
-node backend/scripts/purge-legacy-file-references.mjs --dry-run
-node backend/scripts/purge-legacy-file-references.mjs --apply
+node backend/scripts/file-copy-maintenance/purge-legacy-file-references.mjs --dry-run
+node backend/scripts/file-copy-maintenance/purge-legacy-file-references.mjs --apply
 ```
 
 Stop Communication and AI API/jobs before applying cleanup, then restart them after it completes. Each database is changed in its own transaction; if a later domain fails, inspect the report and run the command again. A repeated run is safe.
@@ -107,13 +107,13 @@ Notebook index deletion is queued through the existing cleanup outbox. Content t
 Inspect expired private copies independently:
 
 ```powershell
-node backend/scripts/reconcile-notebook-snapshots.mjs --dry-run
+node backend/scripts/file-copy-maintenance/reconcile-notebook-snapshots.mjs --dry-run
 ```
 
 To prune reported unbound snapshots, stop AI API/jobs yourself before passing --offline. This avoids racing source attachment. Bound sources remain intact and interrupted retention acknowledgements are repaired. Unbound private objects are queued for the existing storage cleanup worker.
 
 ```powershell
-node backend/scripts/reconcile-notebook-snapshots.mjs --apply --offline
+node backend/scripts/file-copy-maintenance/reconcile-notebook-snapshots.mjs --apply --offline
 docker compose -f backend/docker/compose.yml up -d --no-deps notebook-api notebook-jobs
 ```
 

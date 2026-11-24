@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { openCopyDatabases } from "./file-copy-maintenance/runtime.mjs";
+import { openCopyDatabases } from "./runtime.mjs";
 
 const families = [
   { name: "channel", table: "messages", media: "medias" },
@@ -114,7 +114,7 @@ export async function purgeLegacyReferences(args = process.argv.slice(2)) {
   if (args.includes("--help"))
     return {
       usage:
-        "node backend/scripts/purge-legacy-file-references.mjs [--dry-run | --apply]. Local databases only. Retains original Documents, normal messages, notebooks, notes, recordings and private copied sources.",
+        "node backend/scripts/file-copy-maintenance/purge-legacy-file-references.mjs [--dry-run | --apply]. Local databases only. Retains original Documents, normal messages, notebooks, notes, recordings and private copied sources.",
     };
   if (args.some((arg) => !["--dry-run", "--apply"].includes(arg)))
     throw new Error("Unknown cleanup option.");

@@ -13,10 +13,10 @@ import { REPOSITORY_ROOT } from "../local-security/env-files.mjs";
 import {
   purgeChatCards,
   purgeLinkedSources,
-} from "../purge-legacy-file-references.mjs";
+} from "./purge-legacy-file-references.mjs";
 import { clearApplicationTables, resetQdrant } from "../reset-local-workspace.mjs";
 
-import { isNotebookSnapshotKey } from "../reconcile-notebook-snapshots.mjs";
+import { isNotebookSnapshotKey } from "./reconcile-notebook-snapshots.mjs";
 
 test("Notebook cleanup accepts current and legacy private keys but rejects another owner or module", () => {
   assert.equal(

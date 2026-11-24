@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
-import { openCopyDatabases } from "./file-copy-maintenance/runtime.mjs";
+import { openCopyDatabases } from "./runtime.mjs";
 
 export function isNotebookSnapshotKey(key, actorId) {
   return (
@@ -14,7 +14,7 @@ export async function reconcileNotebookSnapshots(args = process.argv.slice(2)) {
   if (args.includes("--help"))
     return {
       usage:
-        "node backend/scripts/reconcile-notebook-snapshots.mjs [--apply --offline]. Stop AI API/jobs before applying. Default is read-only inspection.",
+        "node backend/scripts/file-copy-maintenance/reconcile-notebook-snapshots.mjs [--apply --offline]. Stop AI API/jobs before applying. Default is read-only inspection.",
     };
   if (args.some((arg) => !["--dry-run", "--apply", "--offline"].includes(arg)))
     throw new Error("Unknown reconciliation option.");

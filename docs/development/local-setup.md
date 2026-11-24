@@ -17,6 +17,8 @@ Preparation defaults to a dry run. Use --write to synchronize after review. Exis
 
 Applications use published localhost PostgreSQL/Redis/Kafka ports. Container callers use Docker DNS for shared infrastructure and host.docker.internal for business applications. Kong's host template forwards business requests to the host and AI requests to notebook-api. The host services must bind to an interface reachable from Docker and have the required local firewall access.
 
+The [backend tooling guide](../../backend/scripts/README.md) explains each setup, validation, reset and maintenance command, including the private database plan. Supporting tools are grouped under `local-security/`, `file-copy-maintenance/` and `tests/`.
+
 ### Authentication and service credentials
 
 Use [environment configuration](environment.md) for the source-backed reader inventory, caller keys and Docker/host checks. JWT verifier settings must match User/Kong. Each internal caller/receiver direction has a dedicated key. AI_GATEWAY_KEY matches AI and Kong; Document/RAG/speech and Work Assistant integrations use their dedicated credentials. No provider/internal key belongs in frontend public variables.

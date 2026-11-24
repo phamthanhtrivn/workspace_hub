@@ -26,8 +26,12 @@ The current local setup uses the same `postgres` username/password from
 uses its own database on the single `wh_postgres` container, including AI's
 `notebook_db`. This shared administrator credential does not provide database
 permission isolation. The private, Git-ignored
-`backend/.env.security-db-plan.json` remains available for migration tooling
-and must not be published. Restricted `wh_*` roles are an optional later cutover.
+`backend/scripts/local-security/.env.db-plan.json` is the private plan used by
+database preparation, migration, rehearsal and reset tooling. It stores database
+credentials and must stay Git-ignored. Existing checkouts can still read the old
+`backend/.env.security-db-plan.json` path when the new file does not exist; move
+the existing file rather than regenerating credentials. Restricted `wh_*` roles
+are an optional later cutover. See the [tooling guide](../../backend/scripts/README.md).
 
 Compose loads the private env of each included component:
 

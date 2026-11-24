@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertApplicationsStopped } from './reset-local-workspace.mjs';
+import { assertApplicationsStopped } from '../reset-local-workspace.mjs';
 
 test('idle IDE connections block reset and report an actionable safe reason', async () => {
   const plan = { services: { communication: { database: 'communication_db' } } };

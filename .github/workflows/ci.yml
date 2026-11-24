@@ -104,8 +104,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.0
-      - name: Test discovery and local env tooling
-        run: node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs backend/scripts/local-docker-env.test.mjs
+      - name: Install local tooling dependencies
+        run: npm ci --prefix backend/ai-service/api --ignore-scripts
+      - name: Test discovery and local tooling
+        run: node --test tests/support/discovery.spec.mjs backend/scripts/local-security/*.test.mjs backend/scripts/tests/*.test.mjs backend/scripts/file-copy-maintenance/*.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

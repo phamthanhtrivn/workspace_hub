@@ -1,5 +1,5 @@
-import { loadDatabasePlan } from './local-security/database-plan.mjs';
-import { LOCAL_SECURITY_MIGRATIONS, applyLocalSecurityMigrations } from './local-security/local-migrations.mjs';
+import { loadDatabasePlan } from './database-plan.mjs';
+import { LOCAL_SECURITY_MIGRATIONS, applyLocalSecurityMigrations } from './local-migrations.mjs';
 
 try {
   if (process.argv.slice(2).some((arg) => arg !== '--apply')) throw new Error('Expected --apply.');
