@@ -43,12 +43,27 @@ export type DocumentPreviewItem = Pick<
   "id" | "name" | "type" | "sizeBytes" | "mimeType"
 >;
 
+export interface StorageQuotaBreakdown {
+  documentsBytes: number;
+  mediaBytes: number;
+  otherBytes: number;
+}
+
 export interface UserStorageQuota {
   userId: string;
   maxBytes: number;
   usedBytes: number;
+  breakdown?: StorageQuotaBreakdown;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DocumentNavigationSummary {
+  myFilesCount: number;
+  recentCount: number;
+  starredCount: number;
+  sharedCount: number;
+  trashCount: number;
 }
 
 export type AccessibleDocumentItem = Pick<

@@ -153,6 +153,8 @@ export class DocumentService {
       isArchived?: boolean;
       projectId?: string;
       isSharedOnly?: boolean;
+      isRecentOnly?: boolean;
+      itemType?: ItemType;
       page?: number;
       limit?: number;
       sortBy?: DocumentSortBy;
@@ -163,6 +165,10 @@ export class DocumentService {
     totalCount: number;
   }> {
     return this.queries.getItems(userId, userEmail, options);
+  }
+
+  async getNavigationSummary(userId: string, userEmail: string) {
+    return this.queries.getNavigationSummary(userId, userEmail);
   }
 
   async getSharedWithMe(

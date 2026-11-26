@@ -3,6 +3,7 @@ import { assertAttachmentSize } from "@/lib/upload-policy";
 import { store } from "@/store/store";
 import {
   DocumentItem,
+  DocumentNavigationSummary,
   UserStorageQuota,
   PaginatedResponse,
   DocumentSortBy,
@@ -13,7 +14,7 @@ import {
   DocumentNameConflict,
   AccessibleDocumentItem,
 } from "../types/documents.types";
-import { UploadState } from "../types/documents.enums";
+import { DocumentItemType, UploadState } from "../types/documents.enums";
 import axios from "axios";
 import { DOCUMENT_VERSION_ROUTES } from "../types/document-version.constants";
 import {
@@ -37,6 +38,8 @@ export const documentsApi = {
       folderId?: string;
       starred?: boolean;
       archived?: boolean;
+      recent?: boolean;
+      itemType?: DocumentItemType;
       projectId?: string;
       page?: number;
       limit?: number;
@@ -51,6 +54,8 @@ export const documentsApi = {
         folderId: params?.folderId,
         starred: params?.starred ? "true" : undefined,
         archived: params?.archived ? "true" : undefined,
+        recent: params?.recent ? "true" : undefined,
+        itemType: params?.itemType,
         projectId: params?.projectId,
         page: params?.page,
         limit: params?.limit,
@@ -63,6 +68,12 @@ export const documentsApi = {
       data: response.data.data,
       meta: response.data.meta || response.data.pagination,
     };
+  },
+
+  getNavigationSummary: async (): Promise<DocumentNavigationSummary> => {
+    const response = await api.get("/api/documents/navigation-summary");
+
+    return response.data.data;
   },
 
   getSharedDocuments: async (

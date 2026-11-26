@@ -34,6 +34,8 @@ export function getDocumentListPage(
       },
       signal,
     );
+  if (scope.activeView === DocumentViewType.RECENT)
+    return documentsApi.getDocuments({ ...common, recent: true }, signal);
   if (scope.activeView === DocumentViewType.SHARED)
     return documentsApi.getSharedDocuments(common, signal);
 

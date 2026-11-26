@@ -34,6 +34,7 @@ import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto
 import { TaskAttachmentDocumentsDto } from './dto/task-attachment-documents.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
+import { ItemType } from '@prisma/client';
 
 @Controller('api/documents')
 export class DocumentController {
@@ -173,6 +174,23 @@ export class DocumentController {
     };
   }
 
+  @Get('navigation-summary')
+  async getNavigationSummary(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const summary = await this.documentService.getNavigationSummary(
+      userId,
+      userEmail,
+    );
+
+    return {
+      message: 'Navigation summary retrieved successfully',
+      data: summary,
+    };
+  }
+
   @Get()
   async getItems(
     @Headers('x-user-id') userId: string,
@@ -180,6 +198,8 @@ export class DocumentController {
     @Query('folderId') folderId?: string,
     @Query('starred') starred?: string,
     @Query('archived') archived?: string,
+    @Query('recent') recent?: string,
+    @Query('itemType') itemType?: string,
     @Query('projectId') projectId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -189,6 +209,11 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     const isStarredOnly = starred === 'true';
     const isArchived = archived === 'true';
+    const isRecentOnly = recent === 'true';
+    const resolvedItemType =
+      itemType === ItemType.FOLDER || itemType === ItemType.FILE
+        ? itemType
+        : undefined;
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 12;
 
@@ -196,6 +221,8 @@ export class DocumentController {
       folderId,
       isStarredOnly,
       isArchived,
+      isRecentOnly,
+      itemType: resolvedItemType,
       projectId,
       page: pageNum,
       limit: limitNum,

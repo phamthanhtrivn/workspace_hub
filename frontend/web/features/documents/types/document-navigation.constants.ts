@@ -1,4 +1,4 @@
-import { Folder, Share2, Star, Trash2 } from "lucide-react";
+import { Clock, Folder, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentViewType } from "./documents.enums";
 
 export const DOCUMENT_NAVIGATION_ITEMS = [
@@ -7,6 +7,12 @@ export const DOCUMENT_NAVIGATION_ITEMS = [
     label: "My files",
     icon: Folder,
     iconClassName: "text-warning-content",
+  },
+  {
+    id: DocumentViewType.RECENT,
+    label: "Recent",
+    icon: Clock,
+    iconClassName: "text-info-content",
   },
   {
     id: DocumentViewType.SHARED,

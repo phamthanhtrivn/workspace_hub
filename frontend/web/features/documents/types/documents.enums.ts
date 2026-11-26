@@ -5,6 +5,7 @@ export enum DocumentItemType {
 
 export enum DocumentViewType {
   MY_FILES = "MY_FILES",
+  RECENT = "RECENT",
   SHARED = "SHARED",
   STARRED = "STARRED",
   TRASH = "TRASH",
@@ -84,6 +85,7 @@ export enum DocumentTypeDescription {
 
 export enum NavigationLabel {
   ROOT = "My Files",
+  RECENT = "Recent",
   CURRENT_FOLDER = "Current Folder",
   STARRED = "Starred",
   SHARED = "Shared",

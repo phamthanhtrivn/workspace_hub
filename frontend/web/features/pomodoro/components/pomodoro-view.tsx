@@ -2,8 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Maximize2, Minimize2, Settings, Sparkles } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  Settings,
+  Sparkles,
+  StickyNote,
+} from "lucide-react";
 import { DialogPortal } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { usePomodoroSession } from "./pomodoro-session-provider";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
@@ -16,6 +23,7 @@ import { useOpenUserSettings } from "@/features/user-setting/hooks/use-open-user
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
+import { MAX_POMODORO_NOTES_LENGTH } from "../utils/pomodoro-notes";
 import { useAppSelector } from "@/store/store";
 import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -66,6 +74,8 @@ function UserPomodoroView() {
     toggleAmbientPlay,
     changeAmbientVolume,
     toggleAutoPlayAmbient,
+    notes,
+    setNotes,
     busy,
   } = usePomodoroSession();
 
@@ -159,7 +169,36 @@ function UserPomodoroView() {
         )}
       </div>
 
-      <div className="mt-6 w-full border-t border-border pt-5">
+      <div className="mt-auto w-full space-y-4 border-t border-border pt-6">
+        {isReady && status !== "IDLE" && (
+          <div className="w-full rounded-panel border border-border bg-muted/20 p-4">
+            <div className="mb-2.5 flex items-center justify-between gap-2">
+              <label
+                htmlFor="pomodoro-session-notes"
+                className="flex min-w-0 items-center gap-2 text-xs font-semibold text-foreground"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-control bg-info-soft text-info-content">
+                  <StickyNote aria-hidden="true" className="size-3.5" />
+                </span>
+                <span className="truncate">Session notes</span>
+              </label>
+              <span className="shrink-0 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                {Array.from(notes).length}/{MAX_POMODORO_NOTES_LENGTH}
+              </span>
+            </div>
+            <Textarea
+              id="pomodoro-session-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Capture key takeaways, blockers, or context for this session..."
+              maxLength={MAX_POMODORO_NOTES_LENGTH}
+              rows={3}
+              disabled={busy}
+              className="min-h-[88px] resize-y bg-card text-xs leading-relaxed"
+            />
+          </div>
+        )}
+
         <PomodoroAmbientPlayer
           currentTrackId={ambientTrack}
           isPlaying={isAmbientPlaying}
@@ -271,15 +310,15 @@ function UserPomodoroView() {
         </header>
 
         <div className="w-full min-w-0 space-y-6">
-          <div className="grid w-full min-w-0 grid-cols-1 items-start gap-6 @min-[64rem]/pomodoro:grid-cols-12">
+          <div className="grid w-full min-w-0 grid-cols-1 items-start gap-6 @min-[64rem]/pomodoro:grid-cols-12 @min-[64rem]/pomodoro:items-stretch">
             <section
               aria-label="Pomodoro timer"
-              className="flex w-full min-w-0 flex-col items-center rounded-panel border border-border bg-card p-5 sm:p-8 @min-[64rem]/pomodoro:col-span-7"
+              className="flex h-full w-full min-w-0 flex-col items-center gap-6 rounded-panel border border-border bg-card p-5 sm:p-8 @min-[64rem]/pomodoro:col-span-7"
             >
               {!isZenMode && timerCardContent}
             </section>
 
-            <aside className="min-w-0 space-y-6 @min-[64rem]/pomodoro:col-span-5">
+            <aside className="flex h-full min-w-0 flex-col gap-6 @min-[64rem]/pomodoro:col-span-5">
               <PomodoroStatsOverview
                 lastUpdated={sessionRevision}
                 dailyGoalPomodoros={config.dailyGoalPomodoros}
@@ -314,7 +353,7 @@ function UserPomodoroView() {
             <div className="flex flex-1 items-center justify-center px-4 py-6 sm:px-6">
               <section
                 aria-label="Pomodoro timer"
-                className="flex w-full max-w-2xl flex-col items-center rounded-panel border border-border bg-card p-6 sm:p-8"
+                className="flex w-full max-w-2xl flex-col items-center gap-6 rounded-panel border border-border bg-card p-6 sm:p-8"
               >
                 {timerCardContent}
               </section>

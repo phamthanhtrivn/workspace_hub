@@ -1,8 +1,46 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ItemType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 import { QuotaConstants } from '../../common/constants/quota.constants';
+
+export interface StorageQuotaBreakdown {
+  documentsBytes: number;
+  mediaBytes: number;
+  otherBytes: number;
+}
+
+const DOCUMENT_MIME_PREFIXES = ['text/'];
+const DOCUMENT_MIME_TOKENS = [
+  'pdf',
+  'word',
+  'document',
+  'spreadsheet',
+  'excel',
+  'presentation',
+  'powerpoint',
+  'csv',
+  'rtf',
+];
+const MEDIA_MIME_PREFIXES = ['image/', 'video/', 'audio/'];
+
+function classifyMimeCategory(
+  mimeType: string | null,
+  name: string,
+): keyof StorageQuotaBreakdown {
+  const mime = (mimeType ?? '').toLowerCase();
+  if (MEDIA_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix))) {
+    return 'mediaBytes';
+  }
+  if (
+    DOCUMENT_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix)) ||
+    DOCUMENT_MIME_TOKENS.some((token) => mime.includes(token)) ||
+    /\.(pdf|docx?|xlsx?|pptx?|txt|md|csv|rtf)$/i.test(name)
+  ) {
+    return 'documentsBytes';
+  }
+  return 'otherBytes';
+}
 
 @Injectable()
 export class QuotaService {
@@ -82,6 +120,39 @@ export class QuotaService {
     if (changed !== 1)
       throw new BadRequestException('Insufficient storage for this file');
   }
+  async getQuotaWithBreakdown(userId: string) {
+    const [quota, files] = await Promise.all([
+      this.getOrCreateQuota(userId),
+      this.prisma.documentItem.findMany({
+        where: {
+          ownerUserId: userId,
+          type: ItemType.FILE,
+        },
+        select: {
+          mimeType: true,
+          name: true,
+          sizeBytes: true,
+        },
+      }),
+    ]);
+
+    const breakdown: StorageQuotaBreakdown = {
+      documentsBytes: 0,
+      mediaBytes: 0,
+      otherBytes: 0,
+    };
+
+    for (const file of files) {
+      const category = classifyMimeCategory(file.mimeType, file.name);
+      breakdown[category] += Number(file.sizeBytes);
+    }
+
+    return {
+      ...quota,
+      breakdown,
+    };
+  }
+
   async updateUsedBytes(userId: string, bytesDiff: number) {
     await this.getOrCreateQuota(userId);
     return this.prisma.$transaction(async (tx) => {

@@ -797,8 +797,23 @@
   align-items: center;
   cursor: pointer;
   display: flex;
+  flex-direction: column;
+  gap: 2px;
   justify-content: center;
-  min-height: 2.05rem;
+  min-height: 2.15rem;
+}
+
+.calendar-mini-shell .has-mini-event .fc-daygrid-day-frame::after {
+  background: var(--link);
+  border-radius: 9999px;
+  content: "";
+  display: block;
+  height: 4px;
+  width: 4px;
+}
+
+.calendar-mini-shell .is-selected-date.has-mini-event .fc-daygrid-day-frame::after {
+  background: var(--info);
 }
 
 .calendar-mini-shell .fc-daygrid-day-top {

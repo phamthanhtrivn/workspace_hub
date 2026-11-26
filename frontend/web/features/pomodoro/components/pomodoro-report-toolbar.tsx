@@ -1,44 +1,120 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CollapsibleContent } from "@/components/ui/collapsible";
-import { Spinner } from "@/components/ui/spinner";
-import { POMODORO_REPORT_COPY as copy } from "../constants/pomodoro-report";
-import type { usePomodoroReportRange } from "../hooks/use-pomodoro-report-range";
-import { formatReportRange } from "../utils/pomodoro-report";
-import { PomodoroReportDateFilters } from "./pomodoro-report-filters";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { cn } from "@/lib/utils";
+import type {
+  PomodoroReportStatusFilter,
+  PomodoroReportTypeFilter,
+} from "../utils/pomodoro-report";
 
 interface PomodoroReportToolbarProps {
-  id: string;
-  dates: ReturnType<typeof usePomodoroReportRange>;
-  updating: boolean;
-  onApplyDates: () => void;
+  sessionType: PomodoroReportTypeFilter;
+  status: PomodoroReportStatusFilter;
+  project: string;
+  projects: [string, string][];
+  activeFilterCount: number;
+  onSessionTypeChange: (value: PomodoroReportTypeFilter) => void;
+  onStatusChange: (value: PomodoroReportStatusFilter) => void;
+  onProjectChange: (value: string) => void;
+  onResetFilters: () => void;
 }
 
-export function PomodoroReportToolbar({ id, dates, updating, onApplyDates }: PomodoroReportToolbarProps) {
-  return <div className="space-y-4 border-b border-border bg-muted/20 px-4 py-4 sm:px-5">
-    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs">
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
-        <CalendarDays aria-hidden="true" className="size-4 shrink-0" />
-        <span>{copy.appliedRange}:</span><span className="font-medium text-foreground">{formatReportRange(dates.applied)}</span>
-        {dates.preset === "custom" && <span className="rounded-control bg-muted px-2 py-1 font-medium">{copy.customRange}</span>}
-      </p>
-      {updating && <span role="status" className="flex items-center gap-1.5 text-muted-foreground"><Spinner size={14} />{copy.updating}</span>}
-    </div>
-    {dates.dirty && <p role="status" className="text-xs text-warning-content">{copy.unapplied}</p>}
+export function PomodoroReportToolbar({
+  sessionType,
+  status,
+  project,
+  projects,
+  activeFilterCount,
+  onSessionTypeChange,
+  onStatusChange,
+  onProjectChange,
+  onResetFilters,
+}: PomodoroReportToolbarProps) {
+  return (
     <CollapsibleContent keepMounted>
-    <fieldset className="min-w-0">
-      <legend className="sr-only">{copy.dateRange}</legend>
-      <div className="grid min-w-0 gap-3 @min-[640px]/pomodoro:grid-cols-[minmax(0,1fr)_auto] @min-[640px]/pomodoro:gap-4">
-        <PomodoroReportDateFilters id={id} range={dates.draft} today={dates.today} errors={dates.errors} onRangeChange={dates.setDraft} />
-        <div className="flex items-center gap-2 self-end">
-          <Button type="button" size="sm" className="h-10" disabled={!dates.dirty || Object.keys(dates.errors).length > 0} onClick={onApplyDates}>{copy.apply}</Button>
-          <Button type="button" variant="ghost" size="sm" className="h-10" disabled={!dates.dirty} onClick={dates.cancel}>{copy.cancel}</Button>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-muted/30 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-semibold text-muted-foreground">Type:</span>
+            {(
+              [
+                { value: "all", label: "All" },
+                { value: "FOCUS", label: "Focus" },
+                { value: "BREAK", label: "Break" },
+              ] as const
+            ).map((opt) => (
+              <Button
+                key={opt.value}
+                type="button"
+                size="sm"
+                variant={sessionType === opt.value ? "default" : "outline"}
+                onClick={() => onSessionTypeChange(opt.value)}
+                className={cn(
+                  "h-7 rounded-control px-2.5 text-xs font-semibold",
+                  sessionType !== opt.value && "bg-card text-muted-foreground",
+                )}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-semibold text-muted-foreground">Status:</span>
+            {(
+              [
+                { value: "all", label: "All" },
+                { value: "COMPLETED", label: "Completed" },
+                { value: "STOPPED", label: "Stopped" },
+              ] as const
+            ).map((opt) => (
+              <Button
+                key={opt.value}
+                type="button"
+                size="sm"
+                variant={status === opt.value ? "default" : "outline"}
+                onClick={() => onStatusChange(opt.value)}
+                className={cn(
+                  "h-7 rounded-control px-2.5 text-xs font-semibold",
+                  status !== opt.value && "bg-card text-muted-foreground",
+                )}
+              >
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-semibold text-muted-foreground">
+              Project:
+            </span>
+            <CustomSelect
+              ariaLabel="Filter by project"
+              value={project}
+              onChange={onProjectChange}
+              triggerClassName="h-7 rounded-control bg-card px-2.5 text-xs font-semibold"
+              options={[
+                { value: "", label: "All projects" },
+                ...projects.map(([id, name]) => ({ value: id, label: name })),
+              ]}
+            />
+          </div>
         </div>
+
+        {activeFilterCount > 0 && (
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={onResetFilters}
+            className="h-auto p-0 text-xs font-semibold text-destructive-content"
+          >
+            Reset filters
+          </Button>
+        )}
       </div>
-      <p id={`${id}-hint`} className="mt-3 text-xs leading-relaxed text-muted-foreground">{copy.rangeHint}</p>
-    </fieldset>
     </CollapsibleContent>
-  </div>;
+  );
 }
