@@ -17,7 +17,7 @@ import {
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
-import { startNotificationReconciliation } from '../utils/notification-reconciliation';
+import { startNotificationReconciliation } from "../utils/notification-reconciliation";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   getNotificationCategory,
@@ -77,7 +77,9 @@ function dispatchNotificationCollectionChanged(
  * Mount this once at the WorkspaceShell / WorkspaceHeader level.
  */
 export function useNotificationSocket() {
-  const { accessToken, userId: currentUserId } = useAppSelector((state: RootState) => state.auth);
+  const { accessToken, userId: currentUserId } = useAppSelector(
+    (state: RootState) => state.auth,
+  );
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
@@ -96,16 +98,32 @@ export function useNotificationSocket() {
 
     const handleNewNotification = (noti: AppNotification) => {
       dispatch(addNotification(noti));
-      window.dispatchEvent(new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: noti }));
-      if (noti.type.startsWith('DOCUMENT_')) {
-        const documentId = typeof noti.metadata?.documentId === "string" ? noti.metadata.documentId : undefined;
-        if (currentUserId) void invalidateDocumentPermissions(queryClient, currentUserId, documentId);
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: noti }),
+      );
+      if (noti.type.startsWith("DOCUMENT_")) {
+        const documentId =
+          typeof noti.metadata?.documentId === "string"
+            ? noti.metadata.documentId
+            : undefined;
+        if (currentUserId)
+          void invalidateDocumentPermissions(
+            queryClient,
+            currentUserId,
+            documentId,
+          );
       }
-      if (noti.type.startsWith('PROJECT_')) {
-        if (noti.type === NotificationType.PROJECT_PERMISSIONS_UPDATED || noti.type === NotificationType.PROJECT_MEMBER_REMOVED || noti.type === NotificationType.PROJECT_INVITATION_ACCEPTED) {
-          void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+      if (noti.type.startsWith("PROJECT_")) {
+        if (
+          noti.type === NotificationType.PROJECT_PERMISSIONS_UPDATED ||
+          noti.type === NotificationType.PROJECT_MEMBER_REMOVED ||
+          noti.type === NotificationType.PROJECT_INVITATION_ACCEPTED
+        ) {
+          void queryClient.resetQueries({
+            queryKey: WORK_ASSISTANT_QUERY_ROOT,
+          });
         }
-        void queryClient.invalidateQueries({ queryKey: ['projects'] });
+        void queryClient.invalidateQueries({ queryKey: ["projects"] });
       }
 
       if (
@@ -114,10 +132,17 @@ export function useNotificationSocket() {
         noti.type === NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED
       ) {
         const spaceId =
-          typeof noti.metadata?.spaceId === "string" ? noti.metadata.spaceId : undefined;
+          typeof noti.metadata?.spaceId === "string"
+            ? noti.metadata.spaceId
+            : undefined;
         const channelId =
-          typeof noti.metadata?.channelId === "string" ? noti.metadata.channelId : undefined;
+          typeof noti.metadata?.channelId === "string"
+            ? noti.metadata.channelId
+            : undefined;
         queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.unreadSummary(currentUserId),
+        });
         if (spaceId) {
           queryClient.invalidateQueries({
             queryKey: chatKeys.spaceDetails(spaceId),
@@ -169,7 +194,10 @@ export function useNotificationSocket() {
           queryKey: ["calendar"],
         });
       }
-      if (noti.type === NotificationType.CALENDAR_REMINDER) void queryClient.invalidateQueries({ queryKey: ["projects", "dashboard-completed-tasks"] });
+      if (noti.type === NotificationType.CALENDAR_REMINDER)
+        void queryClient.invalidateQueries({
+          queryKey: ["projects", "dashboard-completed-tasks"],
+        });
       dispatchNotificationChanged(noti);
       void reconcileNotifications();
     };
@@ -194,7 +222,9 @@ export function useNotificationSocket() {
       void reconcileNotifications();
     };
 
-    const handleDeletedNotifications = (payload: NotificationsDeletedPayload) => {
+    const handleDeletedNotifications = (
+      payload: NotificationsDeletedPayload,
+    ) => {
       dispatch(deleteNotificationsSuccess(payload));
       dispatchNotificationCollectionChanged(payload.category);
       void reconcileNotifications();
@@ -203,14 +233,19 @@ export function useNotificationSocket() {
     let reconciliationRevision = 0;
     const reconcileNotifications = async () => {
       const revision = ++reconciliationRevision;
-      const { getUnreadCount } = await import('../api/notification.api');
+      const { getUnreadCount } = await import("../api/notification.api");
       try {
         const response = await getUnreadCount();
         if (isCancelled || revision !== reconciliationRevision) return;
         dispatch(setUnreadCount(response.data.unreadCount));
         dispatchNotificationCollectionChanged();
-        void queryClient.invalidateQueries({ queryKey: ['notifications'] }, { cancelRefetch: false });
-      } catch { /* Reconcile again after the next connection/event. */ }
+        void queryClient.invalidateQueries(
+          { queryKey: ["notifications"] },
+          { cancelRefetch: false },
+        );
+      } catch {
+        /* Reconcile again after the next connection/event. */
+      }
     };
 
     const connectWhenReady = async () => {
@@ -223,6 +258,7 @@ export function useNotificationSocket() {
 
       if (!isReady) {
         retryTimer = window.setTimeout(connectWhenReady, 3_000);
+
         return;
       }
 
@@ -244,12 +280,18 @@ export function useNotificationSocket() {
       };
     };
 
-    window.addEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
+    window.addEventListener(
+      NOTIFICATION_READ_COMMITTED_EVENT,
+      reconcileNotifications,
+    );
     const stopReconciliation = startNotificationReconciliation({
-      events: window, visibilityEvents: document,
-      isVisible: () => document.visibilityState === 'visible', refresh: reconcileNotifications,
+      events: window,
+      visibilityEvents: document,
+      isVisible: () => document.visibilityState === "visible",
+      refresh: reconcileNotifications,
       schedule: (callback, interval) => {
         const timer = window.setInterval(callback, interval);
+
         return () => window.clearInterval(timer);
       },
     });
@@ -258,7 +300,10 @@ export function useNotificationSocket() {
     return () => {
       isCancelled = true;
       stopReconciliation();
-      window.removeEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
+      window.removeEventListener(
+        NOTIFICATION_READ_COMMITTED_EVENT,
+        reconcileNotifications,
+      );
       if (retryTimer) {
         window.clearTimeout(retryTimer);
       }

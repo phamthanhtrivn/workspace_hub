@@ -9,6 +9,8 @@ import { ProjectStatus } from "@/features/project/types/project";
 import { getCalendarTodaySummary } from "@/features/calendar/api/calendar.api";
 import { getSpaceUnreadSummary } from "@/features/chat/api/space.api";
 import { getMeetingBadgeSummary } from "@/features/meeting/api/meeting.api";
+import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
+import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { notebooksApi } from "@/features/ai/api/notebooks.api";
 import { notebookKeys } from "@/features/ai/types/notebook-list";
@@ -60,7 +62,7 @@ export function useWorkspaceSidebarBadges(): Partial<
   );
 
   const projectsQuery = useQuery({
-    queryKey: ["sidebar-badge", "projects", userId],
+    queryKey: ["projects", "sidebar-badge", userId],
     queryFn: () =>
       getProjects({ page: 1, limit: 1, status: ProjectStatus.ACTIVE }),
     enabled,
@@ -69,7 +71,7 @@ export function useWorkspaceSidebarBadges(): Partial<
   });
 
   const calendarSummaryQuery = useQuery({
-    queryKey: ["sidebar-badge", "calendar", userId, todayKey],
+    queryKey: ["calendar", "today-summary", userId, todayKey],
     queryFn: ({ signal }) =>
       getCalendarTodaySummary(dayBounds.startAt, dayBounds.endAt, signal),
     enabled,
@@ -78,26 +80,24 @@ export function useWorkspaceSidebarBadges(): Partial<
   });
 
   const chatUnreadQuery = useQuery({
-    queryKey: ["sidebar-badge", "messages", userId],
+    queryKey: chatKeys.unreadSummary(userId),
     queryFn: ({ signal }) => getSpaceUnreadSummary(signal),
     enabled,
     staleTime: 30_000,
-    refetchInterval: 60_000,
     retry: false,
   });
 
   const meetingBadgeQuery = useQuery({
-    queryKey: ["sidebar-badge", "meetings", userId, todayKey],
+    queryKey: [...meetingKeys.upcomingRoot, "badge-summary", userId, todayKey],
     queryFn: ({ signal }) =>
       getMeetingBadgeSummary(dayBounds.startAt, dayBounds.endAt, signal),
     enabled,
     staleTime: 30_000,
-    refetchInterval: 60_000,
     retry: false,
   });
 
   const quotaQuery = useQuery({
-    queryKey: ["documents", "quota"],
+    queryKey: ["document-quota"],
     queryFn: () => documentsApi.getQuota(),
     enabled,
     staleTime: 60_000,
@@ -117,15 +117,25 @@ export function useWorkspaceSidebarBadges(): Partial<
     retry: false,
   });
 
+  const {
+    status: pomodoroStatus,
+    timeLeft,
+    sessionRevision,
+  } = usePomodoroSession();
   const pomodoroDailyQuery = useQuery({
-    queryKey: ["pomodoro", "daily-stats", userId, timeZone, todayKey],
+    queryKey: [
+      "pomodoro",
+      "daily-stats",
+      userId,
+      timeZone,
+      todayKey,
+      sessionRevision,
+    ],
     queryFn: () => getDailyStats(timeZone),
     enabled,
     staleTime: 30_000,
     retry: false,
   });
-
-  const { status: pomodoroStatus, timeLeft } = usePomodoroSession();
   const { config: pomodoroConfig } = usePomodoroConfig();
 
   return useMemo(() => {

@@ -76,7 +76,7 @@ export function useDashboardExtras(userId: string | null, timeZone = "UTC") {
     staleTime: 30_000,
   });
   const documentQuota = useQuery({
-    queryKey: ["documents", "dashboard-quota", userId],
+    queryKey: ["document-quota", "dashboard", userId],
     queryFn: () => documentsApi.getQuota(),
     enabled,
     staleTime: 30_000,
