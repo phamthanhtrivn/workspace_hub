@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { notebookListSchema } from "../types";
+import type { NotebookMetadata } from "./notebook-presentation";
 
 export const NOTEBOOK_PAGE_SIZE = 12;
 export const NOTEBOOK_TITLE_LIMIT = 200;
@@ -25,7 +26,8 @@ export type NotebookDialogAction =
   | { type: "create" }
   | {
       type: "rename" | "delete";
-      notebook: Pick<NotebookListItem, "id" | "title">;
+      notebook: Pick<NotebookListItem, "id" | "title"> &
+        Partial<NotebookMetadata>;
     };
 export const notebookPageSchema = z.object({
   data: notebookListSchema,
@@ -34,6 +36,7 @@ export const notebookPageSchema = z.object({
     limit: z.number().int().positive(),
     total: z.number().int().nonnegative(),
     totalPages: z.number().int().positive(),
+    totalNotebooks: z.number().int().nonnegative(),
   }),
 });
 export const notebookKeys = {

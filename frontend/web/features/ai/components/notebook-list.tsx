@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { CollectionPagination } from "@/components/ui/collection-pagination";
 import { LoadingState } from "@/components/ui/loading-state";
+import { Badge } from "@/components/ui/badge";
+import {
+  CollectionViewToggle,
+  type CollectionView,
+} from "@/components/common/collection-view-toggle";
+import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { useNotebookList } from "../hooks/use-notebook-list";
 import {
@@ -15,6 +21,7 @@ import {
 } from "../types/notebook-list";
 import { NotebookCard } from "./notebook-card";
 import { NotebookDialog } from "./notebook-dialog";
+import { CreateNotebookCard } from "./create-notebook-card";
 
 export function NotebookList() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -38,16 +45,28 @@ function NotebookLibrary({ userId }: { userId: string }) {
     searching,
   } = useNotebookList(userId);
   const [action, setAction] = useState<NotebookDialogAction | null>(null);
+  const [view, setView] = useState<CollectionView>("grid");
   const meta = query.data?.meta;
 
   return (
     <section
       aria-label="Your notebooks"
-      className="w-full min-w-0 space-y-5 p-4 md:p-6"
+      className="@container/notebook-library w-full min-w-0 space-y-6 p-4 md:p-6"
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <h1 className="text-page-title font-semibold">Your notebooks</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-page-title font-semibold">Your notebooks</h1>
+            {meta && (
+              <Badge
+                variant="secondary"
+                className="tabular-nums"
+                aria-label={`${meta.totalNotebooks} notebooks`}
+              >
+                {meta.totalNotebooks}
+              </Badge>
+            )}
+          </div>
           <p className="max-w-prose text-sm text-muted-foreground">
             Ask questions about your documents and keep notes. Only you can
             access your notebooks.
@@ -58,7 +77,7 @@ function NotebookLibrary({ userId }: { userId: string }) {
           New notebook
         </Button>
       </header>
-      <div className="flex flex-wrap items-center gap-3 rounded-panel border border-border bg-card p-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 basis-full sm:min-w-48 sm:flex-1 sm:basis-auto">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
@@ -67,7 +86,7 @@ function NotebookLibrary({ userId }: { userId: string }) {
           <Input
             type="search"
             aria-label="Search notebooks"
-            placeholder="Search notebooks..."
+            placeholder="Search by title, category, or description..."
             value={filters.search}
             maxLength={200}
             onChange={(event) => setSearch(event.target.value)}
@@ -80,6 +99,11 @@ function NotebookLibrary({ userId }: { userId: string }) {
           onChange={setSort}
           options={[...notebookSortOptions]}
           className="min-w-0 flex-1 sm:w-56 sm:flex-none"
+        />
+        <CollectionViewToggle
+          ariaLabel="Notebook view"
+          value={view}
+          onChange={setView}
         />
         {hasFilters && (
           <Button variant="outline" onClick={clear}>
@@ -137,14 +161,26 @@ function NotebookLibrary({ userId }: { userId: string }) {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,19rem),1fr))] gap-4 p-0.5">
+          <div
+            className={cn(
+              view === "grid"
+                ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,19rem),1fr))] gap-5 p-0.5"
+                : "flex flex-col gap-2 p-0.5",
+            )}
+          >
             {query.data.data.map((notebook) => (
               <NotebookCard
                 key={notebook.id}
                 notebook={notebook}
                 onAction={setAction}
+                view={view}
               />
             ))}
+            {view === "grid" && (
+              <CreateNotebookCard
+                onClick={() => setAction({ type: "create" })}
+              />
+            )}
           </div>
         )}
       </div>

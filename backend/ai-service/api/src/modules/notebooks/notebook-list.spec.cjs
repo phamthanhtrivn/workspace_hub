@@ -17,7 +17,7 @@ test("the list query keeps account/search values parameterized and uses determin
   const { NotebooksService } = load("src/modules/notebooks/notebooks.service.ts", {
     "../../infrastructure/database/database": { rows: async (sql, args) => {
       captured = { sql, args };
-      return [{ items: [{ id: "private-notebook", title: "Research" }], page: 2, total: 13, total_pages: 2 }];
+      return [{ items: [{ id: "private-notebook", title: "Research", description: "Methodology", category: "Academic", color_theme: "ocean", sources_count: 3, notes_count: 7 }], page: 2, total: 13, total_pages: 2, total_notebooks: 18 }];
     } },
     "../../common/auth/notebook-access": {},
     "../sources/sources.service": { SourcesService: class {} },
@@ -31,8 +31,14 @@ test("the list query keeps account/search values parameterized and uses determin
   assert.match(captured.sql, /WHERE owner_id = \$1/);
   assert.match(captured.sql, /lower\(title\) ASC, id ASC/);
   assert.ok(!captured.sql.includes(params.search));
-  assert.deepEqual(page.meta, { page: 2, limit: 12, total: 13, totalPages: 2 });
+  assert.deepEqual(page.meta, { page: 2, limit: 12, total: 13, totalPages: 2, totalNotebooks: 18 });
   assert.equal(page.data.length, 1);
+  assert.deepEqual([page.data[0].sources_count, page.data[0].notes_count], [3, 7]);
+  assert.match(captured.sql, /strpos\(lower\(description\), lower\(\$2\)\)/);
+  assert.match(captured.sql, /strpos\(lower\(category\), lower\(\$2\)\)/);
+  // Count each relation independently to avoid multiplying notes by sources.
+  assert.match(captured.sql, /FROM notebook_ai.sources WHERE notebook_id = selected.id/);
+  assert.match(captured.sql, /FROM notebook_ai.notes WHERE notebook_id = selected.id/);
   assert.match(notebookListSql("updated_desc"), /updated_at DESC, id DESC/);
 });
 

@@ -19,6 +19,11 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import { store } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
 import {
+  NOTEBOOK_DEFAULT_THEME,
+  type NotebookMetadata,
+} from "../types/notebook-presentation";
+import { NotebookMetadataFields } from "./notebook-metadata-fields";
+import {
   NOTEBOOK_TITLE_LIMIT,
   notebookKeys,
   type NotebookDialogAction,
@@ -39,6 +44,15 @@ export function NotebookDialog({
   const [title, setTitle] = useState(
     action.type === "create" ? "" : action.notebook.title,
   );
+  const [metadata, setMetadata] = useState<NotebookMetadata>({
+    description:
+      action.type === "create" ? "" : (action.notebook.description ?? ""),
+    category: action.type === "create" ? "" : (action.notebook.category ?? ""),
+    color_theme:
+      action.type === "create"
+        ? NOTEBOOK_DEFAULT_THEME
+        : (action.notebook.color_theme ?? NOTEBOOK_DEFAULT_THEME),
+  });
   const submitting = useRef(false);
   const client = useQueryClient();
   const router = useRouter();
@@ -48,15 +62,21 @@ export function NotebookDialog({
     ? "Delete notebook"
     : action.type === "create"
       ? "New notebook"
-      : "Rename notebook";
+      : "Edit notebook details";
   const mutation = useMutation({
     retry: false,
     mutationFn: async () => {
       if (store.getState().auth.userId !== userId)
         throw new Error("The account changed.");
-      if (action.type === "create") return notebooksApi.create(title.trim());
+      const input = {
+        title: title.trim(),
+        description: metadata.description.trim(),
+        category: metadata.category.trim(),
+        color_theme: metadata.color_theme,
+      };
+      if (action.type === "create") return notebooksApi.create(input);
       if (action.type === "rename")
-        await notebooksApi.rename(action.notebook.id, title.trim());
+        await notebooksApi.update(action.notebook.id, input);
       else await notebooksApi.remove(action.notebook.id);
 
       return null;
@@ -74,7 +94,7 @@ export function NotebookDialog({
           ? "Notebook deleted."
           : action.type === "create"
             ? "Notebook created."
-            : "Notebook renamed.",
+            : "Notebook updated.",
       );
       onClose();
       if (deleting) onDeleted?.();
@@ -82,7 +102,7 @@ export function NotebookDialog({
     },
   });
   const error = mutation.isError
-    ? `Unable to ${deleting ? "delete" : action.type === "create" ? "create" : "rename"} this notebook. Please try again.`
+    ? `Unable to ${deleting ? "delete" : action.type === "create" ? "create" : "update"} this notebook. Please try again.`
     : "";
 
   return (
@@ -149,6 +169,17 @@ export function NotebookDialog({
                 aria-describedby={error ? `${inputId}-error` : undefined}
               />
             </div>
+          )}
+          {!deleting && (
+            <NotebookMetadataFields
+              id={inputId}
+              value={metadata}
+              disabled={mutation.isPending}
+              onChange={(value) => {
+                setMetadata(value);
+                mutation.reset();
+              }}
+            />
           )}
           {error && (
             <p

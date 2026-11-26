@@ -12,10 +12,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, AuthRequest } from "../../common/auth/auth.guard";
-import { z } from "zod";
 import { NotebooksService } from "./notebooks.service";
-import { parse, title } from "../../common/validation";
+import { parse } from "../../common/validation";
 import { notebookListQuery } from "./notebook-list";
+import { createNotebookInput, updateNotebookInput } from "./notebook-input";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class NotebooksController {
@@ -33,7 +33,7 @@ export class NotebooksController {
     return {
       data: await this.notebooks.create(
         req.actor,
-        parse(z.object({ title }), body).title,
+        parse(createNotebookInput, body),
       ),
     };
   }
@@ -43,16 +43,16 @@ export class NotebooksController {
   ) {
     return { data: await this.notebooks.get(req.actor, id) };
   }
-  @Patch("notebooks/:id") async rename(
+  @Patch("notebooks/:id") async update(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: unknown,
   ) {
     return {
-      data: await this.notebooks.rename(
+      data: await this.notebooks.update(
         req.actor,
         id,
-        parse(z.object({ title }), body).title,
+        parse(updateNotebookInput, body),
       ),
     };
   }

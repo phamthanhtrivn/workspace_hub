@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock3,
+  UploadCloud,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,11 +62,11 @@ export function SourcePanel({
       aria-label="Document sources"
       className="flex h-full min-h-0 min-w-0 flex-col"
     >
-      <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
+      <header className="flex min-h-16 shrink-0 items-center gap-2 border-b border-border px-4 py-3">
         <span className="grid size-8 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground">
           <FileText className="size-4" aria-hidden="true" />
         </span>
-        <h2 className="font-semibold">Sources</h2>
+        <h2 className="text-sm font-semibold">Sources</h2>
         <Badge variant="secondary" className="ml-auto tabular-nums">
           {sources.length}/{NOTEBOOK_SOURCE_LIMIT}
         </Badge>
@@ -84,12 +85,15 @@ export function SourcePanel({
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
         {!sources.length && (
-          <div className="space-y-2 py-6 text-center">
-            <FileText
-              className="mx-auto size-8 text-primary-soft-foreground"
+          <div className="flex min-h-60 flex-col items-center justify-center gap-3 rounded-control border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+            <UploadCloud
+              className="size-8 text-primary-soft-foreground"
               aria-hidden="true"
             />
             <p className="text-sm font-medium">No sources yet</p>
+            <p className="max-w-52 text-xs leading-5 text-muted-foreground">
+              Add documents to ground your answers in the files you choose.
+            </p>
           </div>
         )}
         {sources.map((source) => {
@@ -203,7 +207,7 @@ export function SourcePanel({
           );
         })}
       </div>
-      <p className="shrink-0 border-t border-border px-4 py-3 text-xs tabular-nums text-muted-foreground">
+      <p className="shrink-0 border-t border-border bg-muted/30 px-4 py-3 text-xs tabular-nums text-muted-foreground">
         {selected.length} ready {selected.length === 1 ? "source" : "sources"}{" "}
         selected
       </p>

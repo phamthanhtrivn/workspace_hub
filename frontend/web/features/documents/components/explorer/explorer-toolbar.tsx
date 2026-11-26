@@ -2,8 +2,8 @@
 import { useId as useControlledPopupId } from "react";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
+import { CollectionViewToggle } from "@/components/common/collection-view-toggle";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../../types/documents.types";
@@ -105,40 +105,11 @@ export function ExplorerToolbar({
         />
 
         {/* View Switcher */}
-        <div className="flex items-center rounded-md border border-border bg-muted p-1">
-          <Button
-            variant="unstyled"
-            type="button"
-            onClick={() => onViewLayoutChange(ViewLayout.GRID)}
-            className={cn(
-              "relative focus-visible:z-10 grid h-7 w-7 place-items-center rounded-md text-xs font-semibold transition cursor-pointer",
-              viewLayout === ViewLayout.GRID
-                ? "bg-card text-info-content border border-border"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            title="Grid View"
-            aria-label="Grid view"
-            aria-pressed={viewLayout === ViewLayout.GRID}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="unstyled"
-            type="button"
-            onClick={() => onViewLayoutChange(ViewLayout.LIST)}
-            className={cn(
-              "relative focus-visible:z-10 grid h-7 w-7 place-items-center rounded-md text-xs font-semibold transition cursor-pointer",
-              viewLayout === ViewLayout.LIST
-                ? "bg-card text-info-content border border-border"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-            title="List View"
-            aria-label="List view"
-            aria-pressed={viewLayout === ViewLayout.LIST}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
+        <CollectionViewToggle
+          ariaLabel="Document view"
+          value={viewLayout === ViewLayout.GRID ? "grid" : "list"}
+          onChange={(view) => onViewLayoutChange(view === "grid" ? ViewLayout.GRID : ViewLayout.LIST)}
+        />
 
         {/* Create/Upload Dropdown */}
         {actions}

@@ -56,11 +56,11 @@ export function NotesPanel({
       aria-label="Notes"
       className="flex h-full min-h-0 min-w-0 flex-col"
     >
-      <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
+      <header className="flex min-h-16 shrink-0 items-center gap-2 border-b border-border px-4 py-3">
         <span className="grid size-8 place-items-center rounded-control bg-warning-soft text-warning-content">
           <NotebookPen className="size-4" aria-hidden="true" />
         </span>
-        <h2 className="font-semibold">Notes</h2>
+        <h2 className="text-sm font-semibold">Notes</h2>
         <Badge variant="secondary" className="ml-auto tabular-nums">
           {notebook.notes.length}
         </Badge>
@@ -79,18 +79,21 @@ export function NotesPanel({
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
         {!notebook.notes.length && (
-          <div className="space-y-2 py-6 text-center">
+          <div className="flex min-h-60 flex-col items-center justify-center gap-3 px-4 py-8 text-center">
             <NotebookPen
-              className="mx-auto size-7 text-muted-foreground"
+              className="size-8 text-warning-content"
               aria-hidden="true"
             />
             <p className="text-sm font-medium">No notes yet</p>
+            <p className="max-w-52 text-xs leading-5 text-muted-foreground">
+              Create a note or save useful AI answers from your chat.
+            </p>
           </div>
         )}
         {notebook.notes.map((note) => (
           <article
             key={note.id}
-            className="min-w-0 rounded-control border border-border bg-card"
+            className="min-w-0 rounded-control border border-border bg-muted/30 transition-colors hover:bg-card"
           >
             <div className="flex items-start gap-1 p-2">
               <Button

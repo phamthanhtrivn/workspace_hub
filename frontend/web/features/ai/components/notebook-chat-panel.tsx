@@ -22,6 +22,7 @@ import type { useNotebookChat } from "../hooks/use-notebook";
 import { notebooksApi } from "../api/notebooks.api";
 import { Citations } from "./citations";
 import { AnswerContent } from "./answer-content";
+import { NotebookChatEmpty } from "./notebook-chat-empty";
 
 export function NotebookChatPanel({
   notebook,
@@ -64,9 +65,9 @@ export function NotebookChatPanel({
       aria-label="Chat with sources"
       className="flex h-full min-h-0 min-w-0 flex-col"
     >
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <span className="grid size-8 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground">
+      <header className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <span className="grid size-8 place-items-center rounded-control bg-info-soft text-info-content">
             <Bot className="size-4" aria-hidden="true" />
           </span>
           Chat
@@ -74,7 +75,7 @@ export function NotebookChatPanel({
         <Button
           size="sm"
           variant="info-soft"
-          className="text-xs"
+          className="rounded-full text-xs"
           onClick={onSources}
         >
           <FileText aria-hidden="true" />
@@ -89,18 +90,12 @@ export function NotebookChatPanel({
           followLatest.current =
             view.scrollHeight - view.scrollTop - view.clientHeight < 80;
         }}
-        className={`min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 md:p-5 ${!notebook.messages.length && !chat.busy && !chat.error ? "flex flex-col justify-center" : ""}`}
+        className={`min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 md:p-5 ${!notebook.messages.length && !chat.busy && !chat.error ? "flex flex-col" : ""}`}
         aria-busy={chat.busy}
       >
         {!notebook.messages.length && !chat.busy && (
-          <div className="mx-auto flex max-w-prose flex-col items-center gap-3 py-8 text-center">
-            <span className="grid size-12 place-items-center rounded-panel bg-primary-soft text-primary-soft-foreground">
-              <Bot className="size-6" aria-hidden="true" />
-            </span>
-            <h3 className="text-lg font-semibold">Ask about your documents</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Add sources to start chatting.
-            </p>
+          <div className="my-auto flex shrink-0 flex-col items-center gap-3">
+            <NotebookChatEmpty selectedCount={selected.length} />
             {!selected.length && (
               <Button
                 onClick={notebook.sources.length ? onSources : onAddSources}
@@ -116,18 +111,22 @@ export function NotebookChatPanel({
             key={message.id}
             className={
               message.role === "USER"
-                ? "ml-4 min-w-0 rounded-panel bg-muted px-4 py-3 sm:ml-10"
-                : "min-w-0 py-2"
+                ? "ml-auto w-fit max-w-[90%] min-w-0 rounded-panel rounded-br-sm bg-primary px-4 py-3 text-primary-foreground sm:max-w-[85%]"
+                : "min-w-0 rounded-panel rounded-tl-sm border border-border bg-muted/30 p-4"
             }
           >
-            <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <p
+              className={`mb-2 flex items-center gap-2 text-xs font-medium ${message.role === "USER" ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+            >
               {message.role !== "USER" && (
                 <Bot className="size-4 text-link" aria-hidden="true" />
               )}
               {message.role === "USER" ? "You" : "AI Assistant"}
             </p>
             {message.hidden ? (
-              <p className="text-sm text-muted-foreground">
+              <p
+                className={`text-sm ${message.role === "USER" ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+              >
                 Content is hidden because a source was removed, updated or is no
                 longer accessible.
               </p>
@@ -215,53 +214,56 @@ export function NotebookChatPanel({
         <label htmlFor="notebook-question" className="sr-only">
           Question
         </label>
-        <Textarea
-          id="notebook-question"
-          rows={2}
-          maxLength={4000}
-          value={question}
-          disabled={chat.busy}
-          onChange={(event) => setQuestion(event.target.value)}
-          className="max-h-40 min-h-20 resize-y"
-          placeholder={
-            selected.length
-              ? "Ask a question about your sources..."
-              : "Select a ready source to start chatting..."
-          }
-          onKeyDown={(event) => {
-            if (
-              event.key !== "Enter" ||
-              event.shiftKey ||
-              event.nativeEvent.isComposing ||
-              event.nativeEvent.keyCode === 229
-            )
-              return;
-            event.preventDefault();
-            if (
-              !event.repeat &&
-              !chat.busy &&
-              question.trim() &&
+        <div className="relative rounded-panel border border-input bg-muted/40 focus-within:border-ring focus-within:bg-card focus-within:ring-2 focus-within:ring-ring/20">
+          <Textarea
+            focusMode="container"
+            id="notebook-question"
+            rows={2}
+            maxLength={4000}
+            value={question}
+            disabled={chat.busy}
+            onChange={(event) => setQuestion(event.target.value)}
+            className="max-h-40 min-h-24 resize-y rounded-panel border-0 bg-transparent pr-14 pb-12 focus-visible:ring-0"
+            placeholder={
               selected.length
-            )
-              event.currentTarget.form?.requestSubmit();
-          }}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-muted-foreground">
-            AI can make mistakes. Check the citations.
-          </p>
-          {chat.busy ? (
-            <Button type="button" variant="outline" onClick={chat.cancel}>
-              <Square aria-hidden="true" />
-              Stop response
-            </Button>
-          ) : (
-            <Button disabled={!selected.length || !question.trim()}>
-              <Send aria-hidden="true" />
-              Send
-            </Button>
-          )}
+                ? "Ask a question about your sources..."
+                : "Select a ready source to start chatting..."
+            }
+            onKeyDown={(event) => {
+              if (
+                event.key !== "Enter" ||
+                event.shiftKey ||
+                event.nativeEvent.isComposing ||
+                event.nativeEvent.keyCode === 229
+              )
+                return;
+              event.preventDefault();
+              if (
+                !event.repeat &&
+                !chat.busy &&
+                question.trim() &&
+                selected.length
+              )
+                event.currentTarget.form?.requestSubmit();
+            }}
+          />
+          <div className="absolute right-2 bottom-2">
+            {chat.busy ? (
+              <Button type="button" variant="outline" onClick={chat.cancel}>
+                <Square aria-hidden="true" />
+                Stop response
+              </Button>
+            ) : (
+              <Button disabled={!selected.length || !question.trim()}>
+                <Send aria-hidden="true" />
+                Send
+              </Button>
+            )}
+          </div>
         </div>
+        <p className="text-center text-xs text-muted-foreground">
+          AI can make mistakes. Check the citations.
+        </p>
       </form>
     </section>
   );

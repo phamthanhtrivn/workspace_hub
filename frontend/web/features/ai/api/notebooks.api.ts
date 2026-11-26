@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import { aiServiceMessage } from "@/lib/ai-feedback";
 import { store } from "@/store/store";
 import { notebookListSchema, notebookSchema } from "../types";
+import type { NotebookInput } from "../types/notebook-presentation";
 import { readAnswer, type StreamEvent } from "./stream";
 import {
   notebookPageSchema,
@@ -61,9 +62,9 @@ export const notebooksApi = {
     notebookListSchema.parse((await api.get("/api/ai/notebooks")).data.data),
   get: async (id: string, signal?: AbortSignal) =>
     notebookSchema.parse((await api.get(path(id), { signal })).data.data),
-  create: async (title: string): Promise<{ id: string }> =>
-    (await api.post("/api/ai/notebooks", { title })).data.data,
-  rename: (id: string, title: string) => api.patch(path(id), { title }),
+  create: async (input: NotebookInput): Promise<{ id: string }> =>
+    (await api.post("/api/ai/notebooks", input)).data.data,
+  update: (id: string, input: NotebookInput) => api.patch(path(id), input),
   remove: (id: string) => api.delete(path(id)),
   source: async (
     id: string,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { notebookMetadataSchema } from "./types/notebook-presentation";
 
 export const citationSchema = z.object({
   id: z.string(),
@@ -34,9 +35,15 @@ const derivedSchema = z.object({
   hidden: z.boolean().optional(),
 });
 export const notebookListSchema = z.array(
-  z.object({ id: z.string(), title: z.string(), updated_at: z.string() }),
+  notebookMetadataSchema.extend({
+    id: z.string(),
+    title: z.string(),
+    updated_at: z.string(),
+    sources_count: z.number().int().nonnegative(),
+    notes_count: z.number().int().nonnegative(),
+  }),
 );
-export const notebookSchema = z.object({
+export const notebookSchema = notebookMetadataSchema.extend({
   id: z.string(),
   title: z.string(),
   sources: z.array(sourceSchema),
