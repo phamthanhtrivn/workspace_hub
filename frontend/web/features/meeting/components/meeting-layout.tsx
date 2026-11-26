@@ -37,7 +37,11 @@ const OVERVIEW_UPCOMING_LIMIT = 3;
 
 export function MeetingLayout() {
   const queryClient = useQueryClient();
-  const { activeView: activeNavItemId, changeView: setActiveNavItemId, highlightedMeeting: highlightedMeetingJoinToken } = useMeetingLocation();
+  const {
+    activeView: activeNavItemId,
+    changeView: setActiveNavItemId,
+    highlightedMeeting: highlightedMeetingJoinToken,
+  } = useMeetingLocation();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
   const [isJoinLinkModalOpen, setIsJoinLinkModalOpen] = useState(false);
@@ -50,7 +54,8 @@ export function MeetingLayout() {
     activeNavItemId === MeetingDashboardNavItemId.OVERVIEW;
   const isUpcomingActive =
     activeNavItemId === MeetingDashboardNavItemId.UPCOMING;
-  const overviewEnabled = isOverviewActive && flowStep === MeetingFlowStep.DASHBOARD;
+  const overviewEnabled =
+    isOverviewActive && flowStep === MeetingFlowStep.DASHBOARD;
   const upcomingOverviewQuery = useUpcomingMeetings({
     page: 1,
     limit: OVERVIEW_UPCOMING_LIMIT,
@@ -156,70 +161,81 @@ export function MeetingLayout() {
 
   return (
     <div className="@container/meetings h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
-    <div className="flex h-full min-h-0 min-w-0 flex-col @min-[1120px]/meetings:flex-row">
-      <MeetingSidebar
-        activeItemId={activeNavItemId}
-        onItemSelect={setActiveNavItemId}
-      />
+      <div className="flex h-full min-h-0 min-w-0 flex-col @min-[1120px]/meetings:flex-row">
+        <MeetingSidebar
+          activeItemId={activeNavItemId}
+          upcomingCount={upcomingOverviewQuery.data?.data.total}
+          onItemSelect={setActiveNavItemId}
+        />
 
-      <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <div
-          key={activeNavItemId}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-1"
-          role="region"
-          aria-label="Meetings content"
-          tabIndex={0}
-        >
-        <div className="flex min-h-full min-w-0 w-full flex-col gap-5">
-          {isOverviewActive ? (
-            <>
-              <MeetingHero
-                dateLabel={clock.dateLabel}
-                timeLabel={clock.timeLabel}
-                upcomingMeetingCount={
-                  upcomingOverviewQuery.data?.data.total
-                }
-                onUpcomingClick={handleViewUpcomingMeetings}
-              />
-
-              <section
-                className="grid min-w-0 grid-cols-1 gap-4 @min-[480px]/meeting-content:grid-cols-2 @min-[880px]/meeting-content:grid-cols-4"
-                aria-label="Meeting actions"
-              >
-                {meetingDashboardActions.map((action) => (
-                  <MeetingActionTile
-                    key={action.id}
-                    actionId={action.id}
-                    title={action.title}
-                    description={action.description}
-                    tone={action.tone}
-                    enabled={action.enabled}
-                    onClick={() => handleActionClick(action.id)}
+        <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+          <div
+            key={activeNavItemId}
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-1"
+            role="region"
+            aria-label="Meetings content"
+            tabIndex={0}
+          >
+            <div className="flex min-h-full min-w-0 w-full flex-col gap-5">
+              {isOverviewActive ? (
+                <>
+                  <MeetingHero
+                    dateLabel={clock.dateLabel}
+                    timeLabel={clock.timeLabel}
+                    upcomingMeetingCount={
+                      upcomingOverviewQuery.data?.data.total
+                    }
+                    onUpcomingClick={handleViewUpcomingMeetings}
                   />
-                ))}
-              </section>
-              <div className="grid min-w-0 items-start gap-8 @min-[900px]/meeting-content:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-                <MeetingOverviewUpcoming query={upcomingOverviewQuery} now={clock.now}
-                  onViewAll={handleViewUpcomingMeetings} onSchedule={handleScheduleMeeting} onEdit={handleEditScheduledMeeting} />
-                <MeetingOverviewRecent enabled={overviewEnabled} now={clock.now}
-                  onViewHistory={() => setActiveNavItemId(MeetingDashboardNavItemId.PREVIOUS)} />
-              </div>
-            </>
-          ) : isUpcomingActive ? (
-            <UpcomingMeetingsView
-              highlightJoinToken={highlightedMeetingJoinToken}
-              onSchedule={handleScheduleMeeting}
-              onEdit={handleEditScheduledMeeting}
-            />
-          ) : activeNavItemId === MeetingDashboardNavItemId.RECORDINGS ? (
-            <MeetingRecordingsView />
-          ) : (
-            <MeetingPreviousView />
-          )}
-        </div>
-        </div>
-      </section>
-    </div>
+
+                  <section
+                    className="grid min-w-0 grid-cols-1 gap-4 @min-[480px]/meeting-content:grid-cols-2 @min-[880px]/meeting-content:grid-cols-4"
+                    aria-label="Meeting actions"
+                  >
+                    {meetingDashboardActions.map((action) => (
+                      <MeetingActionTile
+                        key={action.id}
+                        actionId={action.id}
+                        title={action.title}
+                        description={action.description}
+                        tone={action.tone}
+                        enabled={action.enabled}
+                        onClick={() => handleActionClick(action.id)}
+                      />
+                    ))}
+                  </section>
+                  <div className="grid min-w-0 items-start gap-8 @min-[900px]/meeting-content:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                    <MeetingOverviewUpcoming
+                      query={upcomingOverviewQuery}
+                      now={clock.now}
+                      onViewAll={handleViewUpcomingMeetings}
+                      onSchedule={handleScheduleMeeting}
+                      onEdit={handleEditScheduledMeeting}
+                    />
+                    <MeetingOverviewRecent
+                      enabled={overviewEnabled}
+                      now={clock.now}
+                      onViewHistory={() =>
+                        setActiveNavItemId(MeetingDashboardNavItemId.PREVIOUS)
+                      }
+                    />
+                  </div>
+                </>
+              ) : isUpcomingActive ? (
+                <UpcomingMeetingsView
+                  highlightJoinToken={highlightedMeetingJoinToken}
+                  onSchedule={handleScheduleMeeting}
+                  onEdit={handleEditScheduledMeeting}
+                />
+              ) : activeNavItemId === MeetingDashboardNavItemId.RECORDINGS ? (
+                <MeetingRecordingsView />
+              ) : (
+                <MeetingPreviousView />
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
 
       <MeetingJoinLinkModal
         open={isJoinLinkModalOpen}

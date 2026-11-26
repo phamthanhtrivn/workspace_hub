@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
-
 interface ChannelItemProps {
   channel: ChannelResponse;
   currentUserId: string | null;
@@ -60,28 +59,38 @@ const ChannelItem = React.memo(function ChannelItem({
   const name = channel.name || "Channel";
   const unreadCount = channel.unreadCount ?? 0;
 
-
-
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-3 py-2 mx-1 my-0.5 rounded-panel cursor-pointer transition-all duration-200 select-none relative group",
+        "group relative mx-1 my-0.5 flex cursor-pointer select-none items-center justify-between rounded-control px-2.5 py-2 transition-all duration-150",
         isActive
-          ? "bg-primary-soft text-primary-soft-foreground font-semibold"
-          : "hover:bg-muted text-muted-foreground hover:text-foreground",
+          ? "bg-primary-soft font-semibold text-primary-soft-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
     >
-      <Button variant="unstyled" type="button" aria-current={isActive ? "true" : undefined} onClick={() => onClick(channel)} className="flex items-center min-w-0 gap-2.5 flex-1 text-left self-stretch">
+      {isActive && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-primary"
+        />
+      )}
+      <Button
+        variant="unstyled"
+        type="button"
+        aria-current={isActive ? "true" : undefined}
+        onClick={() => onClick(channel)}
+        className="flex min-w-0 flex-1 items-center gap-2.5 self-stretch text-left"
+      >
         <span
           className={cn(
-            "shrink-0 p-1 rounded-lg transition-all duration-150",
+            "flex size-7 shrink-0 items-center justify-center rounded-full transition-colors duration-150",
             isActive
-              ? "bg-info-soft text-info-content"
-              : "bg-accent/50 text-muted-foreground group-hover:text-foreground group-hover:bg-accent/80",
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground",
           )}
         >
           {channel.isDefault ? (
-            <Globe size={13} className="opacity-90" />
+            <Globe size={13} />
           ) : isPrivateChannel(channel) ? (
             <Lock size={13} aria-label="Private channel" />
           ) : (
@@ -91,10 +100,10 @@ const ChannelItem = React.memo(function ChannelItem({
 
         <span
           className={cn(
-            "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
+            "truncate text-[13px] tracking-tight transition-colors duration-150",
             isActive
-              ? "text-info-content"
-              : "text-foreground group-hover:text-foreground",
+              ? "font-semibold text-primary-soft-foreground"
+              : "font-medium text-foreground",
             unreadCount > 0 && "font-semibold",
           )}
         >
@@ -102,13 +111,16 @@ const ChannelItem = React.memo(function ChannelItem({
         </span>
 
         {isMuted && (
-          <BellOff size={11} className="text-muted-foreground shrink-0 ml-1" />
+          <BellOff size={11} className="ml-1 shrink-0 text-muted-foreground" />
         )}
       </Button>
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
-          <Pin size={11} className="shrink-0 fill-info-content text-info-content" />
+          <Pin
+            size={11}
+            className="shrink-0 fill-info-content text-info-content"
+          />
         )}
         {channel.hasMention && (
           <span className="text-info-content font-semibold text-xs mr-1">
@@ -127,7 +139,13 @@ const ChannelItem = React.memo(function ChannelItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <IconButton aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" label="Channel options" showTooltip={false} size="icon-sm"
+          <IconButton
+            aria-expanded={isMenuOpen}
+            aria-controls={`${controlledPopupId}-isMenuOpen`}
+            aria-haspopup="menu"
+            label="Channel options"
+            showTooltip={false}
+            size="icon-sm"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -140,11 +158,17 @@ const ChannelItem = React.memo(function ChannelItem({
           </IconButton>
 
           {isMenuOpen && (
-            <AnchoredMenu id={`${controlledPopupId}-isMenuOpen`} onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Channel actions"
+            <AnchoredMenu
+              id={`${controlledPopupId}-isMenuOpen`}
+              onClose={() => setIsMenuOpen(false)}
+              side="bottom"
+              align="end"
+              aria-label="Channel actions"
               className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >
-              <DropdownMenuItem closeOnClick={false}
+              <DropdownMenuItem
+                closeOnClick={false}
 
                 onClick={() => {
                   onTogglePin?.(channel, !isPinned);
@@ -154,11 +178,14 @@ const ChannelItem = React.memo(function ChannelItem({
               >
                 <Pin
                   size={14}
-                  className={isPinned ? "fill-info-content text-info-content" : ""}
+                  className={
+                    isPinned ? "fill-info-content text-info-content" : ""
+                  }
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem closeOnClick={false}
+              <DropdownMenuItem
+                closeOnClick={false}
 
                 onClick={() => {
                   onToggleMute?.(channel, !isMuted);
@@ -173,7 +200,8 @@ const ChannelItem = React.memo(function ChannelItem({
                 <div className="h-[1px] bg-muted my-1" />
               )}
               {canLeave && (
-                <DropdownMenuItem closeOnClick={false}
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={() => {
                     onLeave?.(channel);
@@ -186,8 +214,11 @@ const ChannelItem = React.memo(function ChannelItem({
                 </DropdownMenuItem>
               )}
               {!channel.isDefault && (
-                <DropdownMenuItem closeOnClick={false}
-                  disabledReason={!canDelete ? PERMISSION_REASON.channelManage : undefined}
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  disabledReason={
+                    !canDelete ? PERMISSION_REASON.channelManage : undefined
+                  }
 
                   onClick={() => {
                     onDelete?.(channel);

@@ -1,21 +1,30 @@
 "use client";
-import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
-import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
-
+import {
+  PERMISSION_REASON,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
+import {
+  isPrivateChannel,
+  isPrivateChannelOwner,
+} from "@/features/chat/utils/channel-membership-permissions";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  MessageSquareText,
-  Plus,
+  Check,
   ChevronDown,
-  PlusCircle,
   ChevronRight,
   FolderKanban,
   Globe,
+  Layers,
+  MessageSquareText,
+  PanelLeftClose,
+  Plus,
+  PlusCircle,
   Settings,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/shared/search-user-modal";
@@ -24,6 +33,7 @@ import CreateChannelModal from "../modals/channel/create-channel-modal";
 import BrowseChannelsModal from "../modals/channel/browse-channels-modal";
 import SpaceSettingsModal from "../modals/space/space-settings-modal";
 import ChannelItem from "./channel-item";
+import { ChatSidebarRail } from "./chat-sidebar-rail";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -73,6 +83,7 @@ import {
 } from "../../api/chat.api";
 import {
   useActiveChat,
+  useDirectMessagesQuery,
   useSpaceChannelsQuery,
   DirectMessagesQueryData,
   useSpacesQuery,
@@ -98,9 +109,10 @@ import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { LoadingState } from "@/components/ui/loading-state";
 
-
 interface ChatSidebarProps {
   onSelectChat?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
 }
 
 function ProjectSpaceBadge() {
@@ -112,9 +124,14 @@ function ProjectSpaceBadge() {
   );
 }
 
-export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
+export default function ChatSidebar({
+  onSelectChat,
+  collapsed = false,
+  onToggleCollapse,
+}: ChatSidebarProps) {
   const controlledPopupId = useControlledPopupId();
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] =
@@ -146,7 +163,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
   // Close dropdown on click outside
 
-
   const { data: spacesData, refetch: refetchSpaces } =
     useSpacesQuery(currentUserId);
   const spaces = spacesData || [];
@@ -171,6 +187,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       );
       if (requestedSpaceId === activeSpaceId) {
         void refetchSpaces();
+
         return;
       }
       dispatch(setActiveSpaceId(spaces[0].id));
@@ -188,6 +205,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     refetch: refetchChannels,
   } = useSpaceChannelsQuery(activeSpaceId, debouncedSearchQuery);
   const channels = channelsData?.channels || [];
+  const { data: directMessagesData } = useDirectMessagesQuery(
+    currentUserId,
+    debouncedSearchQuery,
+  );
   const { data: followedThreads = [] } = useQuery({
     queryKey: chatKeys.followedThreads(currentUserId),
     queryFn: fetchFollowedThreads,
@@ -206,6 +227,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     queryKey: chatKeys.spaceDetails(activeSpaceId),
     queryFn: async () => {
       if (!activeSpaceId) throw new Error("No active space");
+
       return (await getSpaceDetails(activeSpaceId)).data;
     },
     enabled: !!activeSpaceId,
@@ -232,7 +254,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       }
     },
     onError: (error) =>
-      toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to leave channel"))),
+      toast.error(
+        getActionErrorMessage(
+          error,
+          getErrorMessage(error, "Failed to leave channel"),
+        ),
+      ),
   });
 
   const deleteChannelMutation = useMutation({
@@ -248,7 +275,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
     },
     onError: (error) =>
-      toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to delete channel"))),
+      toast.error(
+        getActionErrorMessage(
+          error,
+          getErrorMessage(error, "Failed to delete channel"),
+        ),
+      ),
   });
 
   const handleLeaveChannel = async (channel: ChannelResponse) => {
@@ -261,7 +293,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       title: `${actionLabel}?`,
       description: isDefault
         ? "Leaving the default channel will remove you from this space."
-        : isPrivateChannelOwner(channel, currentUserId) ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted." : "Are you sure you want to leave this channel?",
+        : isPrivateChannelOwner(channel, currentUserId)
+          ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted."
+          : "Are you sure you want to leave this channel?",
       variant: "warning",
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",
@@ -439,6 +473,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       "REFRESH_CONVERSATIONS",
       handleRefreshConversations,
     );
+
     return () => {
       window.removeEventListener(
         "REFRESH_CONVERSATIONS",
@@ -501,6 +536,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       const previousData = queryClient.getQueryData(queryKey);
 
       updateChannelMemberCache(channelId, { pinned });
+
       return { previousData };
     },
     onError: (_error, _variables, context) => {
@@ -527,6 +563,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       const previousData = queryClient.getQueryData(queryKey);
 
       updateChannelMemberCache(channelId, { muted });
+
       return { previousData };
     },
     onError: (_error, _variables, context) => {
@@ -666,13 +703,15 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         counts[s.name] = (counts[s.name] || 0) + 1;
       }
     });
+
     return counts;
   }, [spaces]);
 
   const canCreateChannelInActiveSpace =
     isActiveSpaceAdmin || canMembersCreateChannels(activeSpace);
 
-  if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen) setIsCreateChannelModalOpen(false);
+  if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen)
+    setIsCreateChannelModalOpen(false);
 
   const handleChannelDeleted = useCallback(
     (channelId: string) => {
@@ -684,302 +723,433 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     [activeChat?.id, dispatch, refetchChannels],
   );
 
+  const railDirectMessages = useMemo(
+    () =>
+      sortDirectConversations(
+        directMessagesData?.directMessages ?? [],
+        currentUserId,
+      ),
+    [currentUserId, directMessagesData?.directMessages],
+  );
+
+  const handleOpenSearchFromRail = useCallback(() => {
+    onToggleCollapse?.(false);
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 80);
+  }, [onToggleCollapse]);
+
   return (
-    <div className="w-full h-full bg-card border-r border-border flex flex-col select-none">
-      {/* Header with Space Selector Dropdown */}
-      <div className="p-3 border-b border-border relative" ref={dropdownRef}>
-        <div
-          className="flex items-center justify-between px-3 py-2 bg-background rounded-panel cursor-pointer transition-all duration-200 select-none group"
-        >
-          <div className="flex min-w-0 flex-1 flex-col pr-2">
-            <h2 className="mb-2"><Button aria-controls={`${controlledPopupId}-isSpaceDropdownOpen`} variant="unstyled" type="button" aria-haspopup="menu" aria-expanded={isSpaceDropdownOpen} onClick={() => setIsSpaceDropdownOpen(prev => !prev)} className="flex w-full min-w-0 items-start gap-1.5 text-left text-sm font-semibold leading-tight text-foreground">
-              <span className="min-w-0 break-words">
-                {activeSpace ? activeSpace.name : "Select Space"}
-              </span>
-              <ChevronDown
-                size={14}
-                className="mt-0.5 shrink-0 text-muted-foreground transition group-hover:text-muted-foreground"
-              />
-            </Button></h2>
-            <span className="flex flex-wrap items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground select-none">
-              <span>Space</span>
-              {activeSpace?.projectId && <ProjectSpaceBadge />}
-              {activeSpace &&
-                spaceNameCounts[activeSpace.name] > 1 &&
-                activeSpace.creatorProfile?.fullName && (
-                  <>
-                    <span>&bull;</span>
-                    <Button variant="unstyled" type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch(
-                          setSelectedProfileUserId(
-                            activeSpace.createdBy || null,
-                          ),
-                        );
-                      }}
-                      className="hover:text-info-content hover:underline cursor-pointer normal-case"
-                    >
-                      {activeSpace.creatorProfile.fullName}
-                    </Button>
-                  </>
-                )}
-            </span>
-          </div>
-          <Button variant="unstyled"
-            onClick={() => setIsFollowedThreadsModalOpen(true)}
-            className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
+    <div className="flex h-full w-full select-none flex-col border-r border-border bg-sidebar">
+      {collapsed ? (
+        <ChatSidebarRail
+          activeSpace={activeSpace}
+          activeChatId={activeChat?.id}
+          currentUserId={currentUserId}
+          channels={joinedChannels}
+          directMessages={railDirectMessages}
+          followedThreadsUnreadCount={followedThreadsUnreadCount}
+          onExpand={() => onToggleCollapse?.(false)}
+          onOpenSearch={handleOpenSearchFromRail}
+          onOpenThreads={() => setIsFollowedThreadsModalOpen(true)}
+          onSelectChannel={handleSelectChannel}
+          onSelectConversation={handleSelectConversation}
+          onCreateDirectConversation={() => setIsSearchModalOpen(true)}
+        />
+      ) : (
+        <>
+          {/* Header with Space Selector Dropdown */}
+          <div
+            className="relative border-b border-border px-3.5 py-3"
+            ref={dropdownRef}
           >
-            <span className="flex items-center min-w-0 gap-2.5">
-              <MessageSquareText
-                size={15}
-                className="shrink-0 text-primary-soft-foreground"
-              />
-              <span className="text-[13px] font-semibold truncate">
-                {ChatSidebarSection.THREADS}
-              </span>
-            </span>
-            {followedThreadsUnreadCount > 0 && (
-              <span className="bg-destructive text-destructive-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
-                {followedThreadsUnreadCount > MAX_UNREAD_COUNT
-                  ? "99+"
-                  : followedThreadsUnreadCount}
-              </span>
-            )}
-          </Button>
-        </div>
-
-        {/* Dropdown Menu */}
-        {isSpaceDropdownOpen && (
-          <AnchoredMenu id={`${controlledPopupId}-isSpaceDropdownOpen`} onClose={() => setIsSpaceDropdownOpen(false)} side="bottom" align="end" aria-label="Workspace actions" className="z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
-            <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Spaces
-            </div>
-            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1">
-              {spaces.map((space) => {
-                const hasCollision = spaceNameCounts[space.name] > 1;
-                return (
-                  <div
-                    key={space.id}
-                    className={cn(
-                      "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
-                      space.id === activeSpaceId
-                        ? "bg-info-soft text-info-content font-semibold"
-                        : "text-muted-foreground hover:bg-background",
-                    )}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <h2>
+                  <Button
+                    aria-controls={`${controlledPopupId}-isSpaceDropdownOpen`}
+                    variant="unstyled"
+                    type="button"
+                    aria-haspopup="menu"
+                    aria-expanded={isSpaceDropdownOpen}
+                    onClick={() => setIsSpaceDropdownOpen((prev) => !prev)}
+                    className="group -ml-1.5 flex w-full min-w-0 items-center gap-1 rounded-control px-1.5 py-1 text-left text-sm font-bold leading-tight text-foreground transition-colors hover:bg-muted"
                   >
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <DropdownMenuItem closeOnClick={false} onClick={() => handleSelectSpace(space.id)} className="min-w-0 flex-1 px-0 py-1 text-left"><span className="truncate">{space.name}</span></DropdownMenuItem>
-                        {space.projectId && <ProjectSpaceBadge />}
-                      </div>
-                      {hasCollision && space.creatorProfile?.fullName && (
-                        <div className="flex min-w-0 gap-1 truncate text-xs font-normal text-muted-foreground">
-                          <span>
-                            Created by
-                          </span>
-                          <Button variant="unstyled" type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsSpaceDropdownOpen(false);
-                              dispatch(
-                                setSelectedProfileUserId(
-                                  space.createdBy || null,
-                                ),
-                              );
-                            }}
-                            className="hover:text-info-content hover:underline cursor-pointer"
-                          >
-                            {space.creatorProfile.email}
-                          </Button>
-                        </div>
+                    <span className="min-w-0 truncate">
+                      {activeSpace ? activeSpace.name : "Select Space"}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={cn(
+                        "shrink-0 text-muted-foreground transition-transform duration-150 group-hover:text-foreground",
+                        isSpaceDropdownOpen && "rotate-180",
                       )}
-                    </div>
-                  </div>
-                );
-              })}
-              {spaces.length === 0 && (
-                <div className="px-3 py-2 text-xs text-muted-foreground italic">
-                  No spaces joined
-                </div>
-              )}
-            </div>
-            <div className="h-[1px] bg-muted my-1" />
-            <div className="px-1 flex flex-col gap-0.5">
-              <DropdownMenuItem closeOnClick={false}
-                onClick={() => {
-                  setIsCreateSpaceModalOpen(true);
-                  setIsSpaceDropdownOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background rounded-control flex items-center gap-2 cursor-pointer transition"
-              >
-                <PlusCircle size={14} className="text-muted-foreground" />
-                Create new space
-              </DropdownMenuItem>
-              {isActiveSpaceAdmin && (
-                <DropdownMenuItem closeOnClick={false}
-                  onClick={() => {
-                    if (activeSpaceId) {
-                      setIsSpaceSettingsModalOpen(true);
-                    }
-                    setIsSpaceDropdownOpen(false);
-                  }}
-                  disabled={!activeSpaceId}
-                  className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:pointer-events-none rounded-control flex items-center gap-2 cursor-pointer transition"
-                >
-                  <Settings size={14} className="text-muted-foreground" />
-                  Space settings
-                </DropdownMenuItem>
-              )}
-            </div>
-          </AnchoredMenu>
-        )}
-      </div>
-
-      {/* Search Filter */}
-      <div className="p-3 border-b border-border">
-        <div className="relative">
-          <SearchInput iconClassName="size-3.5" aria-label="Search channels, conversations" unstyled
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search channels, conversations..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent rounded-control outline-none transition-all duration-200"
-          />
-        </div>
-      </div>
-
-      {/* Main Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5">
-        {/* Channels Section */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
-            <Button variant="unstyled"
-              onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
-              className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
-            >
-              {isChannelsExpanded ? (
-                <ChevronDown size={12} />
-              ) : (
-                <ChevronRight size={12} />
-              )}
-              <span>CHANNELS</span>
-            </Button>
-            {activeSpaceId && (
-              <div className="relative" ref={channelsDropdownRef}>
-                <IconButton aria-expanded={isChannelsDropdownOpen} aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`} aria-haspopup="menu" label="Channel options" showTooltip={false} size="icon-sm"
-                  onClick={() =>
-                    setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
-                  }
-                  className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
-                  title="Channel options"
-                >
-                  <Plus size={14} />
-                </IconButton>
-                {isChannelsDropdownOpen && (
-                  <AnchoredMenu id={`${controlledPopupId}-isChannelsDropdownOpen`} onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
-                    <DropdownMenuItem closeOnClick={false}
-                      onClick={() => {
-                        setIsBrowseChannelsModalOpen(true);
-                        setIsChannelsDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Globe size={14} className="text-muted-foreground" />
-                      Browse channels
-                    </DropdownMenuItem>
-                    {(
-                      <DropdownMenuItem disabledReason={!(canCreateChannelInActiveSpace) ? PERMISSION_REASON.spaceAdmin : undefined} closeOnClick={false}
-                        onClick={() => {
-                          setIsCreateChannelModalOpen(true);
-                          setIsChannelsDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
-                      >
-                        <Plus size={14} className="text-muted-foreground" />
-                        Create new channel
-                      </DropdownMenuItem>
+                    />
+                  </Button>
+                </h2>
+                <span className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground select-none">
+                  <span>Space</span>
+                  {activeSpace?.projectId && <ProjectSpaceBadge />}
+                  {activeSpace &&
+                    spaceNameCounts[activeSpace.name] > 1 &&
+                    activeSpace.creatorProfile?.fullName && (
+                      <>
+                        <span>&bull;</span>
+                        <Button
+                          variant="unstyled"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch(
+                              setSelectedProfileUserId(
+                                activeSpace.createdBy || null,
+                              ),
+                            );
+                          }}
+                          className="cursor-pointer normal-case hover:text-info-content hover:underline"
+                        >
+                          {activeSpace.creatorProfile.fullName}
+                        </Button>
+                      </>
                     )}
-                  </AnchoredMenu>
+                </span>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFollowedThreadsModalOpen(true)}
+                  className="h-8 gap-1.5 rounded-control border-border bg-card px-2.5 text-xs font-semibold text-foreground hover:bg-muted"
+                >
+                  <MessageSquareText
+                    size={14}
+                    className="shrink-0 text-info-content"
+                  />
+                  <span>{ChatSidebarSection.THREADS}</span>
+                  {followedThreadsUnreadCount > 0 && (
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground tabular-nums">
+                      {followedThreadsUnreadCount > MAX_UNREAD_COUNT
+                        ? "99+"
+                        : followedThreadsUnreadCount}
+                    </span>
+                  )}
+                </Button>
+                {onToggleCollapse && (
+                  <IconButton
+                    label="Collapse Messages sidebar"
+                    showTooltip={false}
+                    size="icon-sm"
+                    onClick={() => onToggleCollapse(true)}
+                    title="Collapse Messages sidebar"
+                    className="hidden size-8 rounded-control text-muted-foreground hover:bg-muted hover:text-foreground @min-[720px]/messages:inline-flex"
+                  >
+                    <PanelLeftClose size={16} />
+                  </IconButton>
                 )}
               </div>
+            </div>
+
+            {/* Dropdown Menu */}
+            {isSpaceDropdownOpen && (
+              <AnchoredMenu
+                id={`${controlledPopupId}-isSpaceDropdownOpen`}
+                onClose={() => setIsSpaceDropdownOpen(false)}
+                side="bottom"
+                align="start"
+                aria-label="Workspace actions"
+                className="z-50 flex w-60 flex-col gap-0.5 rounded-panel border border-border bg-card py-1.5 shadow-panel animate-in fade-in slide-in-from-top-1 duration-100"
+              >
+                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Switch Space
+                </div>
+                <div className="flex max-h-[min(18rem,55vh)] flex-col gap-0.5 overflow-y-auto px-1">
+                  {spaces.map((space) => {
+                    const hasCollision = spaceNameCounts[space.name] > 1;
+                    const isSelectedSpace = space.id === activeSpaceId;
+
+                    return (
+                      <div
+                        key={space.id}
+                        className={cn(
+                          "flex cursor-pointer items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-xs transition-colors",
+                          isSelectedSpace
+                            ? "bg-primary-soft font-semibold text-primary-soft-foreground"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
+                      >
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Layers
+                              size={13}
+                              className="shrink-0 text-info-content"
+                            />
+                            <DropdownMenuItem
+                              closeOnClick={false}
+                              onClick={() => handleSelectSpace(space.id)}
+                              className="min-w-0 flex-1 px-0 py-0.5 text-left"
+                            >
+                              <span className="truncate">{space.name}</span>
+                            </DropdownMenuItem>
+                            {space.projectId && <ProjectSpaceBadge />}
+                            {isSelectedSpace && (
+                              <Check
+                                size={13}
+                                className="shrink-0 text-primary-soft-foreground"
+                              />
+                            )}
+                          </div>
+                          {hasCollision && space.creatorProfile?.fullName && (
+                            <div className="flex min-w-0 gap-1 truncate text-xs font-normal text-muted-foreground">
+                              <span>Created by</span>
+                              <Button
+                                variant="unstyled"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsSpaceDropdownOpen(false);
+                                  dispatch(
+                                    setSelectedProfileUserId(
+                                      space.createdBy || null,
+                                    ),
+                                  );
+                                }}
+                                className="cursor-pointer hover:text-info-content hover:underline"
+                              >
+                                {space.creatorProfile.email}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {spaces.length === 0 && (
+                    <div className="px-3 py-2 text-xs italic text-muted-foreground">
+                      No spaces joined
+                    </div>
+                  )}
+                </div>
+                <div className="my-1 h-px bg-border" />
+                <div className="flex flex-col gap-0.5 px-1">
+                  <DropdownMenuItem
+                    closeOnClick={false}
+                    onClick={() => {
+                      setIsCreateSpaceModalOpen(true);
+                      setIsSpaceDropdownOpen(false);
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-control px-3 py-1.5 text-left text-xs text-foreground transition hover:bg-muted"
+                  >
+                    <PlusCircle size={14} className="text-muted-foreground" />
+                    Create new space
+                  </DropdownMenuItem>
+                  {isActiveSpaceAdmin && (
+                    <DropdownMenuItem
+                      closeOnClick={false}
+                      onClick={() => {
+                        if (activeSpaceId) {
+                          setIsSpaceSettingsModalOpen(true);
+                        }
+                        setIsSpaceDropdownOpen(false);
+                      }}
+                      disabled={!activeSpaceId}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-control px-3 py-1.5 text-left text-xs text-foreground transition hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+                    >
+                      <Settings size={14} className="text-muted-foreground" />
+                      Space settings
+                    </DropdownMenuItem>
+                  )}
+                </div>
+              </AnchoredMenu>
             )}
           </div>
-          {isChannelsExpanded && (
-            <div
-              className={cn(
-                "pr-1 flex flex-col gap-0.5",
-                joinedChannels.length > 10 && "max-h-80 overflow-y-auto",
+
+          {/* Search Filter */}
+          <div className="border-b border-border px-3.5 py-2.5">
+            <div className="relative">
+              <SearchInput
+                ref={searchInputRef}
+                iconClassName="size-3.5"
+                aria-label="Search channels, conversations"
+                unstyled
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search channels, conversations..."
+                className="w-full rounded-control border border-border bg-muted/60 py-2 pl-9 pr-8 text-xs text-foreground outline-none transition-all duration-150 focus:border-primary/40 focus:bg-card"
+              />
+              {searchQuery && (
+                <IconButton
+                  label="Clear search"
+                  showTooltip={false}
+                  size="icon-sm"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-1.5 top-1/2 size-6 -translate-y-1/2 rounded-control text-muted-foreground hover:text-foreground"
+                >
+                  <X size={12} />
+                </IconButton>
               )}
-            >
-              {loadingChannels ? (
-                <LoadingState label="Loading channels..." className="text-xs text-muted-foreground italic px-3 py-1" />
-              ) : joinedChannels.length > 0 ? (
-                joinedChannels.map((channel: ChannelResponse) => {
-                  const isCreator = channel.createdBy === currentUserId;
-                  const allowMemberDeleteOwnChannel =
-                    spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
+            </div>
+          </div>
 
-                  const canDelete =
-                    !channel.isDefault &&
-                    (isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isActiveSpaceAdmin ||
-                      (isCreator && allowMemberDeleteOwnChannel)));
-
-                  const channelSpace =
-                    spaceDetail?.id === channel.spaceId ? spaceDetail : activeSpace;
-                  const canLeave = canLeaveSpaceChannel(
-                    channel,
-                    currentUserId,
-                    channelSpace,
-                  );
-
-                  return (
-                    <ChannelItem
-                      key={channel.id}
-                      channel={channel}
-                      currentUserId={currentUserId}
-                      isActive={activeChat?.id === channel.id}
-                      onClick={handleSelectChannel}
-                      onTogglePin={(selectedChannel, pinned) =>
-                        pinChannelMutation.mutate({
-                          channelId: selectedChannel.id,
-                          pinned,
-                        })
+          {/* Main Items Scrollable List */}
+          <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-2.5 py-3">
+            {/* Channels Section */}
+            <div className="flex flex-col gap-1">
+              <div className="mb-1 flex select-none items-center justify-between px-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Button
+                  variant="unstyled"
+                  onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
+                  className="flex cursor-pointer items-center gap-1.5 text-left transition hover:text-foreground"
+                >
+                  {isChannelsExpanded ? (
+                    <ChevronDown size={13} />
+                  ) : (
+                    <ChevronRight size={13} />
+                  )}
+                  <span>CHANNELS</span>
+                </Button>
+                {activeSpaceId && (
+                  <div className="relative" ref={channelsDropdownRef}>
+                    <IconButton
+                      aria-expanded={isChannelsDropdownOpen}
+                      aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`}
+                      aria-haspopup="menu"
+                      label="Channel options"
+                      showTooltip={false}
+                      size="icon-sm"
+                      onClick={() =>
+                        setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                       }
-                      onToggleMute={(selectedChannel, muted) =>
-                        muteChannelMutation.mutate({
-                          channelId: selectedChannel.id,
-                          muted,
-                        })
-                      }
-                      onLeave={handleLeaveChannel}
-                      onDelete={handleDeleteChannel}
-                      canLeave={canLeave}
-                      canDelete={canDelete}
+                      className="cursor-pointer rounded-control p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      title="Channel options"
+                    >
+                      <Plus size={14} />
+                    </IconButton>
+                    {isChannelsDropdownOpen && (
+                      <AnchoredMenu
+                        id={`${controlledPopupId}-isChannelsDropdownOpen`}
+                        onClose={() => setIsChannelsDropdownOpen(false)}
+                        side="bottom"
+                        align="end"
+                        aria-label="Channel actions"
+                        className="z-50 w-44 rounded-panel border border-border bg-card py-1 text-foreground font-normal normal-case shadow-panel"
+                      >
+                        <DropdownMenuItem
+                          closeOnClick={false}
+                          onClick={() => {
+                            setIsBrowseChannelsModalOpen(true);
+                            setIsChannelsDropdownOpen(false);
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs transition hover:bg-muted"
+                        >
+                          <Globe size={14} className="text-muted-foreground" />
+                          Browse channels
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabledReason={
+                            !canCreateChannelInActiveSpace
+                              ? PERMISSION_REASON.spaceAdmin
+                              : undefined
+                          }
+                          closeOnClick={false}
+                          onClick={() => {
+                            setIsCreateChannelModalOpen(true);
+                            setIsChannelsDropdownOpen(false);
+                          }}
+                          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-xs transition hover:bg-muted"
+                        >
+                          <Plus size={14} className="text-muted-foreground" />
+                          Create new channel
+                        </DropdownMenuItem>
+                      </AnchoredMenu>
+                    )}
+                  </div>
+                )}
+              </div>
+              {isChannelsExpanded && (
+                <div className="flex flex-col gap-0.5 pr-1">
+                  {loadingChannels ? (
+                    <LoadingState
+                      label="Loading channels..."
+                      className="px-3 py-1 text-xs italic text-muted-foreground"
                     />
-                  );
-                })
-              ) : (
-                <div className="text-xs text-muted-foreground italic px-3 py-1">
-                  {isSearchingSidebar
-                    ? "No channels found"
-                    : activeSpaceId
-                      ? "No channels yet"
-                      : "Select a space to view channels"}
+                  ) : joinedChannels.length > 0 ? (
+                    joinedChannels.map((channel: ChannelResponse) => {
+                      const isCreator = channel.createdBy === currentUserId;
+                      const allowMemberDeleteOwnChannel =
+                        spaceDetail?.setting?.allowMemberDeleteOwnChannel ??
+                        false;
+
+                      const canDelete =
+                        !channel.isDefault &&
+                        (isPrivateChannel(channel)
+                          ? isPrivateChannelOwner(channel, currentUserId)
+                          : isActiveSpaceAdmin ||
+                            (isCreator && allowMemberDeleteOwnChannel));
+
+                      const channelSpace =
+                        spaceDetail?.id === channel.spaceId
+                          ? spaceDetail
+                          : activeSpace;
+                      const canLeave = canLeaveSpaceChannel(
+                        channel,
+                        currentUserId,
+                        channelSpace,
+                      );
+
+                      return (
+                        <ChannelItem
+                          key={channel.id}
+                          channel={channel}
+                          currentUserId={currentUserId}
+                          isActive={activeChat?.id === channel.id}
+                          onClick={handleSelectChannel}
+                          onTogglePin={(selectedChannel, pinned) =>
+                            pinChannelMutation.mutate({
+                              channelId: selectedChannel.id,
+                              pinned,
+                            })
+                          }
+                          onToggleMute={(selectedChannel, muted) =>
+                            muteChannelMutation.mutate({
+                              channelId: selectedChannel.id,
+                              muted,
+                            })
+                          }
+                          onLeave={handleLeaveChannel}
+                          onDelete={handleDeleteChannel}
+                          canLeave={canLeave}
+                          canDelete={canDelete}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-1 text-xs italic text-muted-foreground">
+                      {isSearchingSidebar
+                        ? "No channels found"
+                        : activeSpaceId
+                          ? "No channels yet"
+                          : "Select a space to view channels"}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
 
-        <DirectConversationsSection
-          activeConversationId={activeChat?.id}
-          currentUserId={currentUserId}
-          searchQuery={debouncedSearchQuery}
-          onCreateDirectConversation={() => setIsSearchModalOpen(true)}
-          onSelectConversation={handleSelectConversation}
-        />
-      </div>
+            <DirectConversationsSection
+              activeConversationId={activeChat?.id}
+              currentUserId={currentUserId}
+              searchQuery={debouncedSearchQuery}
+              onCreateDirectConversation={() => setIsSearchModalOpen(true)}
+              onSelectConversation={handleSelectConversation}
+              onViewProfile={(userId) =>
+                dispatch(setSelectedProfileUserId(userId))
+              }
+            />
+          </div>
+        </>
+      )}
 
       {/* Modals */}
       <CreateSpaceModal
