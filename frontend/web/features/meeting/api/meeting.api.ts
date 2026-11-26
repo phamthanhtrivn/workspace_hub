@@ -50,6 +50,25 @@ import type {
 import type { ApiResponse } from "@/features/chat/types/chat.types";
 import { ChatContextType } from "@/features/chat/types/chat.enums";
 
+export interface MeetingBadgeSummary {
+  liveCount: number;
+  upcomingTodayCount: number;
+  badgeCount: number;
+}
+
+export async function getMeetingBadgeSummary(
+  dayStartAt: string,
+  dayEndAt: string,
+  signal?: AbortSignal,
+): Promise<MeetingBadgeSummary> {
+  const response = await api.get(MEETING_API_PATHS.BADGE_SUMMARY, {
+    params: { dayStartAt, dayEndAt },
+    signal,
+  });
+
+  return normalizeApiResponse<MeetingBadgeSummary>(response.data).data;
+}
+
 export interface MeetingPresignRequest {
   fileName: string;
   mimeType: string;
@@ -65,6 +84,7 @@ export const createInstantMeeting = async (
   payload: CreateInstantMeetingPayload,
 ): Promise<ApiResponse<InstantMeetingResponse>> => {
   const response = await api.post(MEETING_API_PATHS.INSTANT, payload);
+
   return normalizeApiResponse<InstantMeetingResponse>(response.data);
 };
 
@@ -72,6 +92,7 @@ export const createScheduledMeeting = async (
   payload: ScheduledMeetingPayload,
 ): Promise<ApiResponse<ScheduledMeetingResponse>> => {
   const response = await api.post(MEETING_API_PATHS.SCHEDULED, payload);
+
   return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
 };
 
@@ -85,6 +106,7 @@ export const getUpcomingMeetings = async ({
   const response = await api.get(MEETING_API_PATHS.UPCOMING, {
     params: { page, limit },
   });
+
   return normalizeApiResponse<UpcomingMeetingsResponse>(response.data);
 };
 
@@ -93,6 +115,7 @@ export const joinMeeting = async (
   payload: JoinMeetingPayload,
 ): Promise<ApiResponse<MeetingJoinResponse>> => {
   const response = await api.post(MEETING_API_PATHS.join(joinToken), payload);
+
   return normalizeApiResponse<MeetingJoinResponse>(response.data);
 };
 
@@ -101,6 +124,7 @@ export const startScheduledMeeting = async (
   payload: JoinMeetingPayload,
 ): Promise<ApiResponse<InstantMeetingResponse>> => {
   const response = await api.post(MEETING_API_PATHS.start(joinToken), payload);
+
   return normalizeApiResponse<InstantMeetingResponse>(response.data);
 };
 
@@ -112,6 +136,7 @@ export const updateScheduledMeeting = async (
     MEETING_API_PATHS.schedule(joinToken),
     payload,
   );
+
   return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
 };
 
@@ -119,6 +144,7 @@ export const cancelScheduledMeeting = async (
   joinToken: string,
 ): Promise<ApiResponse<ScheduledMeetingResponse>> => {
   const response = await api.post(MEETING_API_PATHS.cancel(joinToken));
+
   return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
 };
 
@@ -128,6 +154,7 @@ export const acceptScheduledMeetingInvitation = async (
   const response = await api.post(
     MEETING_API_PATHS.acceptInvitation(joinToken),
   );
+
   return normalizeApiResponse<ScheduledMeetingInvitationResponse>(
     response.data,
   );
@@ -139,6 +166,7 @@ export const declineScheduledMeetingInvitation = async (
   const response = await api.post(
     MEETING_API_PATHS.declineInvitation(joinToken),
   );
+
   return normalizeApiResponse<ScheduledMeetingInvitationResponse>(
     response.data,
   );
@@ -167,6 +195,7 @@ export const getMeetingHistory = async ({
   const response = await api.get(MEETING_API_PATHS.HISTORY, {
     params: { page, limit, visibility },
   });
+
   return normalizeApiResponse<MeetingHistoryResponse>(response.data);
 };
 
@@ -186,6 +215,7 @@ export const getMeetingHistorySummary = async (): Promise<
   ApiResponse<MeetingHistorySummaryResponse>
 > => {
   const response = await api.get(MEETING_API_PATHS.HISTORY_SUMMARY);
+
   return normalizeApiResponse<MeetingHistorySummaryResponse>(response.data);
 };
 
@@ -222,6 +252,7 @@ export const updateMeetingSettings = async (
     MEETING_API_PATHS.settings(joinToken),
     payload,
   );
+
   return normalizeApiResponse<MeetingSettingsResponse>(response.data);
 };
 
@@ -233,6 +264,7 @@ export const startMeetingScreenShare = async (
     MEETING_API_PATHS.screenShareStart(joinToken),
     payload,
   );
+
   return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
 };
 
@@ -240,6 +272,7 @@ export const stopMeetingScreenShare = async (
   joinToken: string,
 ): Promise<ApiResponse<MeetingScreenShareStateResponse>> => {
   const response = await api.post(MEETING_API_PATHS.screenShareStop(joinToken));
+
   return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
 };
 
@@ -250,6 +283,7 @@ export const stopParticipantScreenShare = async (
   const response = await api.post(
     MEETING_API_PATHS.stopParticipantScreenShare(joinToken, userId),
   );
+
   return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
 };
 
@@ -261,6 +295,7 @@ export const requestMeetingJoinApproval = async (
     MEETING_API_PATHS.joinRequests(joinToken),
     payload,
   );
+
   return normalizeApiResponse<MeetingJoinRequestStatusResponse>(response.data);
 };
 
@@ -278,6 +313,7 @@ export const getMeetingJoinRequests = async ({
   const response = await api.get(MEETING_API_PATHS.joinRequests(joinToken), {
     params: { search, page, limit },
   });
+
   return normalizeApiResponse<MeetingJoinRequestsResponse>(response.data);
 };
 
@@ -295,6 +331,7 @@ export const getMeetingParticipants = async ({
   const response = await api.get(MEETING_API_PATHS.participants(joinToken), {
     params: { search, page, limit },
   });
+
   return normalizeApiResponse<MeetingParticipantsResponse>(response.data);
 };
 
@@ -312,6 +349,7 @@ export const getMeetingMessages = async ({
   const response = await api.get(MEETING_API_PATHS.messages(joinToken), {
     params: { cursor, limit, direction },
   });
+
   return normalizeApiResponse<MeetingMessagesResponse>(response.data);
 };
 
@@ -321,6 +359,7 @@ export const getMeetingUnreadMessageCount = async (
   const response = await api.get(
     MEETING_API_PATHS.messageUnreadCount(joinToken),
   );
+
   return normalizeApiResponse<MeetingUnreadMessageCountResponse>(response.data);
 };
 
@@ -389,6 +428,7 @@ export const editMeetingMessage = async (
     MEETING_API_PATHS.message(joinToken, messageId),
     payload,
   );
+
   return normalizeApiResponse<MeetingMessageResponse>(response.data);
 };
 
@@ -399,6 +439,7 @@ export const recallMeetingMessage = async (
   const response = await api.patch(
     MEETING_API_PATHS.messageRecall(joinToken, messageId),
   );
+
   return normalizeApiResponse<MeetingMessageResponse>(response.data);
 };
 
@@ -411,6 +452,7 @@ export const reactMeetingMessage = async (
     MEETING_API_PATHS.messageReactions(joinToken, messageId),
     payload,
   );
+
   return normalizeApiResponse<MeetingMessageReactionResult>(response.data);
 };
 
@@ -423,6 +465,7 @@ export const removeMeetingMessageReaction = async (
     MEETING_API_PATHS.messageReactions(joinToken, messageId),
     { data: payload },
   );
+
   return normalizeApiResponse<MeetingMessageReactionResult>(response.data);
 };
 
@@ -433,6 +476,7 @@ export const markMeetingMessageAsRead = async (
   const response = await api.post(MEETING_API_PATHS.messageRead(joinToken), {
     messageId,
   });
+
   return normalizeApiResponse<MeetingMessageReadReceiptResponse>(response.data);
 };
 
@@ -444,6 +488,7 @@ export const updateMeetingChatNotificationPreference = async (
     MEETING_API_PATHS.chatNotifications(joinToken),
     payload,
   );
+
   return normalizeApiResponse<MeetingChatNotificationPreferenceResponse>(
     response.data,
   );
@@ -454,6 +499,7 @@ export const updateMeetingHandState = async (
   payload: UpdateMeetingHandPayload,
 ): Promise<ApiResponse<MeetingParticipantResponse>> => {
   const response = await api.patch(MEETING_API_PATHS.hand(joinToken), payload);
+
   return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
@@ -466,6 +512,7 @@ export const updateMeetingParticipantHandState = async (
     MEETING_API_PATHS.updateParticipantHand(joinToken, userId),
     payload,
   );
+
   return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
@@ -477,6 +524,7 @@ export const sendMeetingRoomReaction = async (
     MEETING_API_PATHS.roomReactions(joinToken),
     payload,
   );
+
   return normalizeApiResponse<MeetingRoomReactionResponse>(response.data);
 };
 
@@ -486,6 +534,7 @@ export const getMeetingParticipantViewPreferences = async (
   const response = await api.get(
     MEETING_API_PATHS.participantViewPreferences(joinToken),
   );
+
   return normalizeApiResponse<MeetingParticipantViewPreferencesResponse>(
     response.data,
   );
@@ -500,6 +549,7 @@ export const updateMeetingParticipantViewPreference = async (
     MEETING_API_PATHS.updateParticipantViewPreference(joinToken, userId),
     payload,
   );
+
   return normalizeApiResponse<MeetingParticipantViewPreferencesResponse>(
     response.data,
   );
@@ -509,6 +559,7 @@ export const leaveMeeting = async (
   joinToken: string,
 ): Promise<ApiResponse<MeetingParticipantResponse>> => {
   const response = await api.post(MEETING_API_PATHS.leave(joinToken));
+
   return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
@@ -516,6 +567,7 @@ export const endMeeting = async (
   joinToken: string,
 ): Promise<ApiResponse<MeetingEndedResponse>> => {
   const response = await api.post(MEETING_API_PATHS.end(joinToken));
+
   return normalizeApiResponse<MeetingEndedResponse>(response.data);
 };
 
@@ -526,6 +578,7 @@ export const removeMeetingParticipant = async (
   const response = await api.post(
     MEETING_API_PATHS.removeParticipant(joinToken, userId),
   );
+
   return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
@@ -538,6 +591,7 @@ export const updateMeetingParticipantRole = async (
     MEETING_API_PATHS.updateParticipantRole(joinToken, userId),
     { role },
   );
+
   return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
@@ -548,6 +602,7 @@ export const approveMeetingJoinRequest = async (
   const response = await api.post(
     MEETING_API_PATHS.approveJoinRequest(joinToken, userId),
   );
+
   return normalizeApiResponse<MeetingJoinRequestStatusResponse>(response.data);
 };
 
@@ -558,6 +613,7 @@ export const declineMeetingJoinRequest = async (
   const response = await api.post(
     MEETING_API_PATHS.declineJoinRequest(joinToken, userId),
   );
+
   return normalizeApiResponse<MeetingJoinRequestStatusResponse>(response.data);
 };
 
@@ -567,6 +623,7 @@ export const approveAllMeetingJoinRequests = async (
   const response = await api.post(
     MEETING_API_PATHS.approveAllJoinRequests(joinToken),
   );
+
   return normalizeApiResponse<{ count: number }>(response.data);
 };
 
@@ -576,5 +633,6 @@ export const declineAllMeetingJoinRequests = async (
   const response = await api.post(
     MEETING_API_PATHS.declineAllJoinRequests(joinToken),
   );
+
   return normalizeApiResponse<{ count: number }>(response.data);
 };

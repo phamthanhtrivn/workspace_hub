@@ -32,7 +32,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   const currentTitle = currentItem ? currentItem.label : "Workspace";
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<UserSettingTab>(
     UserSettingTab.PROFILE,

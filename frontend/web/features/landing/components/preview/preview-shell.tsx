@@ -26,6 +26,7 @@ export function PreviewShell({
     (module) => module.id === moduleId,
   )!;
   const activeHref = moduleId === "messages" ? "/chat" : `/${moduleId}`;
+
   return (
     <div
       data-module-preview={moduleId}
@@ -38,60 +39,60 @@ export function PreviewShell({
     >
       <aside
         aria-label="Illustrated workspace navigation"
-        className="hidden min-h-0 w-24 shrink-0 flex-col items-center border-r border-border bg-sidebar px-4 py-5 @min-[1024px]/preview:flex"
+        className="hidden min-h-0 w-[68px] shrink-0 flex-col items-center border-r border-border bg-sidebar px-2 py-4 @min-[1024px]/preview:flex"
       >
-        <span className="grid size-11 shrink-0 place-items-center rounded-panel bg-brand-blue text-sm font-semibold text-brand-ice">
-          <WorkspaceLogo className="size-11" />
+        <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-control bg-brand-blue text-sm font-semibold text-brand-ice">
+          <WorkspaceLogo className="size-10" />
         </span>
         <div
           role="region"
           aria-label="Sample workspace modules"
           tabIndex={0}
-          className="mt-7 flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="mt-4 flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto overscroll-contain py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {WORKSPACE_NAVIGATION_ITEMS.map(({ href, label, icon: Icon }) => (
-            <span
-              key={href}
-              title={label}
-              className={cn(
-                "relative flex min-h-14 items-center justify-center rounded-panel px-3 py-2",
-                href === activeHref
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground",
-              )}
-            >
-              {href === activeHref && (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-y-3 left-0 w-1 rounded-full bg-info-content"
-                />
-              )}
+          {WORKSPACE_NAVIGATION_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = href === activeHref;
+
+            return (
               <span
+                key={href}
+                title={label}
                 className={cn(
-                  "grid size-9 shrink-0 place-items-center rounded-xl",
-                  href !== activeHref && "bg-card",
+                  "relative flex items-center justify-center rounded-panel p-2",
+                  isActive ? "bg-primary-soft" : "text-muted-foreground",
                 )}
               >
-                <Icon
-                  aria-hidden="true"
-                  className="size-[18px]"
-                  strokeWidth={1.75}
-                />
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-3 left-0 top-3 w-1 rounded-r-full bg-primary"
+                  />
+                )}
+                <span
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-full",
+                    isActive
+                      ? "bg-card text-primary shadow-2xs ring-1 ring-border"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className="size-[17px]"
+                    strokeWidth={2}
+                  />
+                </span>
+                <span className="sr-only">{label}</span>
               </span>
-              <span className="sr-only">{label}</span>
-            </span>
-          ))}
+            );
+          })}
         </div>
         <span
           title="Settings"
-          className="mt-5 flex min-h-16 w-full shrink-0 items-center justify-center rounded-panel border border-info-outline/40 bg-card p-3"
+          className="mt-3 flex w-full shrink-0 items-center justify-center rounded-panel border border-border bg-card p-2"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-info-soft text-info-content">
-            <Settings
-              aria-hidden="true"
-              className="size-[18px]"
-              strokeWidth={1.75}
-            />
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-content">
+            <Settings aria-hidden="true" className="size-4" strokeWidth={2} />
           </span>
           <span className="sr-only">Settings</span>
         </span>

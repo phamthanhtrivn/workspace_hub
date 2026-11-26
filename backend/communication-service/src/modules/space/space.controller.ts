@@ -65,6 +65,18 @@ export class SpaceController {
     };
   }
 
+  @Get('unread-summary')
+  async getUnreadSummary(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+    const summary = await this.spaceService.getUnreadSummary(userId);
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.LISTED,
+      data: summary,
+    };
+  }
+
   @IndependentAuthentication()
   @Post('internal/project')
   async ensureProjectSpace(

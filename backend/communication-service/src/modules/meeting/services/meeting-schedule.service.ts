@@ -256,6 +256,69 @@ export class MeetingScheduleService {
     };
   }
 
+  async getBadgeSummary({
+    userId,
+    dayStartAt,
+    dayEndAt,
+  }: {
+    userId: string;
+    dayStartAt?: string;
+    dayEndAt?: string;
+  }) {
+    const now = new Date();
+    const parsedStart = dayStartAt ? new Date(dayStartAt) : null;
+    const parsedEnd = dayEndAt ? new Date(dayEndAt) : null;
+    const start =
+      parsedStart && !Number.isNaN(parsedStart.getTime())
+        ? parsedStart
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end =
+      parsedEnd && !Number.isNaN(parsedEnd.getTime())
+        ? parsedEnd
+        : new Date(start.getTime() + 86_400_000);
+
+    const participantFilter: Prisma.MeetingWhereInput = {
+      OR: [
+        { hostId: userId },
+        {
+          participants: {
+            some: {
+              userId,
+              status: { in: UPCOMING_PARTICIPANT_STATUSES },
+            },
+          },
+        },
+      ],
+    };
+
+    const [liveCount, upcomingTodayCount] = await this.prisma.$transaction([
+      this.prisma.meeting.count({
+        where: {
+          status: MeetingStatus.LIVE,
+          ...participantFilter,
+        },
+      }),
+      this.prisma.meeting.count({
+        where: {
+          type: MeetingType.SCHEDULED,
+          status: MeetingStatus.SCHEDULED,
+          scheduledStartAt: { gte: start, lte: end },
+          OR: [
+            { scheduledEndAt: { gt: now } },
+            { scheduledEndAt: null, scheduledStartAt: { gt: now } },
+          ],
+          AND: [participantFilter],
+        },
+      }),
+    ]);
+
+    return {
+      liveCount,
+      upcomingTodayCount,
+      badgeCount: liveCount + upcomingTodayCount,
+    };
+  }
+
   async updateScheduledMeeting({
     joinToken,
     userId,

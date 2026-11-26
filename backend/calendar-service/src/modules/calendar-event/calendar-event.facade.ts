@@ -40,6 +40,10 @@ export class CalendarEventService {
     return this.queries.getTasks(userId, filters);
   }
 
+  async getTodaySummary(userId: string, startAt?: string, endAt?: string) {
+    return this.queries.getTodaySummary(userId, startAt, endAt);
+  }
+
   async getEventById(userId: string, eventId: string) {
     return this.queries.getEventById(userId, eventId);
   }
