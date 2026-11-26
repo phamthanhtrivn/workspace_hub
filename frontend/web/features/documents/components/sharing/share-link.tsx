@@ -14,6 +14,10 @@ import { documentsApi } from "../../api/documents.api";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
+import {
+  LINK_ACCESS_DESCRIPTIONS,
+  LINK_ACCESS_LABELS,
+} from "../../types/documents.constants";
 
 interface ShareModalLinkProps {
   documentItemId: string;
@@ -21,20 +25,6 @@ interface ShareModalLinkProps {
   onLinkAccessChanged?: (newAccess: LinkAccess) => void;
   isOwner?: boolean;
 }
-
-const LINK_ACCESS_LABELS: Record<LinkAccess, string> = {
-  [LinkAccess.NONE]: "Restricted",
-  [LinkAccess.VIEWER]: "Anyone with the link (Viewer)",
-  [LinkAccess.EDITOR]: "Anyone with the link (Viewer)",
-};
-
-const LINK_ACCESS_DESCRIPTIONS: Record<LinkAccess, string> = {
-  [LinkAccess.NONE]: "Only people with granted access can open with this link",
-  [LinkAccess.VIEWER]:
-    "Anyone on the internet with this link can view this item",
-  [LinkAccess.EDITOR]:
-    "Anyone on the internet with this link can view this item",
-};
 
 export function ShareModalLink({
   documentItemId,

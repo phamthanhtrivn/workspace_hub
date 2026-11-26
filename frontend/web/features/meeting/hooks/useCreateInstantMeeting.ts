@@ -22,7 +22,9 @@ export interface CreateInstantMeetingSettings extends Partial<MeetingPreJoinSett
   title?: string;
 }
 
-export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions) {
+export function useCreateInstantMeeting(
+  options?: UseCreateInstantMeetingOptions,
+) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isPending, mutate } = useMutation({
@@ -43,6 +45,12 @@ export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions
         },
       }),
     onSuccess: (response) => {
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.upcomingRoot,
+      });
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.historyRoot });
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.upcomingRoot });
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.historyRoot });
       const joinToken = response.data.meeting.joinToken;
       if (options?.skipJoinPrejoinAfterCreate) {
         queryClient.setQueryData(meetingKeys.room(joinToken), response);

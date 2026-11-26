@@ -2,9 +2,9 @@
 
 import {
   CalendarDays,
-  ChartNoAxesCombined,
   Clock3,
   RefreshCw,
+  TrendingUp,
   UserRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -63,33 +63,38 @@ function MeetingStatsSummary({
 
   return (
     <>
-      <dl className="mt-4">
-        <dt className="text-xs text-muted-foreground">Total meetings</dt>
-        <dd className="mt-1 break-words text-3xl font-semibold leading-9 text-foreground tabular-nums [overflow-wrap:anywhere]">
+      <dl className="mt-3">
+        <dt className="text-[11px] font-medium text-muted-foreground">
+          Total meetings
+        </dt>
+        <dd className="mt-0.5 break-words text-2xl font-bold leading-8 tracking-tight text-foreground tabular-nums [overflow-wrap:anywhere]">
           {summary.totalMeetings}
         </dd>
       </dl>
       <div className="mt-3 flex min-w-0 flex-wrap gap-2">
         <Badge
           variant="secondary"
-          className="max-w-full whitespace-normal bg-success-soft font-medium text-success-content"
+          className="max-w-full gap-1.5 whitespace-normal border border-success/25 bg-success-soft px-2.5 py-1 text-[11px] font-bold text-success-content"
         >
+          {summary.liveMeetings > 0 && (
+            <span className="size-1.5 rounded-full bg-success animate-pulse" />
+          )}
           Live{" "}
-          <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">
+          <span className="min-w-0 tabular-nums [overflow-wrap:anywhere]">
             {summary.liveMeetings}
           </span>
         </Badge>
         <Badge
           variant="secondary"
-          className="max-w-full whitespace-normal font-medium"
+          className="max-w-full whitespace-normal border border-border bg-muted px-2.5 py-1 text-[11px] font-bold text-muted-foreground"
         >
           Ended{" "}
-          <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">
+          <span className="min-w-0 tabular-nums [overflow-wrap:anywhere]">
             {summary.endedMeetings}
           </span>
         </Badge>
       </div>
-      <dl className="mt-4 space-y-3 border-t border-border pt-4 text-xs">
+      <dl className="mt-3 space-y-2 border-t border-border pt-2.5 text-xs">
         {details.map(({ label, icon: Icon, value }) => (
           <div
             key={label}
@@ -99,7 +104,7 @@ function MeetingStatsSummary({
               <Icon aria-hidden="true" className="size-3.5 shrink-0" />
               {label}
             </dt>
-            <dd className="min-w-0 break-words text-right font-medium text-foreground tabular-nums [overflow-wrap:anywhere]">
+            <dd className="min-w-0 break-words text-right font-bold text-foreground tabular-nums [overflow-wrap:anywhere]">
               {value}
             </dd>
           </div>
@@ -115,14 +120,14 @@ export function MeetingSidebarStatsPanel() {
 
   return (
     <section
-      className="mt-auto hidden min-w-0 shrink-0 rounded-panel border border-border bg-card p-4 @min-[1120px]/meetings:block"
+      className="mt-auto hidden min-w-0 shrink-0 rounded-panel border border-border bg-card p-3.5 @min-[1120px]/meetings:block"
       aria-label="Meeting statistics"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-foreground">Meeting stats</h2>
-        <ChartNoAxesCombined
+        <h2 className="text-xs font-bold text-foreground">Meeting stats</h2>
+        <TrendingUp
           aria-hidden="true"
-          className="size-5 shrink-0 text-muted-foreground"
+          className="size-4 shrink-0 text-info-content"
         />
       </div>
       {summaryQuery.isPending ? (

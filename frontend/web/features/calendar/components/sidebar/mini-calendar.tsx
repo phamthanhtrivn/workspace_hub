@@ -8,17 +8,22 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-import { getMiniCalendarWeekdayLabel, isSameDate } from "../../utils/calendar-date.utils";
+import {
+  getMiniCalendarWeekdayLabel,
+  isSameDate,
+} from "../../utils/calendar-date.utils";
 import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { zonedDateKey } from "@/lib/timezone";
 
 export const MiniCalendar = memo(function MiniCalendar({
   currentDate,
   selectedDate,
+  eventDates,
   onSelectDate,
 }: {
   currentDate: Date;
   selectedDate: Date | null;
+  eventDates?: Set<string>;
   onSelectDate: (date: Date) => void;
 }) {
   const timeZone = useAccountTimezone();
@@ -65,9 +70,9 @@ export const MiniCalendar = memo(function MiniCalendar({
   );
 
   return (
-    <div className="calendar-mini-shell px-4 py-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="truncate text-sm font-semibold capitalize text-foreground">
+    <div className="calendar-mini-shell mx-3.5 my-2 rounded-panel border border-border bg-muted/30 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="truncate text-xs font-bold capitalize text-foreground">
           {title}
         </h2>
         <div className="flex items-center gap-1">
@@ -110,9 +115,17 @@ export const MiniCalendar = memo(function MiniCalendar({
         events={[]}
         datesSet={handleDatesSet}
         dateClick={handleDateClick}
-        dayCellClassNames={(arg) =>
-          isSameDate(arg.date, selectedDate) ? ["is-selected-date"] : []
-        }
+        dayCellClassNames={(arg) => {
+          const classes: string[] = [];
+          if (isSameDate(arg.date, selectedDate)) {
+            classes.push("is-selected-date");
+          }
+          if (eventDates?.has(zonedDateKey(arg.date, timeZone))) {
+            classes.push("has-mini-event");
+          }
+
+          return classes;
+        }}
       />
     </div>
   );

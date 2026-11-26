@@ -69,6 +69,19 @@ export class S3Service {
     }
   }
 
+  async getFileMetadata(key: string) {
+    const object = await this.s3Client.send(
+      new HeadObjectCommand({ Bucket: this.bucketName, Key: key }),
+    );
+    if (object.ContentLength === undefined) {
+      throw new InternalServerErrorException('Document object metadata is incomplete');
+    }
+    return {
+      sizeBytes: object.ContentLength,
+      mimeType: object.ContentType ?? DOCUMENT_CONSTANTS.DEFAULT_MIME_TYPE,
+    };
+  }
+
   async describeAiSource(key: string, withDownload: boolean) {
     const object = await this.s3Client.send(
       new HeadObjectCommand({ Bucket: this.bucketName, Key: key }),

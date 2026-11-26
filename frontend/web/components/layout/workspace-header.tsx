@@ -8,6 +8,7 @@ import UserProfileDropdown from "../common/user-profile-dropdown";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
 import { useChatSocket } from "@/features/chat/hooks/socket/useChatSocket";
+import { useGlobalMeetingRealtime } from "@/features/meeting/hooks/useGlobalMeetingRealtime";
 import { Button } from "@/components/ui/button";
 import { WorkspaceClock } from "./workspace-clock";
 
@@ -30,6 +31,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   useNotificationSocket();
   useChatSocket();
+  useGlobalMeetingRealtime();
   const { openHelp } = useWorkspaceHelp();
 
   return (

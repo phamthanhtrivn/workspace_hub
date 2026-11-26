@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import DocumentExplorer from "./document-explorer";
-import { DocumentNotificationTarget } from './document-notification-target';
+import { DocumentNotificationTarget } from "./document-notification-target";
 import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
@@ -24,7 +24,11 @@ import {
 type PathEntry = { id: string | null; name: string };
 
 function DocumentsView() {
-  return <DownloadQueueProvider><DocumentsLocation /></DownloadQueueProvider>;
+  return (
+    <DownloadQueueProvider>
+      <DocumentsLocation />
+    </DownloadQueueProvider>
+  );
 }
 
 function DocumentsLocation() {
@@ -47,7 +51,8 @@ function DocumentsLocation() {
   });
   const query = params.toString();
   const canonicalQuery = canonicalizeDocumentFolderQuery(
-    query, resolveView ? access.data?.userRole : undefined,
+    query,
+    resolveView ? access.data?.userRole : undefined,
   );
   useEffect(() => {
     if (canonicalQuery !== query)
@@ -91,14 +96,20 @@ function DocumentsWorkspace({
   const router = useRouter();
   const activeView = initialView;
   const currentFolderId = initialFolderId;
+  const explorerActionsRef = useRef<{
+    openCreateFolder: () => void;
+    uploadFiles: (files: FileList) => void;
+  } | null>(null);
   const rootLabel =
-    activeView === DocumentViewType.STARRED
-      ? NavigationLabel.STARRED
-      : activeView === DocumentViewType.SHARED
-        ? NavigationLabel.SHARED
-        : activeView === DocumentViewType.TRASH
-          ? NavigationLabel.TRASH
-          : NavigationLabel.ROOT;
+    activeView === DocumentViewType.RECENT
+      ? NavigationLabel.RECENT
+      : activeView === DocumentViewType.STARRED
+        ? NavigationLabel.STARRED
+        : activeView === DocumentViewType.SHARED
+          ? NavigationLabel.SHARED
+          : activeView === DocumentViewType.TRASH
+            ? NavigationLabel.TRASH
+            : NavigationLabel.ROOT;
   const [navigationPath, setNavigationPath] = useState<PathEntry[] | null>(
     null,
   );
@@ -131,29 +142,41 @@ function DocumentsWorkspace({
   };
 
   return (
-      <div className="@container/documents h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
-        <div className="flex h-full min-h-0 min-w-0 flex-col @min-[960px]/documents:flex-row">
-          {/* Navigation Sidebar */}
-          <DocumentsSidebar
-            activeView={activeView}
-            onViewChange={handleViewChange}
-          />
+    <div className="@container/documents h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
+      <div className="flex h-full min-h-0 min-w-0 flex-col @min-[960px]/documents:flex-row">
+        {/* Navigation Sidebar */}
+        <DocumentsSidebar
+          activeView={activeView}
+          currentFolderId={currentFolderId}
+          onViewChange={handleViewChange}
+          onSelectFolder={(folderId) =>
+            router.push(
+              getDocumentViewUrl(DocumentViewType.MY_FILES, folderId),
+              { scroll: false },
+            )
+          }
+          onUploadFiles={(files) =>
+            explorerActionsRef.current?.uploadFiles(files)
+          }
+          onCreateFolder={() => explorerActionsRef.current?.openCreateFolder()}
+        />
 
-          {/* Document Explorer Main Canvas */}
-          <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
-            <DocumentNotificationTarget />
-            <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
-              <DocumentExplorer
-                currentFolderId={currentFolderId}
-                onNavigate={handleNavigate}
-                activeView={activeView}
-                path={path}
-                setPath={setPath}
-              />
-            </div>
-          </section>
-        </div>
+        {/* Document Explorer Main Canvas */}
+        <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+          <DocumentNotificationTarget />
+          <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
+            <DocumentExplorer
+              currentFolderId={currentFolderId}
+              onNavigate={handleNavigate}
+              activeView={activeView}
+              path={path}
+              setPath={setPath}
+              actionsRef={explorerActionsRef}
+            />
+          </div>
+        </section>
       </div>
+    </div>
   );
 }
 

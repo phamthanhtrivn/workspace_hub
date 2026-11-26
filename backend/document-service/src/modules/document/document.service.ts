@@ -28,6 +28,8 @@ import { DocumentSharingService } from './document-sharing.service';
 import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
 import { DocumentDownloadService } from './document-download.service';
 import { DocumentChatMetadata } from './types/document-chat-metadata.types';
+import { DocumentCurrentVersionService } from './document-current-version.service';
+import { DocumentVersionDeletionService } from './document-version-deletion.service';
 
 @Injectable()
 export class DocumentService {
@@ -42,6 +44,8 @@ export class DocumentService {
     private readonly sharing: DocumentSharingService,
     private readonly projectAttachments: ProjectDocumentAttachmentService,
     private readonly downloads: DocumentDownloadService,
+    private readonly currentVersions: DocumentCurrentVersionService,
+    private readonly versionDeletion: DocumentVersionDeletionService,
   ) {}
   async initiateUpload(
     userId: string,
@@ -149,6 +153,8 @@ export class DocumentService {
       isArchived?: boolean;
       projectId?: string;
       isSharedOnly?: boolean;
+      isRecentOnly?: boolean;
+      itemType?: ItemType;
       page?: number;
       limit?: number;
       sortBy?: DocumentSortBy;
@@ -159,6 +165,10 @@ export class DocumentService {
     totalCount: number;
   }> {
     return this.queries.getItems(userId, userEmail, options);
+  }
+
+  async getNavigationSummary(userId: string, userEmail: string) {
+    return this.queries.getNavigationSummary(userId, userEmail);
   }
 
   async getSharedWithMe(
@@ -252,6 +262,7 @@ export class DocumentService {
     Array<
       DocumentVersion & {
         uploadedByEmail: string;
+        isCurrent: boolean;
         uploaderProfile: UserProfileSnapshotResponse | null;
       }
     >
@@ -268,6 +279,14 @@ export class DocumentService {
     DocumentVersion & { uploaderProfile: UserProfileSnapshotResponse | null }
   > {
     return this.uploads.createVersion(userId, userEmail, id, dto);
+  }
+
+  async setCurrentVersion(id: string, versionId: string, userId?: string, userEmail?: string) {
+    return this.currentVersions.setCurrentVersion(id, versionId, userId, userEmail);
+  }
+
+  async deleteVersion(id: string, versionId: string, userId?: string, userEmail?: string) {
+    return this.versionDeletion.deleteVersion(id, versionId, userId, userEmail);
   }
 
   async getSharing(

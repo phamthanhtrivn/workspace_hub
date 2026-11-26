@@ -13,14 +13,12 @@ import { DirectMessage } from "../../types/chat.types";
 import { ChatSidebarSection, chatKeys } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
-import { cn } from "@/lib/utils";
 import {
   DirectMessagesQueryData,
   useDirectMessagesQuery,
 } from "../../hooks/useChatQueries";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 const EMPTY_DIRECT_MESSAGES: DirectMessage[] = [];
 
@@ -30,6 +28,7 @@ interface DirectMessagesSectionProps {
   searchQuery: string;
   onCreateDirectConversation: () => void;
   onSelectConversation: (directMessage: DirectMessage) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 export default function DirectConversationsSection({
@@ -38,6 +37,7 @@ export default function DirectConversationsSection({
   searchQuery,
   onCreateDirectConversation,
   onSelectConversation,
+  onViewProfile,
 }: DirectMessagesSectionProps) {
   const queryClient = useQueryClient();
   const [isDmExpanded, setIsDmExpanded] = useState(true);
@@ -70,6 +70,7 @@ export default function DirectConversationsSection({
         const nextDirectMessages = sortDirectConversations(
           oldData.directMessages.map((directMessage) => {
             if (directMessage.id !== directMessageId) return directMessage;
+
             return {
               ...directMessage,
               members: directMessage.members.map((member) =>
@@ -102,6 +103,7 @@ export default function DirectConversationsSection({
         queryClient.getQueryData<DirectMessagesQueryData>(queryKey);
 
       updateDirectMessageMemberCache(directMessageId, { pinned });
+
       return { previousData };
     },
     onError: (_error, _variables, context) => {
@@ -134,6 +136,7 @@ export default function DirectConversationsSection({
         queryClient.getQueryData<DirectMessagesQueryData>(queryKey);
 
       updateDirectMessageMemberCache(directMessageId, { muted });
+
       return { previousData };
     },
     onError: (_error, _variables, context) => {
@@ -152,36 +155,38 @@ export default function DirectConversationsSection({
   });
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
-        <Button variant="unstyled"
+    <div className="flex flex-col gap-1 border-t border-border pt-3">
+      <div className="mb-1 flex select-none items-center justify-between px-2 text-[11px] font-bold tracking-wide text-muted-foreground">
+        <Button
+          variant="unstyled"
           onClick={() => setIsDmExpanded(!isDmExpanded)}
-          className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
+          className="flex items-center gap-1.5 hover:text-foreground transition cursor-pointer text-left"
         >
           {isDmExpanded ? (
-            <ChevronDown size={12} />
+            <ChevronDown size={13} />
           ) : (
-            <ChevronRight size={12} />
+            <ChevronRight size={13} />
           )}
           <span>{ChatSidebarSection.DIRECT_MESSAGES}</span>
         </Button>
-        <IconButton label="Find new chat" showTooltip={false} size="icon-sm"
+        <IconButton
+          label="Find new chat"
+          showTooltip={false}
+          size="icon-sm"
           onClick={onCreateDirectConversation}
-          className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
+          className="rounded-control p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground cursor-pointer"
           title="Find new chat"
         >
           <Plus size={14} />
         </IconButton>
       </div>
       {isDmExpanded && (
-        <div
-          className={cn(
-            "pr-1 flex flex-col gap-0.5",
-            directMessages.length > 10 && "max-h-80 overflow-y-auto",
-          )}
-        >
+        <div className="flex flex-col gap-0.5 pr-1">
           {isLoading ? (
-            <LoadingState label="Loading..." className="text-xs text-muted-foreground italic px-3 py-1" />
+            <LoadingState
+              label="Loading..."
+              className="text-xs text-muted-foreground italic px-3 py-1"
+            />
           ) : directMessages.length > 0 ? (
             directMessages.map((directMessage) => (
               <DirectConversationItem
@@ -205,6 +210,7 @@ export default function DirectConversationsSection({
                     muted,
                   })
                 }
+                onViewProfile={onViewProfile}
               />
             ))
           ) : (

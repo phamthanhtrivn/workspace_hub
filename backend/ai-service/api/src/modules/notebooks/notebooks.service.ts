@@ -7,6 +7,10 @@ import type { Actor, Source, Snapshot } from "../../common/types";
 import { randomUUID } from "node:crypto";
 import { deleteSource } from "../../common/delete-source";
 import { notebookMessages } from "./notebook-messages";
+import type {
+  CreateNotebookInput,
+  UpdateNotebookInput,
+} from "./notebook-input";
 import {
   notebookListSql,
   notebookListQuery,
@@ -34,24 +38,39 @@ export class NotebooksService {
         limit: query.limit,
         total: page.total,
         totalPages: page.total_pages,
+        totalNotebooks: page.total_notebooks,
       },
     };
   }
-  async create(actor: Actor, title: string) {
+  async create(actor: Actor, input: CreateNotebookInput) {
     return (
       await rows(
-        "INSERT INTO notebook_ai.notebooks(id,owner_id,title) VALUES($1,$2,$3) RETURNING *",
-        [randomUUID(), actor.id, title],
+        "INSERT INTO notebook_ai.notebooks(id,owner_id,title,description,category,color_theme) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",
+        [
+          randomUUID(),
+          actor.id,
+          input.title,
+          input.description,
+          input.category,
+          input.color_theme,
+        ],
       )
     )[0];
   }
-  async rename(actor: Actor, id: string, title: string) {
+  async update(actor: Actor, id: string, input: UpdateNotebookInput) {
     await ownedNotebook(actor, id);
 
     return (
       await rows(
-        "UPDATE notebook_ai.notebooks SET title=$2,updated_at=now() WHERE id=$1 RETURNING *",
-        [id, title],
+        "UPDATE notebook_ai.notebooks SET title=coalesce($3,title),description=coalesce($4,description),category=coalesce($5,category),color_theme=coalesce($6,color_theme),updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING *",
+        [
+          id,
+          actor.id,
+          input.title,
+          input.description,
+          input.category,
+          input.color_theme,
+        ],
       )
     )[0];
   }

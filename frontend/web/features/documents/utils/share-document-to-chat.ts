@@ -9,6 +9,8 @@ import { TaskDocumentAttachmentSource } from "@/features/project/types/project";
 import { documentsApi } from "../api/documents.api";
 import { fileCopyApi } from "../api/file-copy.api";
 import { getDocumentChatShareAttempt } from "./document-chat-share-attempt";
+import { ORIGINAL_VERSION_ID } from "../types/documents.constants";
+import { DOCUMENT_COPY_MESSAGES } from "../types/document-copy.constants";
 export interface DocumentChatShareTarget {
   type: "channel" | "direct" | "meeting" | "project";
   chatId: string;
@@ -22,6 +24,7 @@ export async function shareDocumentToChat({
   introMessage,
   isFolder = false,
   assertCurrentActor = () => {},
+  sourceVersionId,
 }: {
   documentId: string;
   target: DocumentChatShareTarget;
@@ -29,6 +32,7 @@ export async function shareDocumentToChat({
   introMessage: string;
   isFolder?: boolean;
   assertCurrentActor?: () => void;
+  sourceVersionId?: string;
 }) {
   assertCurrentActor();
   if (target.type === "project" && isFolder)
@@ -40,14 +44,19 @@ export async function shareDocumentToChat({
     target.chatId,
     target.taskId,
     introMessage.trim(),
+    ...(sourceVersionId ? [sourceVersionId] : []),
   ]);
   if (!isFolder && !progress.attempt.sourceVersionId) {
-    const versions = await documentsApi.getVersions(documentId);
-    assertCurrentActor();
-    const current = versions[0];
-    if (!current || current.id === "original")
-      throw new Error("The current file version could not be verified.");
-    progress.attempt.sourceVersionId = current.id;
+    if (sourceVersionId) {
+      progress.attempt.sourceVersionId = sourceVersionId;
+    } else {
+      const versions = await documentsApi.getVersions(documentId);
+      assertCurrentActor();
+      const current = versions.find((version) => version.isCurrent);
+      if (!current || current.id === ORIGINAL_VERSION_ID)
+        throw new Error(DOCUMENT_COPY_MESSAGES.versionUnavailable);
+      progress.attempt.sourceVersionId = current.id;
+    }
   }
   progress.save();
   const files = [

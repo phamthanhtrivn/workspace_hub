@@ -5,6 +5,7 @@ export const DOCUMENTS_PATH = "/documents";
 
 const DOCUMENT_VIEW_QUERY_VALUES: Record<DocumentViewType, string | null> = {
   [DocumentViewType.MY_FILES]: null,
+  [DocumentViewType.RECENT]: "recent",
   [DocumentViewType.SHARED]: "shared",
   [DocumentViewType.STARRED]: "starred",
   [DocumentViewType.TRASH]: "trash",

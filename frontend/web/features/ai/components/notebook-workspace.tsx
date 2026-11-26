@@ -7,25 +7,16 @@ import {
   ArrowLeft,
   FileText,
   MessageSquare,
-  MoreHorizontal,
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
-  Pencil,
   RotateCcw,
-  Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useAppSelector } from "@/store/store";
 import { useNotebook, useNotebookChat } from "../hooks/use-notebook";
@@ -35,6 +26,7 @@ import { SourcePanel } from "./source-panel";
 import { NotesPanel } from "./notes-panel";
 import { NotebookChatPanel } from "./notebook-chat-panel";
 import { NotebookDialog } from "./notebook-dialog";
+import { NotebookWorkspaceHeader } from "./notebook-workspace-header";
 
 export function NotebookWorkspace({ id }: { id: string }) {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -110,73 +102,24 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
   const panel =
     "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-border bg-card text-card-foreground";
   const slot =
-    "m-0 hidden min-h-0 min-w-0 data-[state=active]:flex @min-[68rem]/notebook:flex";
+    "m-0 hidden min-h-0 min-w-0 data-[state=active]:flex @min-[60rem]/notebook:flex";
 
   return (
     <Tabs
       value={tab}
       onValueChange={setTab}
-      className="@container/notebook flex min-h-0 min-w-0 w-full flex-1 flex-col gap-4 overflow-hidden bg-muted/30 p-3 md:p-5"
+      className="@container/notebook flex min-h-0 min-w-0 w-full flex-1 flex-col gap-3 overflow-hidden bg-muted/30"
     >
-      <header className="flex shrink-0 items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button asChild variant="outline" size="icon" className="shrink-0">
-            <Link
-              href="/ai"
-              aria-label="Back to notebooks"
-              title="Back to notebooks"
-            >
-              <ArrowLeft aria-hidden="true" />
-            </Link>
-          </Button>
-          <div className="min-w-0">
-            <h1
-              className="line-clamp-2 text-page-title font-semibold [overflow-wrap:anywhere]"
-              title={notebook.title}
-            >
-              {notebook.title}
-            </h1>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Private · {notebook.sources.length}{" "}
-              {notebook.sources.length === 1 ? "source" : "sources"}
-            </p>
-          </div>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={query.saving}
-              aria-label="Notebook actions"
-            >
-              <MoreHorizontal aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="w-full"
-              onClick={() => setAction({ type: "rename", notebook })}
-            >
-              <Pencil className="size-4" aria-hidden="true" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="w-full text-destructive-content data-[highlighted]:bg-destructive-soft data-[highlighted]:text-destructive-content"
-              disabled={chat.busy}
-              onClick={() => setAction({ type: "delete", notebook })}
-            >
-              <Trash2 className="size-4" aria-hidden="true" />
-              Delete notebook
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
+      <NotebookWorkspaceHeader
+        notebook={notebook}
+        onAction={setAction}
+        saving={query.saving}
+        busy={chat.busy}
+      />
       {query.actionError && (
         <p
           role="alert"
-          className="shrink-0 rounded-control border border-destructive-outline bg-destructive-soft px-3 py-2 text-sm text-destructive-content"
+          className="mx-3 shrink-0 rounded-control border border-destructive-outline bg-destructive-soft px-3 py-2 text-sm text-destructive-content"
         >
           Unable to complete this action. Check source access and upload limits,
           then try again.
@@ -184,7 +127,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
       )}
       <TabsList
         aria-label="Notebook workspace"
-        className="flex w-full @min-[68rem]/notebook:hidden"
+        className="mx-3 flex @min-[60rem]/notebook:hidden"
       >
         <TabsTrigger value="sources" className="min-w-0 flex-1">
           <FileText className="size-4" aria-hidden="true" />
@@ -200,7 +143,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
         </TabsTrigger>
       </TabsList>
       <div
-        className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 [--sources-width:clamp(15rem,22cqw,19rem)] [--notes-width:clamp(16rem,23cqw,21rem)] data-[sources-open=false]:[--sources-width:3.25rem] data-[notes-open=false]:[--notes-width:3.25rem] @min-[68rem]/notebook:grid-cols-[var(--sources-width)_minmax(0,1fr)_var(--notes-width)]"
+        className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 px-3 pb-3 [--sources-width:clamp(14.5rem,21cqw,23rem)] [--notes-width:clamp(15.5rem,22cqw,25rem)] data-[sources-open=false]:[--sources-width:3.5rem] data-[notes-open=false]:[--notes-width:3.5rem] @min-[60rem]/notebook:grid-cols-[var(--sources-width)_minmax(0,1fr)_var(--notes-width)]"
         data-sources-open={sourcesOpen}
         data-notes-open={notesOpen}
       >
@@ -211,7 +154,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
           data-collapsed={!sourcesOpen}
         >
           <div
-            className={`${panel} ${sourcesOpen ? "" : "@min-[68rem]/notebook:hidden"}`}
+            className={`${panel} ${sourcesOpen ? "" : "@min-[60rem]/notebook:hidden"}`}
           >
             <SourcePanel
               id={id}
@@ -234,7 +177,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="hidden @min-[68rem]/notebook:inline-flex"
+                  className="hidden @min-[60rem]/notebook:inline-flex"
                   aria-label="Collapse Sources"
                   title="Collapse Sources"
                   onClick={() => setSourcesOpen(false)}
@@ -244,20 +187,16 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
               }
             />
           </div>
-          <div
-            className={`hidden flex-col items-center gap-3 rounded-panel border border-border bg-card py-3 ${sourcesOpen ? "" : "@min-[68rem]/notebook:flex"}`}
-          >
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Expand Sources"
-              title="Expand Sources"
-              onClick={() => setSourcesOpen(true)}
-            >
-              <PanelLeftOpen aria-hidden="true" />
-            </Button>
-            <FileText className="size-4 text-link" aria-hidden="true" />
-          </div>
+          {!sourcesOpen && (
+            <CollapsedPanelRail
+              label="Sources"
+              count={notebook.sources.length}
+              side="left"
+              icon={FileText}
+              iconTone="bg-primary-soft text-primary-soft-foreground"
+              onExpand={() => setSourcesOpen(true)}
+            />
+          )}
         </TabsContent>
         <TabsContent forceMount value="chat" className={slot}>
           <div className={panel}>
@@ -280,7 +219,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
           data-collapsed={!notesOpen}
         >
           <div
-            className={`${panel} ${notesOpen ? "" : "@min-[68rem]/notebook:hidden"}`}
+            className={`${panel} ${notesOpen ? "" : "@min-[60rem]/notebook:hidden"}`}
           >
             <NotesPanel
               notebook={notebook}
@@ -291,7 +230,7 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="hidden @min-[68rem]/notebook:inline-flex"
+                  className="hidden @min-[60rem]/notebook:inline-flex"
                   aria-label="Collapse Notes"
                   title="Collapse Notes"
                   onClick={() => setNotesOpen(false)}
@@ -301,20 +240,16 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
               }
             />
           </div>
-          <div
-            className={`hidden flex-col items-center gap-3 rounded-panel border border-border bg-card py-3 ${notesOpen ? "" : "@min-[68rem]/notebook:flex"}`}
-          >
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Expand Notes"
-              title="Expand Notes"
-              onClick={() => setNotesOpen(true)}
-            >
-              <PanelRightOpen aria-hidden="true" />
-            </Button>
-            <NotebookPen className="size-4 text-link" aria-hidden="true" />
-          </div>
+          {!notesOpen && (
+            <CollapsedPanelRail
+              label="Notes"
+              count={notebook.notes.length}
+              side="right"
+              icon={NotebookPen}
+              iconTone="bg-warning-soft text-warning-content"
+              onExpand={() => setNotesOpen(true)}
+            />
+          )}
         </TabsContent>
       </div>
       {action && (
@@ -327,5 +262,61 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
         />
       )}
     </Tabs>
+  );
+}
+
+function CollapsedPanelRail({
+  label,
+  count,
+  side,
+  icon: Icon,
+  iconTone,
+  onExpand,
+}: {
+  label: string;
+  count: number;
+  side: "left" | "right";
+  icon: LucideIcon;
+  iconTone: string;
+  onExpand: () => void;
+}) {
+  const ExpandIcon = side === "left" ? PanelLeftOpen : PanelRightOpen;
+
+  return (
+    <aside
+      aria-label={`${label} collapsed`}
+      className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-panel border border-border bg-card text-card-foreground @min-[60rem]/notebook:flex"
+    >
+      <div className="flex h-16 shrink-0 items-center justify-center border-b border-border">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Expand ${label}`}
+          title={`Expand ${label}`}
+          onClick={onExpand}
+        >
+          <ExpandIcon aria-hidden="true" />
+        </Button>
+      </div>
+      <button
+        type="button"
+        onClick={onExpand}
+        title={`Expand ${label}`}
+        aria-label={`Open ${label} panel`}
+        className="flex min-h-0 flex-1 cursor-pointer flex-col items-center gap-3 px-1.5 py-4 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <span className={`grid size-8 shrink-0 place-items-center rounded-control ${iconTone}`}>
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-foreground">
+          {count}
+        </span>
+        <span
+          className={`mt-1 select-none text-xs font-medium tracking-wide [writing-mode:vertical-rl] ${side === "left" ? "rotate-180" : ""}`}
+        >
+          {label}
+        </span>
+      </button>
+    </aside>
   );
 }

@@ -28,7 +28,8 @@ export const MEETING_HISTORY_LABELS = {
   updateError: "Could not update meeting history. Try again.",
   undo: "Undo",
   hiddenEmptyTitle: "No hidden meetings",
-  hiddenEmptyDescription: "Meetings you hide from your history will appear here. You can restore them at any time.",
+  hiddenEmptyDescription:
+    "Meetings you hide from your history will appear here. You can restore them at any time.",
 } as const;
 
 export const MEETING_HISTORY_BULK_LABELS = {
@@ -40,17 +41,24 @@ export const MEETING_HISTORY_BULK_LABELS = {
   hideAll: "Hide all",
   restoreAll: "Restore all",
   cancel: "Cancel",
-  allPages: "This applies to all eligible meetings across every page of your history.",
+  allPages:
+    "This applies to all eligible meetings across every page of your history.",
   selectedPage: "This applies to the selected meetings on this page.",
-  hideDescription: "These meetings will be hidden from your history. You can restore them from Hidden meetings.",
-  restoreDescription: "These meetings will appear in your Previous meetings list again.",
-  updateError: "Could not update history. Refresh the list and review your selection before trying again.",
+  hideDescription:
+    "These meetings will be hidden from your history. You can restore them from Hidden meetings.",
+  restoreDescription:
+    "These meetings will appear in your Previous meetings list again.",
+  updateError:
+    "Could not update history. Refresh the list and review your selection before trying again.",
   noChanges: "No meetings needed updating.",
   visibleEmptyTitle: "No meetings to show",
-  visibleEmptyDescription: "Past meetings you joined appear here. Open Hidden meetings to restore entries you have hidden.",
+  visibleEmptyDescription:
+    "Past meetings you joined appear here. Open Hidden meetings to restore entries you have hidden.",
   selectedCount: (count: number) => `${count} selected`,
-  confirmTitle: (hidden: boolean, count: number) => `${hidden ? "Hide" : "Restore"} ${count} ${count === 1 ? "meeting" : "meetings"}?`,
-  success: (hidden: boolean, count: number) => `${count} ${count === 1 ? "meeting" : "meetings"} ${hidden ? "hidden from" : "restored to"} your history`,
+  confirmTitle: (hidden: boolean, count: number) =>
+    `${hidden ? "Hide" : "Restore"} ${count} ${count === 1 ? "meeting" : "meetings"}?`,
+  success: (hidden: boolean, count: number) =>
+    `${count} ${count === 1 ? "meeting" : "meetings"} ${hidden ? "hidden from" : "restored to"} your history`,
 } as const;
 
 export const MEETING_ROUTES = {
@@ -62,6 +70,7 @@ export const MEETING_API_PATHS = {
   INSTANT: "/api/meetings/instant",
   SCHEDULED: "/api/meetings/scheduled",
   UPCOMING: "/api/meetings/upcoming",
+  BADGE_SUMMARY: "/api/meetings/badge-summary",
   HISTORY: "/api/meetings/history",
   HISTORY_SUMMARY: "/api/meetings/history/summary",
   HISTORY_BULK_VISIBILITY: "/api/meetings/history/visibility/bulk",
@@ -162,18 +171,22 @@ export const meetingDashboardNavItems = [
   {
     id: MeetingDashboardNavItemId.OVERVIEW,
     label: "Overview",
+    iconClassName: "text-info-content",
   },
   {
     id: MeetingDashboardNavItemId.UPCOMING,
     label: "Upcoming",
+    iconClassName: "text-success-content",
   },
   {
     id: MeetingDashboardNavItemId.PREVIOUS,
     label: "Previous",
+    iconClassName: "text-warning-content",
   },
   {
     id: MeetingDashboardNavItemId.RECORDINGS,
     label: "Recordings",
+    iconClassName: "text-destructive-content",
   },
 ] as const;
 

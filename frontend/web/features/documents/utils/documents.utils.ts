@@ -17,6 +17,10 @@ import {
   StorageQuotaStats,
 } from "../types/documents.types";
 import { Eye, Edit, ShieldCheck } from "lucide-react";
+import {
+  BROWSER_IMAGE_MIME_TYPES,
+  OFFICE_MIME_TYPES,
+} from "../types/document-preview.constants";
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -88,6 +92,7 @@ export const getPreviewFileType = (
   mimeType: string | null,
   name: string,
 ): PreviewFileType => {
+  const cleanMime = mimeType?.split(";")[0].trim().toLowerCase() ?? "";
   let fileExt = "";
   const dotIndex = name.lastIndexOf(".");
   if (dotIndex > 0) {
@@ -97,28 +102,35 @@ export const getPreviewFileType = (
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.IMAGE_PREFIX)) ||
+    (FILE_EXTENSIONS.OFFICE as readonly string[]).includes(fileExt) ||
+    OFFICE_MIME_TYPES.includes(cleanMime)
+  ) {
+    return PreviewFileType.OFFICE;
+  }
+
+  if (
+    BROWSER_IMAGE_MIME_TYPES.includes(cleanMime) ||
     (FILE_EXTENSIONS.IMAGE as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.IMAGE;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase() === MIME_TYPES.PDF) ||
+    cleanMime === MIME_TYPES.PDF ||
     (FILE_EXTENSIONS.PDF as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.PDF;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.VIDEO_PREFIX)) ||
+    cleanMime.startsWith(MIME_TYPES.VIDEO_PREFIX) ||
     (FILE_EXTENSIONS.VIDEO as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.VIDEO;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.AUDIO_PREFIX)) ||
+    cleanMime.startsWith(MIME_TYPES.AUDIO_PREFIX) ||
     (FILE_EXTENSIONS.AUDIO as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.AUDIO;
@@ -126,13 +138,9 @@ export const getPreviewFileType = (
 
   if (
     (FILE_EXTENSIONS.TEXT_PREVIEW as readonly string[]).includes(fileExt) ||
-    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.TEXT_PREFIX))
+    cleanMime.startsWith(MIME_TYPES.TEXT_PREFIX)
   ) {
     return PreviewFileType.TEXT;
-  }
-
-  if ((FILE_EXTENSIONS.OFFICE as readonly string[]).includes(fileExt)) {
-    return PreviewFileType.OFFICE;
   }
 
   return PreviewFileType.UNKNOWN;

@@ -16,6 +16,7 @@ import {
 } from "@/store/chat/chat-slice";
 import { SheetPanel } from "@/components/ui/sheet";
 import { useElementMinWidth } from "@/components/ui/use-element-min-width";
+import { cn } from "@/lib/utils";
 import { ChatContextType } from "../types/chat.types";
 
 export default function ChatLayout() {
@@ -27,15 +28,43 @@ export default function ChatLayout() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const wideCanvas = useElementMinWidth(canvasRef, 1060);
   const dispatch = useAppDispatch();
-  const [showRightPanel, setShowRightPanel] = useState(Boolean(urlSpaceId && urlChannelId && urlThreadId));
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(
+    Boolean(urlSpaceId && urlChannelId && urlThreadId),
+  );
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
-  const [mobileView, setMobileView] = useState<"sidebar" | "chat">((urlSpaceId && urlChannelId) || activeChatId ? "chat" : "sidebar");
+  const [mobileView, setMobileView] = useState<"sidebar" | "chat">(
+    (urlSpaceId && urlChannelId) || activeChatId ? "chat" : "sidebar",
+  );
   const activeThreadRootMessageId = useAppSelector(
     (state) => state.chat.activeThreadRootMessageId,
   );
 
   useEffect(() => {
-    const spaceId = urlSpaceId, channelId = urlChannelId, threadId = urlThreadId;
+    queueMicrotask(() => {
+      try {
+        if (localStorage.getItem("chat_sidebar_collapsed") === "true") {
+          setIsSidebarCollapsed(true);
+        }
+      } catch {
+        // ignore storage errors
+      }
+    });
+  }, []);
+
+  const handleToggleSidebar = (nextCollapsed: boolean) => {
+    setIsSidebarCollapsed(nextCollapsed);
+    try {
+      localStorage.setItem("chat_sidebar_collapsed", String(nextCollapsed));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  useEffect(() => {
+    const spaceId = urlSpaceId,
+      channelId = urlChannelId,
+      threadId = urlThreadId;
     if (!spaceId || !channelId) return;
 
     dispatch(setActiveSpaceId(spaceId));
@@ -83,12 +112,27 @@ export default function ChatLayout() {
   };
 
   return (
-    <div ref={canvasRef} className="@container/messages relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
+    <div
+      ref={canvasRef}
+      className="@container/messages relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-card"
+    >
       {/* Sidebar */}
       <div
-        className={`z-20 min-h-0 w-full shrink-0 @min-[720px]/messages:w-80 ${mobileView === "sidebar" || !activeChatId ? "block" : "hidden @min-[720px]/messages:block"}`}
+        className={cn(
+          "z-20 min-h-0 w-full shrink-0 transition-[width] duration-200",
+          isSidebarCollapsed
+            ? "@min-[720px]/messages:w-14"
+            : "@min-[720px]/messages:w-[276px]",
+          mobileView === "sidebar" || !activeChatId
+            ? "block"
+            : "hidden @min-[720px]/messages:block",
+        )}
       >
-        <ChatSidebar onSelectChat={handleSelectChat} />
+        <ChatSidebar
+          onSelectChat={handleSelectChat}
+          collapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+        />
       </div>
 
       {/* Main Chat Area or Empty State */}
@@ -108,14 +152,26 @@ export default function ChatLayout() {
 
       {/* Thread Panel - separate from conversation info */}
       {activeThreadRootMessageId && activeChatId && (
-        <SheetPanel open modal={!wideCanvas} aria-label="Thread discussion" onClose={() => dispatch(setActiveThreadRootMessage(null))} className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static">
+        <SheetPanel
+          open
+          modal={!wideCanvas}
+          aria-label="Thread discussion"
+          onClose={() => dispatch(setActiveThreadRootMessage(null))}
+          className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static"
+        >
           <ThreadSidePanel />
         </SheetPanel>
       )}
 
       {/* Right Panel - Togglable (Only show if active chat and no thread) */}
       {showRightPanel && activeChatId && !activeThreadRootMessageId && (
-        <SheetPanel open modal={!wideCanvas} aria-label="Conversation details" onClose={() => setShowRightPanel(false)} className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static">
+        <SheetPanel
+          open
+          modal={!wideCanvas}
+          aria-label="Conversation details"
+          onClose={() => setShowRightPanel(false)}
+          className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static"
+        >
           <ChatRightPanel
             onClose={() => {
               setShowRightPanel(false);

@@ -26,6 +26,7 @@ export const createSpace = async (
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.post("/api/spaces", { name });
   const payload = normalizeApiResponse<SpaceResponse>(response.data);
+
   return {
     ...payload,
     data: normalizeSpace(payload.data),
@@ -38,6 +39,7 @@ export const getUserSpaces = async (): Promise<
   const response = await api.get("/api/spaces");
   const payload = response.data;
   const spaces = payload?.data ?? payload;
+
   return {
     ...payload,
     success: payload?.success ?? true,
@@ -45,11 +47,26 @@ export const getUserSpaces = async (): Promise<
   };
 };
 
+export interface SpaceUnreadSummary {
+  unreadChannelsCount: number;
+  unreadDirectMessagesCount: number;
+  totalUnreadCount: number;
+}
+
+export const getSpaceUnreadSummary = async (
+  signal?: AbortSignal,
+): Promise<SpaceUnreadSummary> => {
+  const response = await api.get("/api/spaces/unread-summary", { signal });
+
+  return normalizeApiResponse<SpaceUnreadSummary>(response.data).data;
+};
+
 export const getSpaceDetails = async (
   spaceId: string,
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.get(`/api/spaces/${spaceId}`);
   const payload = normalizeApiResponse<SpaceResponse>(response.data);
+
   return {
     ...payload,
     data: normalizeSpace(payload.data),
@@ -62,6 +79,7 @@ export const updateSpace = async (
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.patch(`/api/spaces/${spaceId}`, { name });
   const payload = normalizeApiResponse<SpaceResponse>(response.data);
+
   return {
     ...payload,
     data: normalizeSpace(payload.data),
@@ -72,6 +90,7 @@ export const deleteSpace = async (
   spaceId: string,
 ): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/spaces/${spaceId}`);
+
   return normalizeApiResponse<unknown>(response.data);
 };
 
@@ -79,6 +98,7 @@ export const leaveSpace = async (
   spaceId: string,
 ): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/spaces/${spaceId}/leave`);
+
   return normalizeApiResponse<unknown>(response.data);
 };
 
@@ -90,6 +110,7 @@ export const updateSpaceSettings = async (
 ): Promise<ApiResponse<SpaceSettingResponse>> => {
   const response = await api.patch(`/api/spaces/${spaceId}/settings`, settings);
   const payload = normalizeApiResponse<SpaceSettingResponse>(response.data);
+
   return {
     ...payload,
     data: normalizeSpaceSetting(payload.data, spaceId),
@@ -106,6 +127,7 @@ export const getSpaceMembers = async (
   const response = await api.get(`/api/spaces/${spaceId}/members`, {
     params: { search: search || undefined, limit },
   });
+
   return normalizeApiResponse<SpaceMembersListResponse>(response.data);
 };
 
@@ -118,6 +140,7 @@ export const getSpaceMemberCandidates = async (
     params: { ...params, search: params.search || undefined },
     signal,
   });
+
   return normalizeApiResponse<SpaceMemberCandidatesResponse>(response.data);
 };
 
@@ -133,6 +156,7 @@ export const updateSpaceMemberRole = async (
     `/api/spaces/${spaceId}/members/${memberId}/role`,
     { role },
   );
+
   return normalizeApiResponse<ConversationMember>(response.data);
 };
 
@@ -144,6 +168,7 @@ export const transferSpaceOwnership = async (
     `/api/spaces/${spaceId}/transfer-ownership`,
     { targetUserId },
   );
+
   return normalizeApiResponse<unknown>(response.data);
 };
 
@@ -154,6 +179,7 @@ export const removeSpaceMember = async (
   const response = await api.delete(
     `/api/spaces/${spaceId}/members/${memberId}`,
   );
+
   return normalizeApiResponse<unknown>(response.data);
 };
 
@@ -164,7 +190,11 @@ export const createChannel = async (
   name: string,
   options: CreateChannelOptions = {},
 ): Promise<ApiResponse<ChannelResponse>> => {
-  const response = await api.post(`/api/spaces/${spaceId}/channels`, { name, ...options });
+  const response = await api.post(`/api/spaces/${spaceId}/channels`, {
+    name,
+    ...options,
+  });
+
   return normalizeApiResponse<ChannelResponse>(response.data);
 };
 
@@ -177,6 +207,7 @@ export const getSpaceChannels = async (
   });
   const payload = response.data;
   const channels = payload?.data ?? payload;
+
   return {
     ...payload,
     success: payload?.success ?? true,
@@ -197,6 +228,7 @@ export const inviteSpaceMembers = async (
       avatarUrl: user.avatarUrl,
     })),
   });
+
   return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
@@ -204,6 +236,7 @@ export const getSpaceInvitations = async (
   spaceId: string,
 ): Promise<ApiResponse<SpaceInvitation[]>> => {
   const response = await api.get(`/api/spaces/${spaceId}/invitations`);
+
   return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
@@ -214,6 +247,7 @@ export const cancelSpaceInvitation = async (
   const response = await api.delete(
     `/api/spaces/${spaceId}/invitations/${invitationId}`,
   );
+
   return normalizeApiResponse<unknown>(response.data);
 };
 
@@ -224,6 +258,7 @@ export const resendSpaceInvitation = async (
   const response = await api.post(
     `/api/spaces/${spaceId}/invitations/${invitationId}/resend`,
   );
+
   return normalizeApiResponse<SpaceInvitation>(response.data);
 };
 
@@ -233,6 +268,7 @@ export const getPendingInvitations = async (): Promise<
   ApiResponse<SpaceInvitation[]>
 > => {
   const response = await api.get("/api/invitations/pending");
+
   return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
@@ -240,6 +276,7 @@ export const acceptInvitation = async (
   invitationId: string,
 ): Promise<ApiResponse<AcceptSpaceInvitationResponse>> => {
   const response = await api.post(`/api/invitations/${invitationId}/accept`);
+
   return normalizeApiResponse<AcceptSpaceInvitationResponse>(response.data);
 };
 
@@ -247,5 +284,6 @@ export const declineInvitation = async (
   invitationId: string,
 ): Promise<ApiResponse<SpaceInvitation>> => {
   const response = await api.post(`/api/invitations/${invitationId}/decline`);
+
   return normalizeApiResponse<SpaceInvitation>(response.data);
 };

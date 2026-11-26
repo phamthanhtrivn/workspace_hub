@@ -24,6 +24,8 @@ import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
+import { SetCurrentVersionDto } from './dto/set-current-version.dto';
+import { DOCUMENT_VERSION_MESSAGES } from './types/document-version.constants';
 import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
@@ -32,6 +34,7 @@ import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto
 import { TaskAttachmentDocumentsDto } from './dto/task-attachment-documents.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
+import { ItemType } from '@prisma/client';
 
 @Controller('api/documents')
 export class DocumentController {
@@ -171,6 +174,23 @@ export class DocumentController {
     };
   }
 
+  @Get('navigation-summary')
+  async getNavigationSummary(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const summary = await this.documentService.getNavigationSummary(
+      userId,
+      userEmail,
+    );
+
+    return {
+      message: 'Navigation summary retrieved successfully',
+      data: summary,
+    };
+  }
+
   @Get()
   async getItems(
     @Headers('x-user-id') userId: string,
@@ -178,6 +198,8 @@ export class DocumentController {
     @Query('folderId') folderId?: string,
     @Query('starred') starred?: string,
     @Query('archived') archived?: string,
+    @Query('recent') recent?: string,
+    @Query('itemType') itemType?: string,
     @Query('projectId') projectId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -187,6 +209,11 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     const isStarredOnly = starred === 'true';
     const isArchived = archived === 'true';
+    const isRecentOnly = recent === 'true';
+    const resolvedItemType =
+      itemType === ItemType.FOLDER || itemType === ItemType.FILE
+        ? itemType
+        : undefined;
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 12;
 
@@ -194,6 +221,8 @@ export class DocumentController {
       folderId,
       isStarredOnly,
       isArchived,
+      isRecentOnly,
+      itemType: resolvedItemType,
       projectId,
       page: pageNum,
       limit: limitNum,
@@ -543,6 +572,54 @@ export class DocumentController {
       message: 'New version created successfully',
       data: version,
     };
+  }
+
+  @Put(':id/versions/current')
+  async setCurrentVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
+  }
+
+  @Delete(':id/versions/:versionId')
+  async deleteVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Delete('public/:id/versions/:versionId')
+  async deletePublicVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Put('public/:id/versions/current')
+  async setPublicCurrentVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
   }
 
   @Get(':id/sharing')

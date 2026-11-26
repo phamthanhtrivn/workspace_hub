@@ -90,6 +90,46 @@ export class CalendarEventQueryService {
     };
   }
 
+  async getTodaySummary(userId: string, startAt?: string, endAt?: string) {
+    this.assertValidQueryRange(startAt, endAt);
+    const start = new Date(startAt!);
+    const end = new Date(endAt!);
+
+    const [eventsTodayCount, tasksDueTodayCount] = await Promise.all([
+      this.prisma.calendarEvent.count({
+        where: {
+          status: { not: EventStatus.CANCELLED },
+          sourceType: { not: EventSourceType.TASK },
+          OR: [
+            { calendar: { ownerUserId: userId } },
+            { attendees: { some: { userId } } },
+            { visibility: EventVisibility.PUBLIC },
+          ],
+          AND: [{ startAt: { lte: end } }, { endAt: { gte: start } }],
+        },
+      }),
+      this.prisma.calendarEvent.count({
+        where: {
+          status: { not: EventStatus.CANCELLED },
+          sourceType: EventSourceType.TASK,
+          completedAt: null,
+          OR: [
+            { calendar: { ownerUserId: userId } },
+            { createdBy: userId },
+            { attendees: { some: { userId } } },
+          ],
+          AND: [{ startAt: { lte: end } }, { endAt: { gte: start } }],
+        },
+      }),
+    ]);
+
+    return {
+      eventsTodayCount,
+      tasksDueTodayCount,
+      totalTodayCount: eventsTodayCount + tasksDueTodayCount,
+    };
+  }
+
   async getEventById(userId: string, eventId: string) {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanViewEvent(userId, event);

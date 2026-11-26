@@ -62,6 +62,10 @@ interface DocumentExplorerProps {
   canEditDocuments?: boolean;
   accessErrorTitle?: string;
   accessErrorDescription?: string;
+  actionsRef?: React.MutableRefObject<{
+    openCreateFolder: () => void;
+    uploadFiles: (files: FileList) => void;
+  } | null>;
 }
 
 export function DocumentExplorer({
@@ -75,6 +79,7 @@ export function DocumentExplorer({
   canEditDocuments = true,
   accessErrorTitle = "Unable to load documents",
   accessErrorDescription = "You do not have access to these documents yet",
+  actionsRef,
 }: DocumentExplorerProps) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const folderAccess = useQuery({
@@ -173,6 +178,20 @@ export function DocumentExplorer({
     projectId,
     enabled: canWriteCurrentFolder,
   });
+
+  useEffect(() => {
+    if (!actionsRef) return;
+    actionsRef.current = {
+      openCreateFolder,
+      uploadFiles: (files: FileList) => {
+        Array.from(files).forEach((file) => uploadFile(file));
+      },
+    };
+
+    return () => {
+      actionsRef.current = null;
+    };
+  }, [actionsRef, openCreateFolder, uploadFile]);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 

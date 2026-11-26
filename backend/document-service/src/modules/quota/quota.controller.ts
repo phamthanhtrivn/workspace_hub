@@ -11,7 +11,7 @@ export class QuotaController {
       throw new BadRequestException('Missing x-user-id header');
     }
 
-    const quota = await this.quotaService.getOrCreateQuota(userId);
+    const quota = await this.quotaService.getQuotaWithBreakdown(userId);
     return {
       message: 'Storage quota retrieved successfully',
       data: quota,

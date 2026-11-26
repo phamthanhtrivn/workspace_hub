@@ -101,6 +101,7 @@ export class DocumentPublicQueryService {
           sizeBytes: Number(item.sizeBytes),
           uploadedBy: item.ownerUserId,
           uploadedByEmail: item.ownerEmail,
+          isCurrent: true,
           createdAt: item.createdAt,
         },
       ];
@@ -122,6 +123,7 @@ export class DocumentPublicQueryService {
         ...v,
         sizeBytes: Number(v.sizeBytes),
         uploadedByEmail: email,
+        isCurrent: v.s3Key === item.s3Key,
       };
     });
   }

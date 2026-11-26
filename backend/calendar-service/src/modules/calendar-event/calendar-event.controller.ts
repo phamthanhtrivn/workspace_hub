@@ -99,6 +99,25 @@ export class CalendarEventController {
     };
   }
 
+  @Get('today-summary')
+  async getTodaySummary(
+    @Headers('x-user-id') userId: string,
+    @Query('startAt') startAt?: string,
+    @Query('endAt') endAt?: string,
+  ) {
+    this.validateUserId(userId);
+    const data = await this.calendarEventService.getTodaySummary(
+      userId,
+      startAt,
+      endAt,
+    );
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.EVENTS_LISTED,
+      data,
+    };
+  }
+
   @Get(':eventId')
   async getEvent(
     @Headers('x-user-id') userId: string,

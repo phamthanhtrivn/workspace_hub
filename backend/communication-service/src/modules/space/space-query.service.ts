@@ -48,6 +48,55 @@ export class SpaceQueryService {
     }));
   }
 
+  async getUnreadSummary(userId: string) {
+    const [channelMembers, dmParticipants] = await Promise.all([
+      this.prisma.channelMember.findMany({
+        where: { userId },
+        select: { channelId: true, joinedAt: true, lastReadAt: true },
+      }),
+      this.prisma.directConversationParticipant.findMany({
+        where: { userId },
+        select: { conversationId: true, joinedAt: true, lastReadAt: true },
+      }),
+    ]);
+
+    const [channelResults, dmResults] = await Promise.all([
+      Promise.all(
+        channelMembers.map((member) =>
+          this.prisma.message.findFirst({
+            where: {
+              channelId: member.channelId,
+              createdAt: { gt: member.lastReadAt ?? member.joinedAt },
+              senderId: { not: userId },
+            },
+            select: { id: true },
+          }),
+        ),
+      ),
+      Promise.all(
+        dmParticipants.map((participant) =>
+          this.prisma.directMessage.findFirst({
+            where: {
+              conversationId: participant.conversationId,
+              createdAt: { gt: participant.lastReadAt ?? participant.joinedAt },
+              senderId: { not: userId },
+            },
+            select: { id: true },
+          }),
+        ),
+      ),
+    ]);
+
+    const unreadChannelsCount = channelResults.filter(Boolean).length;
+    const unreadDirectMessagesCount = dmResults.filter(Boolean).length;
+
+    return {
+      unreadChannelsCount,
+      unreadDirectMessagesCount,
+      totalUnreadCount: unreadChannelsCount + unreadDirectMessagesCount,
+    };
+  }
+
   async getSpaceDetails(userId: string, spaceId: string) {
     await this.access.assertSpaceMember(spaceId, userId);
     const space = await this.prisma.space.findUnique({

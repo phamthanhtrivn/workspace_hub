@@ -15,12 +15,12 @@ interface LandingModule {
 
 export const LANDING_MODULES = [
   { id: "projects", label: "Projects", icon: FolderKanban, title: "Give every next step a place.", description: "Turn a shared goal into tasks, assign responsibilities, and follow progress from the first idea to the final hand-in." },
-  { id: "messages", label: "Messages", icon: MessageSquare, title: "Keep the conversation close to the work.", description: "Discuss ideas in channels and threads, send independent file copies, and ask AI Bot a question without leaving the conversation." },
+  { id: "messages", label: "Messages", icon: MessageSquare, title: "Keep the conversation close to the work.", description: "Discuss ideas in channels and threads, invite members with avatar chips, send independent file copies, and ask AI Bot a question without leaving the conversation." },
   { id: "meetings", label: "Meetings", icon: Video, title: "Make room for a shared perspective.", description: "Schedule a check-in, meet with video and screen sharing, and revisit recordings with AI summaries when available." },
-  { id: "documents", label: "Documents", icon: FileText, title: "Keep the right files within reach.", description: "Organize files and versions, share access, or send independent copies to conversations, meetings, projects and Notebook AI." },
+  { id: "documents", label: "Documents", icon: FileText, title: "Keep the right files within reach.", description: "Organize files and versions, choose the current version, and manage sharing by email or view-only links. Send independent copies to several existing DMs or one Channel, with results for each destination and retry for failed sends." },
   { id: "calendar", label: "Calendar", icon: CalendarDays, title: "See the shape of your week.", description: "Bring personal commitments and project tasks into view, with reminders and recurring events to keep you on track." },
   { id: "pomodoro", label: "Pomodoro", icon: Timer, title: "Make time for your next task.", description: "Focus freely or choose a Calendar or Project task. Settle into a timed session with ambient audio, then review your daily activity and session reports." },
-  { id: "ai", label: "Notebook AI", icon: BookOpen, title: "Ask questions. Follow the sources.", description: "Bring documents into a personal notebook, explore answers with citations, and save your research notes beside the conversation." },
+  { id: "ai", label: "Notebook AI", icon: BookOpen, title: "Ask questions. Follow the sources.", description: "Organize private notebooks with descriptions, categories and accent colors. Browse in grid or list view, then explore cited answers with sources and notes beside the conversation." },
 ] as const satisfies readonly LandingModule[];
 
 export const LANDING_LINKS = [

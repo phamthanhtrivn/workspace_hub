@@ -6,7 +6,11 @@ import { cn } from "@/lib/utils";
 import type { DashboardTask } from "../../types/dashboard.types";
 import { taskBucket, taskDate } from "../../utils/dashboard.utils";
 import { TaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
-import { DASHBOARD_ACCENTS, DASHBOARD_DEADLINE_TONES, DASHBOARD_PRIORITY_TONES } from "../../constants/dashboard-appearance";
+import {
+  DASHBOARD_ACCENTS,
+  DASHBOARD_DEADLINE_TONES,
+  DASHBOARD_PRIORITY_TONES,
+} from "../../constants/dashboard-appearance";
 
 interface DashboardTaskItemProps {
   task: DashboardTask;
@@ -14,7 +18,11 @@ interface DashboardTaskItemProps {
   zone: string;
 }
 
-export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps) {
+export function DashboardTaskItem({
+  task,
+  today,
+  zone,
+}: DashboardTaskItemProps) {
   const bucket = taskBucket(task, today, zone);
   const dueDate = taskDate(task, zone);
   const isProjectTask = task.source === "project";
@@ -44,12 +52,21 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
             </span>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
               {task.projectName && (
-                <span className="min-w-0 truncate text-xs text-muted-foreground" title={task.projectName}>
+                <span
+                  className="min-w-0 truncate text-xs text-muted-foreground"
+                  title={task.projectName}
+                >
                   {task.projectName}
                 </span>
               )}
               {task.priority !== "MEDIUM" && (
-                <Badge variant="secondary" className={cn("max-w-full whitespace-normal break-words font-medium", DASHBOARD_PRIORITY_TONES[task.priority])}>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "max-w-full whitespace-normal break-words font-medium",
+                    DASHBOARD_PRIORITY_TONES[task.priority],
+                  )}
+                >
                   {task.priority.toLowerCase()}
                 </Badge>
               )}
@@ -71,7 +88,11 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
           />
         </Link>
       </Button>
-      {task.focusTask && <div className="mb-2 ml-auto mr-3 sm:mb-0"><TaskFocusButton target={task.focusTask} /></div>}
+      {task.focusTask && (
+        <div className="mb-2 ml-auto mr-3 sm:mb-0">
+          <TaskFocusButton target={task.focusTask} />
+        </div>
+      )}
     </li>
   );
 }

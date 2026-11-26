@@ -78,6 +78,10 @@ export class SpaceService {
     return this.queries.getUserSpaces(userId);
   }
 
+  async getUnreadSummary(userId: string) {
+    return this.queries.getUnreadSummary(userId);
+  }
+
   async getSpaceDetails(userId: string, spaceId: string) {
     return this.queries.getSpaceDetails(userId, spaceId);
   }

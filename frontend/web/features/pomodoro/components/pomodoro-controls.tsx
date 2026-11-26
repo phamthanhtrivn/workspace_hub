@@ -42,17 +42,18 @@ export const PomodoroControls = React.memo(function PomodoroControls({
 
   return (
     <div className="flex w-full min-w-0 max-w-sm flex-col items-center justify-center gap-3">
-      <div className="grid w-full min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 sm:gap-3">
+      <div className="flex w-full min-w-0 items-center justify-center gap-3.5">
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={onReset}
           disabled={disabled}
-          title={copy.resetHint} aria-label="Reset session"
-          className="size-11 rounded-control text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+          title={copy.resetHint}
+          aria-label="Reset session"
+          className="size-12 shrink-0 rounded-control border-border bg-card text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
         >
-          <RotateCcw aria-hidden="true" className="size-4" />
+          <RotateCcw aria-hidden="true" className="size-5" />
         </Button>
 
         {!isRunning ? (
@@ -61,7 +62,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={status === "IDLE" ? onStart : onResume}
             disabled={disabled}
             className={cn(
-              "h-12 min-w-0 gap-2 whitespace-normal rounded-control px-3 text-sm font-semibold leading-snug transition-colors duration-150 motion-reduce:transition-none sm:px-5",
+              "h-12 min-w-0 flex-1 gap-2.5 whitespace-normal rounded-control px-6 text-sm font-semibold leading-snug transition-all duration-150 active:scale-[0.99] motion-reduce:transition-none",
               modeTheme.startButtonClass,
             )}
           >
@@ -73,7 +74,10 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             type="button"
             onClick={onPause}
             disabled={disabled}
-            className="h-12 min-w-0 gap-2 whitespace-normal rounded-control bg-primary px-3 text-sm font-semibold leading-snug text-primary-foreground transition-colors duration-150 hover:bg-primary-hover motion-reduce:transition-none sm:px-5"
+            className={cn(
+              "h-12 min-w-0 flex-1 gap-2.5 whitespace-normal rounded-control px-6 text-sm font-semibold leading-snug transition-all duration-150 active:scale-[0.99] motion-reduce:transition-none",
+              modeTheme.startButtonClass,
+            )}
           >
             <Pause aria-hidden="true" className="size-4 fill-current" />
             Pause
@@ -82,19 +86,29 @@ export const PomodoroControls = React.memo(function PomodoroControls({
 
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={onSkip}
           disabled={disabled}
-          title={copy.skipHint} aria-label="Skip session"
-          className="size-11 rounded-control text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
+          title={copy.skipHint}
+          aria-label="Skip session"
+          className="size-12 shrink-0 rounded-control border-border bg-card text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
         >
-          <SkipForward aria-hidden="true" className="size-4" />
+          <SkipForward aria-hidden="true" className="size-5" />
         </Button>
       </div>
-      <Button type="button" variant="outline" disabled={disabled || status === "IDLE"} onClick={onStop} className="h-10 gap-2 text-xs text-muted-foreground hover:text-foreground">
-        <Square aria-hidden="true" className="size-3.5" />{copy.stop}
-      </Button>
+      {status !== "IDLE" && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          onClick={onStop}
+          className="h-9 gap-2 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Square aria-hidden="true" className="size-3.5" />
+          {copy.stop}
+        </Button>
+      )}
     </div>
   );
 });

@@ -44,8 +44,14 @@ import {
   updateChannelsCache,
   updateDirectMessagesCache,
 } from "../../utils/chat-cache";
-import { applyChatMessageUpdate, mergeChatMessageUpdate } from '../../utils/message-update-cache';
-import { chatDocumentMetadataKey, METADATA_QUERY_KEY } from '../../types/document.constants';
+import {
+  applyChatMessageUpdate,
+  mergeChatMessageUpdate,
+} from "../../utils/message-update-cache";
+import {
+  chatDocumentMetadataKey,
+  METADATA_QUERY_KEY,
+} from "../../types/document.constants";
 
 function isChannelPayload(payload: {
   chatType?: ChatContextType;
@@ -99,7 +105,8 @@ export function useChatSocket() {
   );
   const activeChatId = useAppSelector((state) => state.chat.activeChatId);
   const pathname = usePathname();
-  const isChatVisible = pathname === "/chat" || Boolean(pathname?.startsWith("/chat/"));
+  const isChatVisible =
+    pathname === "/chat" || Boolean(pathname?.startsWith("/chat/"));
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const activeChatIdRef = useRef<string | null>(null);
@@ -119,9 +126,20 @@ export function useChatSocket() {
 
     const socket = socketService.connect(accessToken);
 
+    let unreadSummaryTimer: ReturnType<typeof setTimeout> | undefined;
+    const refreshUnreadSummary = () => {
+      if (unreadSummaryTimer) clearTimeout(unreadSummaryTimer);
+      unreadSummaryTimer = setTimeout(() => {
+        void queryClient.invalidateQueries({
+          queryKey: chatKeys.unreadSummary(currentUserId),
+        });
+      }, 400);
+    };
+
     const clearUnread = (chatId: string, spaceId?: string | null) => {
       if (spaceId) {
         updateChannelsCache(queryClient, chatId, clearChatUnread, spaceId);
+
         return;
       }
 
@@ -135,6 +153,7 @@ export function useChatSocket() {
     };
 
     const handleNewMessage = (message: ChatSocketMessagePayload) => {
+      refreshUnreadSummary();
       const chatId = getMessageChatId(message);
       if (!chatId) return;
 
@@ -182,6 +201,7 @@ export function useChatSocket() {
 
           return updatedChannel;
         });
+
         return;
       }
 
@@ -209,6 +229,7 @@ export function useChatSocket() {
                 queryKey: chatKeys.followedThreads(currentUserId),
               });
             }
+
             return {
               ...directMessage,
               hasUnreadThread:
@@ -221,6 +242,7 @@ export function useChatSocket() {
           const shouldMarkUnread =
             message.senderId !== currentUserId &&
             chatId !== activeChatIdRef.current;
+
           return {
             ...directMessage,
             updatedAt: message.createdAt ?? directMessage.updatedAt,
@@ -260,9 +282,15 @@ export function useChatSocket() {
       if (isChannelPayload(message)) {
         updateChannelsCache(queryClient, chatId, (channel) =>
           channel.messages?.[0]?.id === message.id
-            ? { ...channel, messages: [mergeChatMessageUpdate(channel.messages[0], message)] }
+            ? {
+                ...channel,
+                messages: [
+                  mergeChatMessageUpdate(channel.messages[0], message),
+                ],
+              }
             : channel,
         );
+
         return;
       }
 
@@ -271,13 +299,19 @@ export function useChatSocket() {
         currentUserId,
         (directMessage) =>
           directMessage.messages?.[0]?.id === message.id
-            ? { ...directMessage, messages: [mergeChatMessageUpdate(directMessage.messages[0], message)] }
+            ? {
+                ...directMessage,
+                messages: [
+                  mergeChatMessageUpdate(directMessage.messages[0], message),
+                ],
+              }
             : directMessage,
         chatId,
       );
     };
 
     const handleMessageRead = (data: ChatSocketReadPayload) => {
+      refreshUnreadSummary();
       const chatId = getMessageChatId(data);
       if (!chatId) return;
 
@@ -291,6 +325,7 @@ export function useChatSocket() {
             lastReadMessageId: data.messageId,
           }),
         );
+
         return;
       }
 
@@ -310,7 +345,10 @@ export function useChatSocket() {
     };
 
     const handleMemberJoin = (data: ChatSocketMemberPayload) => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
+      refreshUnreadSummary();
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.allSpaceMemberCandidates(),
+      });
       const chatId = getMessageChatId(data);
       if (!chatId) return;
       if (data.spaceId && data.member?.userId === currentUserId) {
@@ -327,6 +365,7 @@ export function useChatSocket() {
       if (isChannelPayload(data)) {
         if (!data.member) {
           queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+
           return;
         }
         const memberPayload = data.member;
@@ -335,6 +374,7 @@ export function useChatSocket() {
           const alreadyMember = members.some(
             (member) => member.userId === memberPayload.userId,
           );
+
           return {
             ...channel,
             members: alreadyMember
@@ -346,6 +386,7 @@ export function useChatSocket() {
               : [...members, memberPayload],
           };
         });
+
         return;
       }
 
@@ -359,6 +400,7 @@ export function useChatSocket() {
           if (alreadyMember || !data.member) return directMessage;
 
           const memberPayload = data.member;
+
           return {
             ...directMessage,
             members: [...(directMessage.members || []), memberPayload],
@@ -369,7 +411,10 @@ export function useChatSocket() {
     };
 
     const handleMemberKickedOrLeft = (data: ChatSocketMemberPayload) => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
+      refreshUnreadSummary();
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.allSpaceMemberCandidates(),
+      });
       const chatId = getMessageChatId(data);
       const affectsCurrentUser =
         data.userId === currentUserId ||
@@ -386,6 +431,7 @@ export function useChatSocket() {
           void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(() => {
             queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
           });
+
           return;
         }
 
@@ -402,9 +448,11 @@ export function useChatSocket() {
           });
         }
         if (affectsCurrentUser && chatId) {
-          if (activeChatIdRef.current === chatId) dispatch(setActiveConversation(null));
+          if (activeChatIdRef.current === chatId)
+            dispatch(setActiveConversation(null));
           void cleanupRemovedChannelCaches(queryClient, chatId);
         }
+
         return;
       }
 
@@ -458,6 +506,7 @@ export function useChatSocket() {
       }
       if (!chatId || !data.member) {
         queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+
         return;
       }
 
@@ -471,7 +520,9 @@ export function useChatSocket() {
     const handleChannelSettingUpdated = (
       data: ChatSocketSettingUpdatedPayload,
     ) => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.allSpaceMemberCandidates(),
+      });
       const chatId = getMessageChatId(data);
       if (data.spaceId) {
         if (
@@ -486,11 +537,17 @@ export function useChatSocket() {
         queryClient.invalidateQueries({
           queryKey: chatKeys.allSpaces(),
         });
-        queryClient.invalidateQueries({
-          queryKey: chatKeys.allChannels(),
-        }, { cancelRefetch: false });
+        queryClient.invalidateQueries(
+          {
+            queryKey: chatKeys.allChannels(),
+          },
+          { cancelRefetch: false },
+        );
       }
-      if (chatId) queryClient.invalidateQueries({ queryKey: [ChatQueryRoot.CHANNEL_MEMBERS, chatId] });
+      if (chatId)
+        queryClient.invalidateQueries({
+          queryKey: [ChatQueryRoot.CHANNEL_MEMBERS, chatId],
+        });
       if (!chatId || !data.setting) return;
       if (data.eventType === "space_setting_updated") return;
 
@@ -507,6 +564,7 @@ export function useChatSocket() {
           ...channel,
           name: data.name ?? channel.name,
         }));
+
         return;
       }
 
@@ -523,6 +581,7 @@ export function useChatSocket() {
     };
 
     const handleConversationDisbanded = (data: ChatSocketDisbandedPayload) => {
+      refreshUnreadSummary();
       const chatId = getMessageChatId(data);
       const affectsCurrentUser =
         data.affectedUserIds?.includes(currentUserId) || data.leftSpace;
@@ -536,6 +595,7 @@ export function useChatSocket() {
         });
         dispatch(setActiveConversation(null));
         dispatch(setActiveSpaceId(null));
+
         return;
       } else if (chatId) {
         removeChannelFromCaches(queryClient, chatId);
@@ -576,6 +636,7 @@ export function useChatSocket() {
         updateChannelsCache(queryClient, chatId, (channel) =>
           patchChatMember(channel, currentUserId, { muted: data.muted }),
         );
+
         return;
       }
 
@@ -606,22 +667,42 @@ export function useChatSocket() {
       payload: ChatSocketDocumentAccessUpdatedPayload,
     ) => {
       if (!Array.isArray(payload.documentIds)) return;
+      void queryClient.invalidateQueries(
+        { queryKey: ["documents", "navigation-summary"] },
+        { cancelRefetch: false },
+      );
+      void queryClient.invalidateQueries(
+        { queryKey: ["document-quota"] },
+        { cancelRefetch: false },
+      );
       for (const documentId of payload.documentIds) {
         if (typeof documentId !== "string" || !documentId) continue;
-        void queryClient.invalidateQueries({
-          queryKey: chatDocumentMetadataKey(currentUserId, documentId),
-        }, { cancelRefetch: false });
+        void queryClient.invalidateQueries(
+          {
+            queryKey: chatDocumentMetadataKey(currentUserId, documentId),
+          },
+          { cancelRefetch: false },
+        );
       }
     };
 
     const handleSocketConnect = () => {
-      for (const queryKey of [chatKeys.allMessages(), chatKeys.allThreadMessages(), chatKeys.allFollowedThreads(), chatKeys.allThreads(), chatKeys.allPinnedMessagesPreview(), chatKeys.allPinnedMessagesDetail()]) {
+      for (const queryKey of [
+        chatKeys.allMessages(),
+        chatKeys.allThreadMessages(),
+        chatKeys.allFollowedThreads(),
+        chatKeys.allThreads(),
+        chatKeys.allPinnedMessagesPreview(),
+        chatKeys.allPinnedMessagesDetail(),
+      ]) {
         void queryClient.invalidateQueries({ queryKey });
       }
       queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannelMembers() });
-      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.allSpaceMemberCandidates(),
+      });
       queryClient.invalidateQueries({
         queryKey: [ChatQueryRoot.DIRECT_MESSAGE_SEND_PERMISSION],
       });
@@ -634,7 +715,10 @@ export function useChatSocket() {
     };
 
     socket.on("connect", handleSocketConnect);
-    socket.on(ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED, handleDirectMessagePermissionUpdated);
+    socket.on(
+      ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED,
+      handleDirectMessagePermissionUpdated,
+    );
     socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -656,11 +740,18 @@ export function useChatSocket() {
 
     return () => {
       socket.off("connect", handleSocketConnect);
-      socket.off(ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED, handleDirectMessagePermissionUpdated);
+      if (unreadSummaryTimer) clearTimeout(unreadSummaryTimer);
+      socket.off(
+        ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED,
+        handleDirectMessagePermissionUpdated,
+      );
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
-      socket.off(ChatEvent.DOCUMENT_ACCESS_UPDATED, handleDocumentAccessUpdated);
+      socket.off(
+        ChatEvent.DOCUMENT_ACCESS_UPDATED,
+        handleDocumentAccessUpdated,
+      );
       socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       socket.off(

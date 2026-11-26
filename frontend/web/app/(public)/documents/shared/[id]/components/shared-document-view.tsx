@@ -10,7 +10,6 @@ import {
 import { getPreviewFileType } from "@/features/documents/utils/documents.utils";
 
 import { toast } from "sonner";
-import { MAX_TEXT_PREVIEW_SIZE } from "@/features/documents/types/documents.constants";
 import { useAppSelector } from "@/store/store";
 import { DocumentsInputModal } from "@/features/documents/components/ui/documents-input-modal";
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -48,6 +47,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
   const [loadingText, setLoadingText] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const previewRequest = React.useRef(0);
 
   const showAccessDenial = React.useCallback((failure: unknown) => {
     const reason = getSharedDocumentAccessCode(failure);
@@ -104,19 +104,10 @@ export default function SharedDocumentView({ id }: { id: string }) {
         if (type === PreviewFileType.TEXT && url) {
           setLoadingText(true);
           try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("Failed to load text content");
-            const text = await res.text();
+            const text = await documentsApi.getTextPreview(url);
             if (!active) return;
 
-            if (text.length > MAX_TEXT_PREVIEW_SIZE) {
-              setTextContent(
-                text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                  "\n\n... [Preview truncated. Download to read the full document] ...",
-              );
-            } else {
-              setTextContent(text);
-            }
+            setTextContent(text);
           } catch (textErr) {
             if (active) {
               logActionError("Failed to load text preview", textErr);
@@ -147,6 +138,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
 
     return () => {
       active = false;
+      previewRequest.current += 1;
     };
   }, [id, isLoggedIn, retryKey, showAccessDenial]);
 
@@ -181,6 +173,36 @@ export default function SharedDocumentView({ id }: { id: string }) {
     }
   };
 
+  const refreshVersionPreview = async (
+    document: DocumentItem,
+    versionId?: string,
+  ) => {
+    const request = ++previewRequest.current;
+    setIsUrlLoading(true);
+    setPreviewError(null);
+    setTextContent(null);
+    try {
+      const url = await documentsApi.getPublicPreviewUrl(
+        document.id,
+        versionId,
+      );
+      const text =
+        getPreviewFileType(document.mimeType, document.name) ===
+        PreviewFileType.TEXT
+          ? await documentsApi.getTextPreview(url)
+          : null;
+      if (request !== previewRequest.current) return;
+      setPreviewUrl(url);
+      setTextContent(text);
+    } catch (error) {
+      if (request !== previewRequest.current || showAccessDenial(error)) return;
+      setPreviewError("Could not load the document preview.");
+      logActionError("Failed to refresh document preview", error);
+    } finally {
+      if (request === previewRequest.current) setIsUrlLoading(false);
+    }
+  };
+
   const handleVersionUploaded = async () => {
     if (!item) return;
     try {
@@ -188,14 +210,12 @@ export default function SharedDocumentView({ id }: { id: string }) {
       const data = await documentsApi.getPublicDocument(id);
       setItem({ ...data.item, userRole: data.userRole as DocumentRole });
 
-      // Refresh preview url
-      const url = await documentsApi.getPublicPreviewUrl(id);
-      setPreviewUrl(url);
+      await refreshVersionPreview(data.item);
     } catch (err) {
       if (showAccessDenial(err)) return;
       logActionError("Failed to refresh document after upload", err);
       toast.error(
-        "The version was uploaded, but the preview could not refresh. Try again.",
+        "The version changed, but document details could not refresh. Try again.",
       );
     }
   };
@@ -278,13 +298,6 @@ export default function SharedDocumentView({ id }: { id: string }) {
           }
         />
 
-        {previewError && (
-          <QueryFeedback
-            label="document preview"
-            error
-            onRetry={() => setRetryKey((value) => value + 1)}
-          />
-        )}
         {/* Preview Panel */}
         <SharedPreview
           item={item}
@@ -294,6 +307,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
           loadingText={loadingText}
           error={previewError}
           onDownload={handleDownload}
+          onRetry={() => setRetryKey((value) => value + 1)}
         />
       </main>
 
@@ -311,23 +325,9 @@ export default function SharedDocumentView({ id }: { id: string }) {
         isOpen={isVersionModalOpen}
         onClose={() => setIsVersionModalOpen(false)}
         item={item}
-        onPreviewVersion={async (itm, versionId) => {
-          try {
-            setIsUrlLoading(true);
-            const url = await documentsApi.getPublicPreviewUrl(
-              itm.id,
-              versionId,
-            );
-            setPreviewUrl(url);
-            setIsUrlLoading(false);
-          } catch (err) {
-            if (!showAccessDenial(err)) {
-              logActionError("Failed to preview version", err);
-              toast.error("Could not preview this version");
-            }
-            setIsUrlLoading(false);
-          }
-        }}
+        onPreviewVersion={(document, versionId) =>
+          void refreshVersionPreview(document, versionId)
+        }
         isPublic={true}
         onVersionUploaded={handleVersionUploaded}
       />

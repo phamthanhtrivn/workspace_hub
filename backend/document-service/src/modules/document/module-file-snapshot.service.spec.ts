@@ -23,6 +23,8 @@ function fixture() {
     sizeBytes: 10n,
   };
   const version = { id: 'version', s3Key: source.s3Key, sizeBytes: 10n };
+  const versions = [version];
+  const copiedSources: string[] = [];
   const prisma = {
     $transaction: async <T>(run: (tx: unknown) => Promise<T>) => run(prisma),
     moduleFileSnapshot: {
@@ -65,15 +67,21 @@ function fixture() {
         return { count: 1 };
       },
     },
-    documentVersion: { findFirst: async () => version },
+    documentVersion: {
+      findFirst: async ({ where }: { where: { s3Key?: string } }) =>
+        versions.find(
+          (candidate) => !where.s3Key || candidate.s3Key === where.s3Key,
+        ) ?? null,
+    },
   };
   const service = new ModuleFileSnapshotService(
     prisma as unknown as ConstructorParameters<
       typeof ModuleFileSnapshotService
     >[0],
     {
-      copySnapshot: async () => {
+      copySnapshot: async (sourceKey: string) => {
         copies++;
+        copiedSources.push(sourceKey);
         await wait;
         if (fail) throw new Error('Storage failed');
       },
@@ -100,6 +108,8 @@ function fixture() {
   return {
     service,
     source,
+    versions,
+    copiedSources,
     row: () => row!,
     copies: () => copies,
     reads: () => reads,
@@ -117,6 +127,20 @@ const request = {
   versionId: 'version',
   operationId: 'operation',
 };
+
+void test('new Chat copies resolve the selected Current version even when a newer upload exists', async () => {
+  const f = fixture();
+  f.versions.unshift({
+    id: 'newer-upload',
+    s3Key: 'newer/key',
+    sizeBytes: 20n,
+  });
+  await f.service.copy('viewer', 'viewer@example.invalid', request, {
+    scope: 'CHAT',
+  });
+  assert.deepEqual(f.copiedSources, ['original/key']);
+  assert.equal(f.row().sourceVersionId, 'version');
+});
 
 void test('Notebook private uploads accept more than 10 MiB, enforce 20 MiB and replay without creating DocumentItems', async () => {
   let snapshot: ModuleFileSnapshot | undefined;

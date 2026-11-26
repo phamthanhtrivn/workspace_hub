@@ -3,41 +3,80 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { UploadCloud } from "lucide-react";
-import type { DocumentUploadEntry } from "../../types/upload.types";
-import { UploadFileRow } from "../common/upload-file-row";
+import { VERSION_MESSAGES } from "../../types/document-version.constants";
 
 interface VersionUploaderProps {
-  uploads: DocumentUploadEntry[];
   isUploading: boolean;
+  disabled?: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onTriggerFileSelect: () => void;
-  onRetry: (id: string) => void;
+  onFilesDropped: (files: File[]) => void;
 }
 
 export function VersionUploader({
-  uploads,
   isUploading,
+  disabled = false,
   fileInputRef,
   onFileChange,
   onTriggerFileSelect,
-  onRetry,
+  onFilesDropped,
 }: VersionUploaderProps) {
+  const [isDragging, setIsDragging] = React.useState(false);
+  const depth = React.useRef(0);
+  const unavailable = disabled || isUploading;
+  const resetDrag = () => {
+    depth.current = 0;
+    setIsDragging(false);
+  };
+
   return (
-    <div className="mb-6 space-y-3">
+    <div
+      role="region"
+      aria-label="Version upload drop zone"
+      className="mb-6 space-y-3"
+      onDragEnter={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (
+          unavailable ||
+          !Array.from(event.dataTransfer.types).includes("Files")
+        )
+          return;
+        depth.current += 1;
+        setIsDragging(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = unavailable ? "none" : "copy";
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        depth.current = Math.max(0, depth.current - 1);
+        if (!depth.current) resetDrag();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        resetDrag();
+        if (!unavailable) onFilesDropped(Array.from(event.dataTransfer.files));
+      }}
+    >
       <input
         type="file"
         ref={fileInputRef}
         onChange={onFileChange}
-        disabled={isUploading}
+        disabled={unavailable}
         className="hidden"
       />
       <Button
         variant="unstyled"
         type="button"
-        disabled={isUploading}
+        disabled={unavailable}
         onClick={onTriggerFileSelect}
-        className="relative focus-visible:z-10 group flex w-full flex-col items-center justify-center rounded-panel border-2 border-dashed border-border p-6 text-left transition-colors duration-200 hover:border-info-outline hover:bg-background motion-reduce:transition-none"
+        className={`relative focus-visible:z-10 group flex w-full flex-col items-center justify-center rounded-panel border-2 border-dashed p-6 text-left transition-colors duration-200 hover:border-info-outline hover:bg-background motion-reduce:transition-none ${isDragging ? "border-info-outline bg-info-soft" : "border-border"}`}
       >
         <div className="mb-3 rounded-panel bg-background p-3 text-muted-foreground transition-colors duration-200 group-hover:bg-info-soft group-hover:text-info-content motion-reduce:transition-none">
           <UploadCloud size={24} aria-hidden="true" />
@@ -45,34 +84,14 @@ export function VersionUploader({
         <span className="text-sm font-semibold text-foreground">
           {isUploading
             ? "Uploading version…"
-            : uploads.length
-              ? "Upload another version"
+            : isDragging
+              ? "Drop file to upload a version"
               : "Upload new version"}
         </span>
         <span className="mt-1 text-xs font-semibold text-muted-foreground">
-          Old versions will be kept safely in history
+          {VERSION_MESSAGES.dropHelp}
         </span>
       </Button>
-      {uploads.length > 0 && (
-        <div className="overflow-hidden rounded-panel border border-border bg-background">
-          <p
-            role="status"
-            className="border-b border-border px-4 py-2 text-xs font-medium text-muted-foreground"
-          >
-            {isUploading ? "Uploading new version" : "Version upload finished"}
-          </p>
-          <ol aria-label="Version uploads">
-            {uploads.map((upload) => (
-              <UploadFileRow
-                key={upload.id}
-                upload={upload}
-                onRetry={onRetry}
-                retryDisabled={isUploading}
-              />
-            ))}
-          </ol>
-        </div>
-      )}
     </div>
   );
 }

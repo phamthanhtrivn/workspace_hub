@@ -1,4 +1,6 @@
 import { DocumentContentService } from './document-content.service';
+import { DocumentCurrentVersionService } from './document-current-version.service';
+import { DocumentVersionDeletionService } from './document-version-deletion.service';
 import { ModuleFileSnapshotService } from './module-file-snapshot.service';
 import { DocumentPickerController } from './document-picker.controller';
 import { DocumentPickerService } from './document-picker.service';
@@ -67,6 +69,8 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     ProjectDocumentAttachmentService,
     DocumentDownloadService,
     DocumentContentService,
+    DocumentCurrentVersionService,
+    DocumentVersionDeletionService,
     TrashCleanupService,
     ProjectDocumentRealtimeClient,
     StorageCleanupService,

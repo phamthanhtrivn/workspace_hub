@@ -7,6 +7,8 @@ export const DASHBOARD_ACCENTS = {
   meeting: "bg-dashboard-meeting-soft text-dashboard-meeting-content",
   notification:
     "bg-dashboard-notification-soft text-dashboard-notification-content",
+  documents: "bg-info-soft text-info-content",
+  notebook: "bg-dashboard-project-soft text-dashboard-project-content",
 } as const;
 
 export const DASHBOARD_ICON_COLORS = {

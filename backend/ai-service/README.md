@@ -36,3 +36,5 @@ npm run build
 ~~~
 
 Docker applies AI SQL migrations before starting API/jobs. Do not change released migration checksums or reset existing data. Keep queue/checkpoint state when restarting. Production is separate: [AI deployment](../../deploy/ai/README.md).
+
+Notebook library metadata uses migration `014_notebook_metadata.sql`. Apply it before running the updated API (`npm run build` then `npm run migrate` from `api` for a non-Docker setup). Existing notebooks default to an empty description/category and the navy accent. List responses include independent source/note counts and an account-wide notebook total; title-only PATCH requests retain existing metadata.

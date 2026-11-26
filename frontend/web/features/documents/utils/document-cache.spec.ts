@@ -4,7 +4,22 @@ import { QueryClient } from "@tanstack/react-query";
 import { documentKeys } from "../api/document-list.query";
 import { DocumentSortBy, DocumentViewType } from "../types/documents.enums";
 import { chatDocumentMetadataKey } from "@/features/chat/types/document.constants";
-import { invalidateDocumentPermissions, invalidateDocumentShare } from "./document-cache";
+import { invalidateDocumentPermissions, invalidateDocumentShare, invalidateDocumentVersion } from "./document-cache";
+
+test("changing the current version clears stale previews while leaving copied Chat files alone", async () => {
+  const client = new QueryClient();
+  try {
+    client.setQueryData(["document-preview", "original"], "old-url");
+    client.setQueryData(["document-text-preview", "original"], "old-content");
+    client.setQueryData(["document-preview", "chat-copy"], "copy-url");
+    client.setQueryData(["document-text-preview", "chat-copy"], "copy-content");
+    await invalidateDocumentVersion(client, "original");
+    assert.equal(client.getQueryData(["document-preview", "original"]), undefined);
+    assert.equal(client.getQueryData(["document-text-preview", "original"]), undefined);
+    assert.equal(client.getQueryData(["document-preview", "chat-copy"]), "copy-url");
+    assert.equal(client.getQueryData(["document-text-preview", "chat-copy"]), "copy-content");
+  } finally { client.clear(); }
+});
 
 test("sharing invalidates only the affected item, containing lists and account", async () => {
   const client = new QueryClient();

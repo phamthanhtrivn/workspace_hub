@@ -11,9 +11,16 @@ import { useAppDispatch } from "@/store/store";
 import { markReadSuccess } from "@/store/notification/notification.slice";
 import { notificationKeys } from "@/features/notification/hooks/use-notification-actions";
 import { useDashboardExtras } from "../../hooks/use-dashboard-extras";
-import { DASHBOARD_ACTIVITY_PANEL_HEIGHT, DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
+import {
+  DASHBOARD_ACTIVITY_PANEL_HEIGHT,
+  DashboardPanel,
+  EmptyState,
+  QueryFeedback,
+} from "../common/dashboard-panel";
 import type { useDashboard } from "../../hooks/use-dashboard";
 import { DashboardNotificationDialog } from "./dashboard-notification-dialog";
+import { DashboardNotebooks } from "./dashboard-notebooks";
+import { DashboardDocuments } from "./dashboard-documents";
 import { DashboardProjectActivity } from "../productivity/dashboard-project-activity";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -21,13 +28,18 @@ import { Badge } from "@/components/ui/badge";
 import { readableTextOnColor } from "@/lib/color";
 import { DASHBOARD_ACCENTS } from "../../constants/dashboard-appearance";
 
-
 export function DashboardExtras({
   dashboard,
+  extras: providedExtras,
 }: {
   dashboard: ReturnType<typeof useDashboard>;
+  extras?: ReturnType<typeof useDashboardExtras>;
 }) {
-  const extras = useDashboardExtras(dashboard.auth.userId);
+  const localExtras = useDashboardExtras(
+    providedExtras ? null : dashboard.auth.userId,
+    dashboard.zone,
+  );
+  const extras = providedExtras ?? localExtras;
   const [notification, setNotification] = useState<Notification | null>(null);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
@@ -54,16 +66,26 @@ export function DashboardExtras({
     setNotification(item);
     if (!item.isRead) markReadMutation.mutate(item.id);
   };
+
   return (
     <>
-      <DashboardPanel height="content" title="Active projects" href="/projects" className="col-span-full">
+      <DashboardPanel
+        height="content"
+        title="Active projects"
+        href="/projects"
+        icon={FolderKanban}
+        iconClassName={DASHBOARD_ACCENTS.project}
+        className="col-span-full"
+      >
         <QueryFeedback query={extras.projects} label="projects" />
         {extras.projects.isSuccess && !projects.length && (
           <EmptyState>
             No active projects yet. Open Projects to get started.
           </EmptyState>
         )}
-        <div className={`grid min-w-0 grid-cols-1 gap-6 ${projects.length === 3 ? "@min-[640px]/dashboard:grid-cols-3" : projects.length === 2 ? "@min-[640px]/dashboard:grid-cols-2" : ""}`}>
+        <div
+          className={`grid min-w-0 grid-cols-1 gap-6 ${projects.length === 3 ? "@min-[640px]/dashboard:grid-cols-3" : projects.length === 2 ? "@min-[640px]/dashboard:grid-cols-2" : ""}`}
+        >
           {projects.map((project, index) => {
             const query = extras.counts[index];
             const counts = query?.data;
@@ -75,6 +97,7 @@ export function DashboardExtras({
               : 0;
             const progress =
               total && counts ? Math.round((counts.DONE / total) * 100) : 0;
+
             return (
               <div
                 key={project.id}
@@ -87,7 +110,14 @@ export function DashboardExtras({
                   <span
                     aria-hidden
                     className={`grid size-10 shrink-0 place-items-center rounded-control text-xl ${project.color ? "ring-1 ring-inset ring-input" : DASHBOARD_ACCENTS.project}`}
-                    style={project.color ? { backgroundColor: project.color, color: readableTextOnColor(project.color) } : undefined}
+                    style={
+                      project.color
+                        ? {
+                            backgroundColor: project.color,
+                            color: readableTextOnColor(project.color),
+                          }
+                        : undefined
+                    }
                   >
                     {project.icon &&
                     /\p{Extended_Pictographic}/u.test(project.icon) ? (
@@ -112,23 +142,33 @@ export function DashboardExtras({
                       <span>
                         {counts.DONE} / {total} tasks completed
                       </span>
-                      <span className="text-lg font-semibold text-foreground tabular-nums">{progress}%</span>
+                      <span className="text-lg font-semibold text-foreground tabular-nums">
+                        {progress}%
+                      </span>
                     </div>
-                    <Progress value={progress} aria-label={`${project.name} completion`}
+                    <Progress
+                      value={progress}
+                      aria-label={`${project.name} completion`}
                       className="mt-2 h-2 overflow-hidden rounded-full bg-muted"
                     >
                       <div
                         className="h-full rounded-full bg-primary ring-1 ring-inset ring-input"
                         style={{
                           width: `${progress}%`,
-                          backgroundColor:
-                            project.color || "var(--chart-1)",
+                          backgroundColor: project.color || "var(--chart-1)",
                         }}
                       />
                     </Progress>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge className={DASHBOARD_ACCENTS.calendar}>{counts.IN_PROGRESS} in progress</Badge>
-                      <Badge variant="secondary" className={DASHBOARD_ACCENTS.project}>{counts.IN_REVIEW} in review</Badge>
+                      <Badge className={DASHBOARD_ACCENTS.calendar}>
+                        {counts.IN_PROGRESS} in progress
+                      </Badge>
+                      <Badge
+                        variant="secondary"
+                        className={DASHBOARD_ACCENTS.project}
+                      >
+                        {counts.IN_REVIEW} in review
+                      </Badge>
                     </div>
                   </>
                 )}
@@ -137,9 +177,17 @@ export function DashboardExtras({
           })}
         </div>
       </DashboardPanel>
+      <DashboardNotebooks query={extras.notebooks} />
+      <DashboardDocuments
+        documentsQuery={extras.documents}
+        quotaQuery={extras.documentQuota}
+        zone={dashboard.zone}
+      />
       <DashboardPanel
         title="Recent activity"
         description="Your latest notifications"
+        icon={Bell}
+        iconClassName={DASHBOARD_ACCENTS.notification}
         className={DASHBOARD_ACTIVITY_PANEL_HEIGHT}
       >
         <QueryFeedback query={extras.notifications} label="notifications" />
@@ -150,20 +198,31 @@ export function DashboardExtras({
         <ul className="space-y-1">
           {extras.notifications.data?.data.map((item) => (
             <li key={item.id}>
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 type="button"
                 onClick={() => openNotification(item)}
                 className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted active:bg-accent motion-safe:transition-colors motion-safe:duration-150 ${item.isRead ? "" : "bg-info-soft"}`}
               >
-                <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-control ${DASHBOARD_ACCENTS.notification}`}><Bell aria-hidden size={16} /></span>
+                <span
+                  className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-control ${DASHBOARD_ACCENTS.notification}`}
+                >
+                  <Bell aria-hidden size={16} />
+                </span>
                 <span className="min-w-0 flex-1 basis-24">
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className="min-w-0 flex-1 basis-24 truncate text-sm font-medium text-foreground">
-                    {item.title}
+                      {item.title}
                     </span>
-                    {!item.isRead && <Badge className={DASHBOARD_ACCENTS.notification}>Unread</Badge>}
+                    {!item.isRead && (
+                      <Badge className={DASHBOARD_ACCENTS.notification}>
+                        Unread
+                      </Badge>
+                    )}
                   </span>
-                  <span className={`mt-1 block truncate text-xs ${item.isRead ? "text-muted-foreground" : "text-info-content"}`}>
+                  <span
+                    className={`mt-1 block truncate text-xs ${item.isRead ? "text-muted-foreground" : "text-info-content"}`}
+                  >
                     {item.content}
                   </span>
                 </span>

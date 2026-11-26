@@ -38,6 +38,8 @@ export class DocumentQueryService {
       isArchived?: boolean;
       projectId?: string;
       isSharedOnly?: boolean;
+      isRecentOnly?: boolean;
+      itemType?: ItemType;
       page?: number;
       limit?: number;
       sortBy?: DocumentSortBy;
@@ -50,6 +52,9 @@ export class DocumentQueryService {
     const where: Prisma.DocumentItemWhereInput = {
       isArchived: options.isArchived ?? false,
     };
+    if (options.itemType) {
+      where.type = options.itemType;
+    }
 
     // 1. Filter by search query if provided
     if (options.search) {
@@ -60,7 +65,24 @@ export class DocumentQueryService {
     }
 
     // 2. Filter by view context
-    if (options.isSharedOnly) {
+    if (options.isRecentOnly) {
+      const recentCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      where.type = ItemType.FILE;
+      where.updatedAt = { gte: recentCutoff };
+      where.OR = [
+        { ownerUserId: userId },
+        {
+          shares: {
+            some: {
+              OR: [
+                { shareWithUserId: userId },
+                { shareWithEmail: { equals: userEmail, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
+      ];
+    } else if (options.isSharedOnly) {
       where.ownerUserId = { not: userId };
       where.OR = [
         {
@@ -132,9 +154,10 @@ export class DocumentQueryService {
     const skip = (page - 1) * limit;
 
     const filterPermissions = Boolean(
-      options.isStarredOnly ||
-      options.isSharedOnly ||
-      (!options.folderId && !options.projectId && !options.isArchived),
+      options.isRecentOnly ||
+        options.isStarredOnly ||
+        options.isSharedOnly ||
+        (!options.folderId && !options.projectId && !options.isArchived),
     );
     const [candidates, rawTotalCount] = await Promise.all([
       this.prisma.documentItem.findMany({
@@ -168,7 +191,10 @@ export class DocumentQueryService {
 
         let sizeBytes = Number(item.sizeBytes);
         let containedSizeBytes: number | undefined;
-        if (item.type === ItemType.FOLDER) {
+        if (
+          item.type === ItemType.FOLDER &&
+          options.itemType !== ItemType.FOLDER
+        ) {
           containedSizeBytes = await this.tree.getFolderContainedSize(item.id);
           sizeBytes = containedSizeBytes;
         }
@@ -189,6 +215,94 @@ export class DocumentQueryService {
       );
 
     return { items: enrichedItems, totalCount };
+  }
+
+  async getNavigationSummary(
+    userId: string,
+    userEmail: string,
+  ): Promise<{
+    myFilesCount: number;
+    recentCount: number;
+    starredCount: number;
+    sharedCount: number;
+    trashCount: number;
+  }> {
+    const recentCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [myFilesCount, starredCount, trashCount, recentCandidates, sharedCandidates] =
+      await Promise.all([
+        this.prisma.documentItem.count({
+          where: {
+            ownerUserId: userId,
+            parentFolderId: null,
+            isArchived: false,
+            isStarred: false,
+          },
+        }),
+        this.prisma.documentItem.count({
+          where: {
+            ownerUserId: userId,
+            parentFolderId: null,
+            projectId: null,
+            isArchived: false,
+            isStarred: true,
+          },
+        }),
+        this.prisma.documentItem.count({
+          where: {
+            ownerUserId: userId,
+            isArchived: true,
+          },
+        }),
+        this.prisma.documentItem.findMany({
+          where: {
+            type: ItemType.FILE,
+            isArchived: false,
+            updatedAt: { gte: recentCutoff },
+            OR: [
+              { ownerUserId: userId },
+              {
+                shares: {
+                  some: {
+                    OR: [
+                      { shareWithUserId: userId },
+                      { shareWithEmail: { equals: userEmail, mode: 'insensitive' } },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+          include: { shares: true },
+        }),
+        this.prisma.documentItem.findMany({
+          where: {
+            ownerUserId: { not: userId },
+            isArchived: false,
+            shares: {
+              some: {
+                OR: [
+                  { shareWithUserId: userId },
+                  { shareWithEmail: { equals: userEmail, mode: 'insensitive' } },
+                ],
+              },
+            },
+          },
+          include: { shares: true },
+        }),
+      ]);
+
+    const [readableRecent, readableShared] = await Promise.all([
+      this.access.filterReadable(recentCandidates, userId, userEmail),
+      this.access.filterReadable(sharedCandidates, userId, userEmail),
+    ]);
+
+    return {
+      myFilesCount,
+      recentCount: readableRecent.length,
+      starredCount,
+      sharedCount: readableShared.length,
+      trashCount,
+    };
   }
 
   async getSharedWithMe(
@@ -227,6 +341,7 @@ export class DocumentQueryService {
     Array<
       DocumentVersion & {
         uploadedByEmail: string;
+        isCurrent: boolean;
         uploaderProfile: UserProfileSnapshotResponse | null;
       }
     >
@@ -247,7 +362,7 @@ export class DocumentQueryService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string }> =
+    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string; isCurrent: boolean }> =
       versions.length === 0
         ? [
             {
@@ -258,6 +373,7 @@ export class DocumentQueryService {
               sizeBytes: item.sizeBytes,
               uploadedBy: item.ownerUserId,
               uploadedByEmail: item.ownerEmail,
+              isCurrent: true,
               createdAt: item.createdAt,
             },
           ]
@@ -283,6 +399,7 @@ export class DocumentQueryService {
               uploadedBy: v.uploadedBy,
               createdAt: v.createdAt,
               uploadedByEmail: email,
+              isCurrent: v.s3Key === item.s3Key,
             };
           });
 
