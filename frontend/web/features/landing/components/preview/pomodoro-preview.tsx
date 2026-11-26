@@ -157,23 +157,29 @@ export function PomodoroPreview() {
         role="region"
         aria-label="Sample Pomodoro full view"
         tabIndex={0}
-        className="@container/preview-pomodoro min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring @min-[800px]/preview-module:p-6"
+        className="@container/preview-pomodoro min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-background p-4 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring @min-[800px]/preview-module:p-6"
       >
-        <div className="mb-6 border-b border-border pb-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <PreviewHeading
             title="Pomodoro Focus"
             subtitle="A space for deep focus, a steady work rhythm and fewer distractions."
           >
-            <PreviewAction className="h-10">
+            <PreviewAction className="h-9">
               <Settings aria-hidden="true" />
               {POMODORO_SESSION_COPY.settings}
             </PreviewAction>
           </PreviewHeading>
         </div>
         <div className="space-y-6">
-          <TimerPreview />
-          <FocusTaskPanelsPreview />
-          <FocusStatsPreview />
+          <div className="grid grid-cols-1 items-start gap-6 @min-[900px]/preview-pomodoro:grid-cols-12">
+            <div className="rounded-panel border border-border bg-card p-5 @min-[900px]/preview-pomodoro:col-span-7">
+              <TimerPreview />
+            </div>
+            <div className="space-y-6 @min-[900px]/preview-pomodoro:col-span-5">
+              <FocusTaskPanelsPreview />
+              <FocusStatsPreview />
+            </div>
+          </div>
           <FocusReportPreview />
         </div>
       </div>

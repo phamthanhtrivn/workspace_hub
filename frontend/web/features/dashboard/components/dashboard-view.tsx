@@ -5,12 +5,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  AlertCircle,
-  Clock3,
-  ListChecks,
-  Video,
-} from "lucide-react";
+import { AlertCircle, Clock3, ListChecks, Video } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { CALENDAR_FORM_COPY as copy } from "@/features/calendar/constants/calendar-form-copy";
@@ -25,23 +20,30 @@ import {
 } from "@/features/calendar/types/calendar.types";
 import { createDefaultEventDraft } from "@/features/calendar/utils/calendar-event.utils";
 import { useDashboard } from "../hooks/use-dashboard";
+import { useDashboardExtras } from "../hooks/use-dashboard-extras";
 import { Badge } from "@/components/ui/badge";
 import { DashboardDay } from "./day/dashboard-day";
 import { DashboardTasks } from "./tasks/dashboard-tasks";
-import { DASHBOARD_ACTIVITY_PANEL_HEIGHT, DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT } from "./common/dashboard-panel";
+import {
+  DASHBOARD_ACTIVITY_PANEL_HEIGHT,
+  DASHBOARD_CHART_PANEL_HEIGHT,
+  DASHBOARD_FOCUS_PANEL_HEIGHT,
+  DASHBOARD_PANEL_HEIGHT,
+  DASHBOARD_WORKLOAD_PANEL_HEIGHT,
+} from "./common/dashboard-panel";
 import { DashboardProductivity } from "./productivity/dashboard-productivity";
 import { DashboardMeetings } from "./overview/dashboard-meetings";
 import { DashboardExtras } from "./overview/dashboard-extras";
 import { DashboardAnalytics } from "./analytics/dashboard-analytics";
-import {
-  formatMinutes,
-  taskBucket,
-} from "../utils/dashboard.utils";
+import { formatMinutes, taskBucket } from "../utils/dashboard.utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
 import { DashboardWeather } from "./weather/dashboard-weather";
-import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
+import {
+  formatScheduledRelativeTime,
+  selectDashboardContext,
+} from "../utils/dashboard-context.utils";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
   DASHBOARD_ACCENTS,
@@ -65,6 +67,7 @@ const EventFormModal = dynamic(
 
 function PersonalDashboard() {
   const dashboard = useDashboard();
+  const extras = useDashboardExtras(dashboard.auth.userId, dashboard.zone);
   const queryClient = useQueryClient();
   const calendarsQuery = useCalendarCalendars();
   const createEvent = useCreateCalendarEvent();
@@ -95,12 +98,29 @@ function PersonalDashboard() {
     meetings,
   } = dashboard;
   const tasksReady = personal.isSuccess && project.isSuccess;
-  const overdueCount = tasks.filter((task) => taskBucket(task, today, zone) === "Overdue").length;
-  const dueTodayCount = tasks.filter((task) => taskBucket(task, today, zone) === "Today").length;
-  const timelineReady = [dashboard.events, personal, project, dashboard.dayMeetings].every((query) => query.data !== undefined);
-  const { nextItem, liveMeeting } = selectDashboardContext({ dayItems: timelineReady ? dayItems : [], upcoming, now, today, zone });
+  const overdueCount = tasks.filter(
+    (task) => taskBucket(task, today, zone) === "Overdue",
+  ).length;
+  const dueTodayCount = tasks.filter(
+    (task) => taskBucket(task, today, zone) === "Today",
+  ).length;
+  const timelineReady = [
+    dashboard.events,
+    personal,
+    project,
+    dashboard.dayMeetings,
+  ].every((query) => query.data !== undefined);
+  const { nextItem, liveMeeting } = selectDashboardContext({
+    dayItems: timelineReady ? dayItems : [],
+    upcoming,
+    now,
+    today,
+    zone,
+  });
   const contextTitle = liveMeeting?.title ?? nextItem?.title;
-  const contextHref = liveMeeting ? `/meetings/${encodeURIComponent(liveMeeting.joinToken)}` : nextItem?.href;
+  const contextHref = liveMeeting
+    ? `/meetings/${encodeURIComponent(liveMeeting.joinToken)}`
+    : nextItem?.href;
   const todayFocus = daily.at(-1);
   const next = upcoming[0];
   const wait =
@@ -140,7 +160,10 @@ function PersonalDashboard() {
       detail: "Tasks needing attention",
       icon: AlertCircle,
       href: "#my-tasks",
-      theme: tasksReady && overdueCount > 0 ? "text-destructive-content" : "text-foreground",
+      theme:
+        tasksReady && overdueCount > 0
+          ? "text-destructive-content"
+          : "text-foreground",
       iconTheme: DASHBOARD_DEADLINE_TONES.Overdue,
       queries: [personal, project],
       errorHref: "#my-tasks",
@@ -186,6 +209,7 @@ function PersonalDashboard() {
       errorDetail: "Could not load meetings. View retry options.",
     },
   ];
+
   return (
     <div className="min-h-full min-w-0 w-full bg-background text-foreground">
       <div className="@container/dashboard min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -209,81 +233,134 @@ function PersonalDashboard() {
               </h1>
               <div className="mt-3 flex min-h-11 min-w-0 items-center text-xs">
                 {contextTitle && contextHref ? (
-                  <Link href={contextHref} className="flex min-h-11 min-w-0 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-control py-1 text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150">
-                    <Badge className={liveMeeting ? "bg-success-soft text-success-content" : DASHBOARD_ACCENTS.calendar}>{liveMeeting ? "Live now" : "Up next"}</Badge>
-                    <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">{contextTitle}</span>
-                    {!liveMeeting && nextItem && <span>{formatScheduledRelativeTime(nextItem.at, now)}</span>}
+                  <Link
+                    href={contextHref}
+                    className="flex min-h-11 min-w-0 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-control py-1 text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150"
+                  >
+                    <Badge
+                      className={
+                        liveMeeting
+                          ? "bg-success-soft text-success-content"
+                          : DASHBOARD_ACCENTS.calendar
+                      }
+                    >
+                      {liveMeeting ? "Live now" : "Up next"}
+                    </Badge>
+                    <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">
+                      {contextTitle}
+                    </span>
+                    {!liveMeeting && nextItem && (
+                      <span>
+                        {formatScheduledRelativeTime(nextItem.at, now)}
+                      </span>
+                    )}
                   </Link>
-                ) : <p className="text-muted-foreground">Your schedule, priorities and a little room to focus.</p>}
+                ) : (
+                  <p className="text-muted-foreground">
+                    Your schedule, priorities and a little room to focus.
+                  </p>
+                )}
               </div>
             </div>
           </div>
-          <DashboardQuickActions onCreateTask={handleOpenCreateTask} disabled={!dashboard.ready} />
+          <DashboardQuickActions
+            onCreateTask={handleOpenCreateTask}
+            disabled={!dashboard.ready}
+          />
         </header>
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => {
             const hasError = stat.queries.some((query) => query.isError);
             const isPending =
               !hasError && stat.queries.some((query) => query.isPending);
+
             return (
-              <Card key={stat.label} className="min-w-0 gap-0 overflow-hidden p-0">
-              <Link
-                href={hasError ? stat.errorHref : stat.href}
-                onClick={() => {
-                  if (stat.label === "Overdue")
-                    dashboard.setTaskFilter("Overdue");
-                  if (stat.label === "Due today")
-                    dashboard.setTaskFilter("Today");
-                }}
-                className={`flex min-h-28 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:p-5 ${hasError ? "text-foreground" : stat.theme}`}
+              <Card
+                key={stat.label}
+                className="min-w-0 gap-0 overflow-hidden p-0"
               >
-                <div className="flex min-w-0 items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-                  <span>{stat.label}</span>
-                  <span className={`grid size-8 shrink-0 place-items-center rounded-control ${hasError ? "bg-secondary text-secondary-foreground" : stat.iconTheme}`}>
-                    <stat.icon aria-hidden size={17} />
-                  </span>
-                </div>
-                <p
-                  role="status"
-                  aria-busy={isPending}
-                  className={`mt-3 break-words font-medium tracking-tight tabular-nums ${hasError ? "text-lg text-muted-foreground" : "text-3xl"}`}
+                <Link
+                  href={hasError ? stat.errorHref : stat.href}
+                  onClick={() => {
+                    if (stat.label === "Overdue")
+                      dashboard.setTaskFilter("Overdue");
+                    if (stat.label === "Due today")
+                      dashboard.setTaskFilter("Today");
+                  }}
+                  className={`flex min-h-28 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:p-5 ${hasError ? "text-foreground" : stat.theme}`}
                 >
-                  <span className="sr-only">{stat.label}: </span>
-                  {hasError ? "Unavailable" : isPending ? (
-                    <>
-                      <span aria-hidden>…</span>
-                      <span className="sr-only">Loading</span>
-                    </>
-                  ) : stat.value}
-                </p>
-                <p
-                  title={hasError ? undefined : stat.detail}
-                  className={`mt-1 text-xs text-muted-foreground ${hasError ? "break-words" : "truncate"}`}
-                >
-                  {hasError ? stat.errorDetail : stat.detail}
-                </p>
-              </Link>
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+                    <span>{stat.label}</span>
+                    <span
+                      className={`grid size-8 shrink-0 place-items-center rounded-control ${hasError ? "bg-secondary text-secondary-foreground" : stat.iconTheme}`}
+                    >
+                      <stat.icon aria-hidden size={17} />
+                    </span>
+                  </div>
+                  <p
+                    role="status"
+                    aria-busy={isPending}
+                    className={`mt-3 break-words font-medium tracking-tight tabular-nums ${hasError ? "text-lg text-muted-foreground" : "text-3xl"}`}
+                  >
+                    <span className="sr-only">{stat.label}: </span>
+                    {hasError ? (
+                      "Unavailable"
+                    ) : isPending ? (
+                      <>
+                        <span aria-hidden>…</span>
+                        <span className="sr-only">Loading</span>
+                      </>
+                    ) : (
+                      stat.value
+                    )}
+                  </p>
+                  <p
+                    title={hasError ? undefined : stat.detail}
+                    className={`mt-1 text-xs text-muted-foreground ${hasError ? "break-words" : "truncate"}`}
+                  >
+                    {hasError ? stat.errorDetail : stat.detail}
+                  </p>
+                </Link>
               </Card>
             );
           })}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
           <div id="my-tasks" className="flex min-h-0 min-w-0 scroll-mt-6">
-            <DashboardTasks dashboard={dashboard} onCreateTask={handleOpenCreateTask} />
+            <DashboardTasks
+              dashboard={dashboard}
+              onCreateTask={handleOpenCreateTask}
+            />
           </div>
           <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
-          <div id="upcoming-meetings" className="flex min-h-0 min-w-0 scroll-mt-6">
+          <div
+            id="upcoming-meetings"
+            className="flex min-h-0 min-w-0 scroll-mt-6"
+          >
             <DashboardMeetings dashboard={dashboard} />
           </div>
           <div id="focus-report" className="flex min-h-0 min-w-0 scroll-mt-6">
-            <DashboardProductivity dashboard={dashboard} />
+            <DashboardProductivity
+              dashboard={dashboard}
+              pomodoroStats={extras.pomodoroStats}
+            />
           </div>
-          <DashboardExtras dashboard={dashboard} />
+          <DashboardExtras dashboard={dashboard} extras={extras} />
         </div>
-        <section aria-labelledby="dashboard-insights-title" className="space-y-4 border-t border-border pt-6">
+        <section
+          aria-labelledby="dashboard-insights-title"
+          className="space-y-4 border-t border-border pt-6"
+        >
           <div>
-            <h2 id="dashboard-insights-title" className="text-section-title font-semibold">Insights</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Review deadlines, completed work and your project workload.</p>
+            <h2
+              id="dashboard-insights-title"
+              className="text-section-title font-semibold"
+            >
+              Insights
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Review deadlines, completed work and your project workload.
+            </p>
           </div>
           <DashboardAnalytics dashboard={dashboard} />
         </section>
@@ -329,22 +406,43 @@ export function DashboardView() {
       >
         <Skeleton className="h-10 w-64 max-w-full" />
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-28 w-full rounded-panel" />)}
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-28 w-full rounded-panel" />
+          ))}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          {[DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, "h-48", DASHBOARD_ACTIVITY_PANEL_HEIGHT, DASHBOARD_ACTIVITY_PANEL_HEIGHT].map((height, index) => (
-            <Skeleton key={index} className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`} />
+          {[
+            DASHBOARD_PANEL_HEIGHT,
+            DASHBOARD_PANEL_HEIGHT,
+            DASHBOARD_FOCUS_PANEL_HEIGHT,
+            DASHBOARD_FOCUS_PANEL_HEIGHT,
+            "h-48",
+            DASHBOARD_ACTIVITY_PANEL_HEIGHT,
+            DASHBOARD_ACTIVITY_PANEL_HEIGHT,
+          ].map((height, index) => (
+            <Skeleton
+              key={index}
+              className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`}
+            />
           ))}
         </div>
         <div className="space-y-4 border-t border-border pt-6">
           <Skeleton className="h-6 w-32" />
           <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-            {[DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT].map((height, index) => (
-              <Skeleton key={index} className={`${height} w-full rounded-panel ${index === 2 ? "col-span-full" : ""}`} />
+            {[
+              DASHBOARD_CHART_PANEL_HEIGHT,
+              DASHBOARD_CHART_PANEL_HEIGHT,
+              DASHBOARD_WORKLOAD_PANEL_HEIGHT,
+            ].map((height, index) => (
+              <Skeleton
+                key={index}
+                className={`${height} w-full rounded-panel ${index === 2 ? "col-span-full" : ""}`}
+              />
             ))}
           </div>
         </div>
       </div>
     );
+
   return <PersonalDashboard key={userId} />;
 }
