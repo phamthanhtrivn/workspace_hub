@@ -1,59 +1,89 @@
+import { Sparkles } from "lucide-react";
 import { LANDING_AI_FEATURES } from "../landing-content";
-import { FadeIn } from "./motion/fade-in";
+import { FadeIn, FadeInStagger } from "./motion/fade-in";
+import { SlideIn } from "./motion/slide-in";
 
 export function LandingAi() {
   return (
     <section
       id="ai"
       aria-labelledby="ai-heading"
-      className="mx-auto max-w-6xl scroll-mt-8 px-5 pb-20 sm:px-8 sm:pb-24"
+      className="scroll-mt-8 bg-brand-navy py-20 text-brand-ice sm:py-24"
     >
-      <FadeIn className="grid gap-6 border-t border-border pt-16 md:grid-cols-[0.8fr_1.2fr] md:gap-16 sm:pt-20">
-        <div>
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16">
+        <FadeIn>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-ice/80">
+            Meet your AI co-pilot
+          </p>
           <h2
             id="ai-heading"
-            className="max-w-sm text-balance text-3xl font-semibold tracking-tight sm:text-4xl"
+            className="mt-3 text-balance text-3xl font-bold leading-tight tracking-tight text-brand-ice sm:text-4xl"
           >
-            AI, with the context to help.
+            Less searching.
+            <br />
+            More doing.
           </h2>
-          <p className="mt-5 max-w-sm text-sm leading-7 text-muted-foreground">
-            From a research question to the next task on your calendar. Find
-            assistance where the work already happens.
+          <p className="mt-5 max-w-lg text-sm leading-7 text-brand-ice/80">
+            WorkspaceHub brings useful AI assistance closer to your work. Ask
+            about task priorities, explore notebook sources, or revisit team
+            conversations without losing context.
           </p>
-          <p className="mt-6 max-w-sm text-xs leading-6 text-muted-foreground">
-            Availability depends on your settings, access and configured AI
-            services. Review answers against their sources, original work or
-            recordings.
-          </p>
-        </div>
-        <div className="divide-y divide-border">
-          {LANDING_AI_FEATURES.map(
-            ({ title, location, icon: Icon, description, example }) => (
-              <article key={title} className="py-6 first:pt-0 last:pb-0">
-                <div className="flex items-start gap-3">
-                  <Icon
-                    aria-hidden="true"
-                    className="mt-0.5 size-5 shrink-0 text-link"
-                  />
-                  <div>
-                    <h3 className="text-base font-semibold">{title}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {location}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                  {description}
-                </p>
-                <p className="mt-3 text-xs leading-6">
-                  <span className="text-muted-foreground">For example: </span>
-                  {example}
-                </p>
-              </article>
-            ),
-          )}
-        </div>
-      </FadeIn>
+          <ul className="mt-7 space-y-3">
+            <FadeInStagger stagger={0.1}>
+              {LANDING_AI_FEATURES.map(({ title, icon: Icon }) => (
+                <FadeIn key={title}>
+                  <li className="flex items-center gap-3 text-sm font-medium text-brand-ice">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-control bg-brand-blue text-brand-ice">
+                      <Icon aria-hidden="true" className="size-4" />
+                    </span>
+                    <span>{title}</span>
+                  </li>
+                </FadeIn>
+              ))}
+            </FadeInStagger>
+          </ul>
+        </FadeIn>
+
+        <SlideIn
+          from="right"
+          className="rounded-panel border border-brand-ice/20 bg-brand-blue/70 p-5 shadow-dialog transition-transform duration-300 hover:-translate-y-1"
+        >
+          <div className="flex items-center justify-between border-b border-brand-ice/15 pb-4 text-xs font-bold text-brand-ice">
+            <span className="flex items-center gap-2">
+              <Sparkles aria-hidden="true" className="size-4" />
+              WorkspaceHub AI Assistant
+            </span>
+            <span className="rounded-full bg-brand-navy/60 px-2.5 py-0.5 text-[11px] font-medium text-brand-ice/80">
+              Illustrative demo
+            </span>
+          </div>
+
+          <FadeIn delay={0.15}>
+            <div className="ml-auto mt-5 max-w-[85%] rounded-panel rounded-br-sm bg-brand-navy/70 px-4 py-3 text-xs leading-6 text-brand-ice">
+              What should I focus on today?
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={0.3}>
+            <div className="mt-4 rounded-panel bg-card p-5 text-xs leading-6 text-card-foreground">
+              <p className="font-bold text-foreground">
+                Here&apos;s a practical plan for today.
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Based on your sample project tasks:
+              </p>
+              <ol className="mt-3 space-y-1.5 font-medium text-foreground">
+                <li>1. Finish the prototype design — high priority</li>
+                <li>2. Review API integration — in progress</li>
+                <li>3. Prepare the sprint summary — next step</li>
+              </ol>
+              <p className="mt-4 border-t border-border pt-3 text-[11px] text-muted-foreground">
+                Illustrative answer only · Verify actual task data in the app.
+              </p>
+            </div>
+          </FadeIn>
+        </SlideIn>
+      </div>
     </section>
   );
 }

@@ -2,6 +2,8 @@
 
 Chat timestamps, meeting schedules/history and recording timestamps remain UTC instants. The web displays them using the user's saved account timezone, interprets meeting editor input in that zone and converts recording date filters to UTC day boundaries. No per-meeting or per-conversation timezone selector is required. See [account timezone](../../docs/features/timezones.md).
 
+Communication also exposes lightweight workspace badge summaries (`GET /api/spaces/unread-summary` for unread channels/DMs across all Spaces, and `GET /api/meetings/badge-summary` for live and today's upcoming meetings). The web client keeps these summaries synchronized in real time by reusing the existing `/communication.io` and `/notification.io` singleton sockets without opening extra WebSocket connections.
+
 Run this NestJS application on the host in its own terminal. Keep the existing
 private .env and use localhost infrastructure/service endpoints. LiveKit URL and
 credentials must match local infrastructure.

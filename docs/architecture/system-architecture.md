@@ -4,7 +4,7 @@ WorkspaceHub consists of a Next.js web client, Kong and independently owned busi
 
 | Component | Responsibility | Source |
 | --- | --- | --- |
-| Web | Product UI; React Query for server state and Redux for existing global state | frontend/web |
+| Web | Product UI; React Query for server state, Redux for existing global state, and real-time badge sync over existing `/communication.io` & `/notification.io` singletons | frontend/web |
 | Kong | Routing, verified identity context, public/internal boundary and request policies | backend/kong-gateway |
 | User | Accounts, OTP, credentials, refresh/reset tokens, sessions and profiles | backend/user-service |
 | Project | Projects, membership, tasks, checklists, comments, labels and access synchronization | backend/project-service |

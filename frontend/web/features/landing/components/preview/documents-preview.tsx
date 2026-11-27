@@ -1,11 +1,16 @@
 import {
+  ChevronDown,
   ChevronRight,
+  FileText,
   Folder,
+  FolderOpen,
+  FolderPlus,
   Grid2X2,
   HardDrive,
   List,
   Lock,
   MoreHorizontal,
+  PanelLeftClose,
   Plus,
   Star,
 } from "lucide-react";
@@ -31,39 +36,110 @@ import {
   PreviewAction,
   PreviewBadge,
   PreviewHeading,
-  PreviewNavigation,
   PreviewSearch,
   PreviewSelect,
 } from "./preview-ui";
 
-const DOCUMENT_NAVIGATION = DOCUMENT_NAVIGATION_ITEMS.map((item) => ({
-  ...item,
-  active: item.id === DocumentViewType.MY_FILES,
-}));
+const DOCUMENT_COUNTS: Record<DocumentViewType, number> = {
+  [DocumentViewType.MY_FILES]: 12,
+  [DocumentViewType.RECENT]: 6,
+  [DocumentViewType.SHARED]: 4,
+  [DocumentViewType.STARRED]: 3,
+  [DocumentViewType.TRASH]: 1,
+};
 
 export function DocumentsPreview() {
   return (
     <PreviewShell moduleId="documents">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col @min-[960px]/preview-module:flex-row">
-        <aside className="shrink-0 border-b border-border bg-sidebar p-4 @min-[960px]/preview-module:flex @min-[960px]/preview-module:w-[272px] @min-[960px]/preview-module:flex-col @min-[960px]/preview-module:border-b-0 @min-[960px]/preview-module:border-r @min-[960px]/preview-module:py-5">
-          <div className="overflow-x-auto">
-            <PreviewNavigation
-              items={DOCUMENT_NAVIGATION}
-              className="@min-[960px]/preview-module:flex-col"
+        <aside className="shrink-0 border-b border-border bg-sidebar p-4 @min-[960px]/preview-module:flex @min-[960px]/preview-module:w-[272px] @min-[960px]/preview-module:flex-col @min-[960px]/preview-module:border-b-0 @min-[960px]/preview-module:border-r @min-[960px]/preview-module:p-0">
+          <div className="hidden items-center justify-between border-b border-border px-3.5 py-3 @min-[960px]/preview-module:flex">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="flex size-7 items-center justify-center rounded-control bg-info-soft text-info-content">
+                <FileText aria-hidden="true" className="size-3.5" />
+              </span>
+              Documents
+            </span>
+            <PanelLeftClose
+              aria-hidden="true"
+              className="size-4 text-muted-foreground"
             />
           </div>
-          <div className="mt-auto hidden rounded-panel border border-border bg-card p-3.5 @min-[960px]/preview-module:block">
-            <p className="flex items-center gap-2 text-xs font-semibold">
-              <HardDrive aria-hidden="true" className="size-3.5 text-link" />
-              Document Storage
-            </p>
-            <div className="mt-2.5 flex h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-1/4 bg-primary" />
-              <div className="h-full w-1/6 bg-link" />
+          <div className="hidden items-center gap-2 px-3.5 pb-2 pt-3.5 @min-[960px]/preview-module:flex">
+            <PreviewAction
+              variant="default"
+              className="h-8 flex-1 gap-1.5 text-xs font-semibold"
+            >
+              <Plus aria-hidden="true" className="size-3.5" />
+              Upload / New
+            </PreviewAction>
+            <span className="grid size-8 shrink-0 place-items-center rounded-control border border-border bg-card">
+              <FolderPlus aria-hidden="true" className="size-4 text-link" />
+            </span>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-x-auto @min-[960px]/preview-module:overflow-y-auto @min-[960px]/preview-module:px-3 @min-[960px]/preview-module:py-2">
+            <div className="flex gap-1.5 @min-[960px]/preview-module:flex-col @min-[960px]/preview-module:gap-0.5">
+              {DOCUMENT_NAVIGATION_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const active = item.id === DocumentViewType.MY_FILES;
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex h-8 shrink-0 items-center justify-between gap-2 rounded-control px-2.5 text-xs ${active ? "bg-info-soft font-semibold text-info-content" : "font-medium text-muted-foreground"}`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Icon
+                        aria-hidden="true"
+                        className={`size-3.5 shrink-0 ${active ? "text-info-content" : item.iconClassName}`}
+                      />
+                      <span>{item.label}</span>
+                    </span>
+                    <span
+                      className={`hidden rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums @min-[960px]/preview-module:inline-block ${active ? "bg-card text-info-content" : "text-muted-foreground"}`}
+                    >
+                      {DOCUMENT_COUNTS[item.id]}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Sample storage · 1.2 GB / 5 GB used
-            </p>
+            <div className="hidden space-y-1 border-t border-border pt-3 @min-[960px]/preview-module:block">
+              <span className="block px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Folders
+              </span>
+              <div className="flex items-center gap-1.5 rounded-control px-2 py-1 text-xs text-muted-foreground">
+                <ChevronDown aria-hidden="true" className="size-3" />
+                <FolderOpen
+                  aria-hidden="true"
+                  className="size-3.5 text-warning-content"
+                />
+                <span className="truncate">Research &amp; references</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-control px-2 py-1 text-xs text-muted-foreground">
+                <ChevronRight aria-hidden="true" className="size-3" />
+                <Folder
+                  aria-hidden="true"
+                  className="size-3.5 text-warning-content"
+                />
+                <span className="truncate">Design &amp; prototype</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-auto hidden border-t border-border p-3 @min-[960px]/preview-module:block">
+            <div className="rounded-panel border border-border bg-card p-3.5">
+              <p className="flex items-center gap-2 text-xs font-semibold">
+                <HardDrive aria-hidden="true" className="size-3.5 text-link" />
+                Document Storage
+              </p>
+              <div className="mt-2.5 flex h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full w-1/4 bg-primary" />
+                <div className="h-full w-1/6 bg-link" />
+              </div>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Sample storage · 1.2 GB / 5 GB used
+              </p>
+            </div>
           </div>
         </aside>
         <div

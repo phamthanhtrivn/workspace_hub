@@ -9,8 +9,8 @@ NestJS + Prisma service for WorkspaceHub calendars, events, attendees, recurring
 - Enforces private/public visibility and returns per-user event permissions.
 - Verifies document access through Document Service; project-task fields remain snapshots, not a live Project authorization integration.
 - Keeps read-only project-task presentation fields for a future integration, but does not currently consume Project events.
-- Validates date/UUID filters and paginates event range queries.
-- Owns Pomodoro preferences, completed sessions, daily statistics, and optional cross-device timer state.
+- Validates date/UUID filters, paginates event range queries, and serves `GET /api/calendar/events/today-summary` (`eventsTodayCount`, `tasksDueTodayCount`, `totalTodayCount`) for account-timezone root badge counts.
+- Owns Pomodoro preferences, completed sessions (including optional `notes`), daily statistics, and optional cross-device timer state.
 
 ## Calendar Pomodoro API
 
