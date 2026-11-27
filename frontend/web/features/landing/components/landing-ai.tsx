@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { LANDING_AI_FEATURES } from "../landing-content";
-import { FadeIn } from "./motion/fade-in";
+import { FadeIn, FadeInStagger } from "./motion/fade-in";
+import { SlideIn } from "./motion/slide-in";
 
 export function LandingAi() {
   return (
@@ -9,8 +10,8 @@ export function LandingAi() {
       aria-labelledby="ai-heading"
       className="scroll-mt-8 bg-brand-navy py-20 text-brand-ice sm:py-24"
     >
-      <FadeIn className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16">
-        <div>
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16">
+        <FadeIn>
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-ice/80">
             Meet your AI co-pilot
           </p>
@@ -28,21 +29,25 @@ export function LandingAi() {
             conversations without losing context.
           </p>
           <ul className="mt-7 space-y-3">
-            {LANDING_AI_FEATURES.map(({ title, icon: Icon }) => (
-              <li
-                key={title}
-                className="flex items-center gap-3 text-sm font-medium text-brand-ice"
-              >
-                <span className="grid size-7 shrink-0 place-items-center rounded-control bg-brand-blue text-brand-ice">
-                  <Icon aria-hidden="true" className="size-4" />
-                </span>
-                <span>{title}</span>
-              </li>
-            ))}
+            <FadeInStagger stagger={0.1}>
+              {LANDING_AI_FEATURES.map(({ title, icon: Icon }) => (
+                <FadeIn key={title}>
+                  <li className="flex items-center gap-3 text-sm font-medium text-brand-ice">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-control bg-brand-blue text-brand-ice">
+                      <Icon aria-hidden="true" className="size-4" />
+                    </span>
+                    <span>{title}</span>
+                  </li>
+                </FadeIn>
+              ))}
+            </FadeInStagger>
           </ul>
-        </div>
+        </FadeIn>
 
-        <div className="rounded-panel border border-brand-ice/20 bg-brand-blue/70 p-5 shadow-dialog">
+        <SlideIn
+          from="right"
+          className="rounded-panel border border-brand-ice/20 bg-brand-blue/70 p-5 shadow-dialog transition-transform duration-300 hover:-translate-y-1"
+        >
           <div className="flex items-center justify-between border-b border-brand-ice/15 pb-4 text-xs font-bold text-brand-ice">
             <span className="flex items-center gap-2">
               <Sparkles aria-hidden="true" className="size-4" />
@@ -53,28 +58,32 @@ export function LandingAi() {
             </span>
           </div>
 
-          <div className="ml-auto mt-5 max-w-[85%] rounded-panel rounded-br-sm bg-brand-navy/70 px-4 py-3 text-xs leading-6 text-brand-ice">
-            What should I focus on today?
-          </div>
+          <FadeIn delay={0.15}>
+            <div className="ml-auto mt-5 max-w-[85%] rounded-panel rounded-br-sm bg-brand-navy/70 px-4 py-3 text-xs leading-6 text-brand-ice">
+              What should I focus on today?
+            </div>
+          </FadeIn>
 
-          <div className="mt-4 rounded-panel bg-card p-5 text-xs leading-6 text-card-foreground">
-            <p className="font-bold text-foreground">
-              Here&apos;s a practical plan for today.
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Based on your sample project tasks:
-            </p>
-            <ol className="mt-3 space-y-1.5 font-medium text-foreground">
-              <li>1. Finish the prototype design — high priority</li>
-              <li>2. Review API integration — in progress</li>
-              <li>3. Prepare the sprint summary — next step</li>
-            </ol>
-            <p className="mt-4 border-t border-border pt-3 text-[11px] text-muted-foreground">
-              Illustrative answer only · Verify actual task data in the app.
-            </p>
-          </div>
-        </div>
-      </FadeIn>
+          <FadeIn delay={0.3}>
+            <div className="mt-4 rounded-panel bg-card p-5 text-xs leading-6 text-card-foreground">
+              <p className="font-bold text-foreground">
+                Here&apos;s a practical plan for today.
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                Based on your sample project tasks:
+              </p>
+              <ol className="mt-3 space-y-1.5 font-medium text-foreground">
+                <li>1. Finish the prototype design — high priority</li>
+                <li>2. Review API integration — in progress</li>
+                <li>3. Prepare the sprint summary — next step</li>
+              </ol>
+              <p className="mt-4 border-t border-border pt-3 text-[11px] text-muted-foreground">
+                Illustrative answer only · Verify actual task data in the app.
+              </p>
+            </div>
+          </FadeIn>
+        </SlideIn>
+      </div>
     </section>
   );
 }

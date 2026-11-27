@@ -30,8 +30,8 @@ export function LandingFeatures() {
         <FadeInStagger>
           {LANDING_FEATURE_CARDS.map(({ title, description, icon: Icon }) => (
             <FadeIn key={title}>
-              <article className="flex h-full flex-col rounded-panel border border-border bg-card p-6 transition-colors duration-150 hover:border-info-outline/60">
-                <span className="grid size-10 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground">
+              <article className="group flex h-full flex-col rounded-panel border border-border bg-card p-6 transition-all duration-200 hover:-translate-y-1 hover:border-info-outline/60 hover:shadow-panel">
+                <span className="grid size-10 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground transition-transform duration-200 group-hover:scale-105">
                   <Icon aria-hidden="true" className="size-5" />
                 </span>
                 <h3 className="mt-5 text-base font-bold text-foreground">

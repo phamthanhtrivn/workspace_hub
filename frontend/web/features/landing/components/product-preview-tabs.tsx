@@ -57,7 +57,7 @@ export function ProductPreviewTabs({
                   inline: "nearest",
                 })
               }
-              className="flex h-auto min-w-[110px] flex-1 flex-col items-center justify-center gap-1.5 rounded-control border border-border bg-card px-3 py-3 text-xs font-semibold text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex h-auto min-w-[110px] flex-1 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-control border border-border bg-card px-3 py-3 text-xs font-semibold text-muted-foreground transition-all duration-150 hover:-translate-y-0.5 hover:border-info-outline/50 hover:text-foreground active:scale-[0.98] data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               {panel.icon}
               <span className="whitespace-nowrap">{panel.label}</span>

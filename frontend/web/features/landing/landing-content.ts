@@ -215,4 +215,10 @@ export const LANDING_AI_FEATURES = [
 export const PREVIEW_PROJECT = "Graduation project";
 export const PREVIEW_TASK = "Build the research prototype";
 export const PREVIEW_MEMBERS = ["Tri", "Linh", "Minh"] as const;
+export const PREVIEW_MEMBER_AVATARS = [
+  { name: "Tri", src: "/assets/avatars/tri.svg" },
+  { name: "Linh", src: "/assets/avatars/linh.svg" },
+  { name: "Minh", src: "/assets/avatars/minh.svg" },
+  { name: "An", src: "/assets/avatars/an.svg" },
+] as const;
 export const PREVIEW_FOCUS_MINUTES = 25;

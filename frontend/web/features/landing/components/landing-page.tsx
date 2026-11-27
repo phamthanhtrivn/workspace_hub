@@ -9,6 +9,7 @@ import { LandingAi } from "./landing-ai";
 import { LandingFaq } from "./landing-faq";
 import { ProductPreview } from "./product-preview";
 import { SlideIn } from "./motion/slide-in";
+import { FadeIn } from "./motion/fade-in";
 import { LandingMotionProvider } from "./motion/landing-motion-provider";
 import { LANDING_MOTION_STYLE } from "./motion/motion-config";
 import "../landing-motion.css";
@@ -70,7 +71,7 @@ export function LandingPage() {
           </main>
         </div>
         <footer className="border-t border-border bg-card">
-          <div className="mx-auto flex max-w-6xl flex-col gap-7 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
+          <FadeIn className="mx-auto flex max-w-6xl flex-col gap-7 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
             <div>
               <LandingLogo />
               <p className="mt-3 text-xs text-muted-foreground">
@@ -93,7 +94,7 @@ export function LandingPage() {
                 ),
               )}
             </nav>
-          </div>
+          </FadeIn>
         </footer>
       </div>
     </LandingMotionProvider>
