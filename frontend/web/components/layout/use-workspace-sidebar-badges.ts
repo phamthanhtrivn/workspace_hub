@@ -15,7 +15,7 @@ import { documentsApi } from "@/features/documents/api/documents.api";
 import { notebooksApi } from "@/features/ai/api/notebooks.api";
 import { notebookKeys } from "@/features/ai/types/notebook-list";
 import { getDailyStats } from "@/features/pomodoro/api/pomodoro-server.api";
-import { usePomodoroSession } from "@/features/pomodoro/components/pomodoro-session-provider";
+import { useOptionalPomodoroSession } from "@/features/pomodoro/components/pomodoro-session-provider";
 import { usePomodoroConfig } from "@/features/pomodoro/components/pomodoro-config-provider";
 import { formatTimerClock } from "@/features/pomodoro/utils/pomodoro-timer-presentation";
 import { localDateKey } from "@/features/pomodoro/utils/pomodoro-report";
@@ -117,11 +117,10 @@ export function useWorkspaceSidebarBadges(): Partial<
     retry: false,
   });
 
-  const {
-    status: pomodoroStatus,
-    timeLeft,
-    sessionRevision,
-  } = usePomodoroSession();
+  const pomodoroSession = useOptionalPomodoroSession();
+  const pomodoroStatus = pomodoroSession?.status ?? "IDLE";
+  const timeLeft = pomodoroSession?.timeLeft ?? 0;
+  const sessionRevision = pomodoroSession?.sessionRevision ?? 0;
   const pomodoroDailyQuery = useQuery({
     queryKey: [
       "pomodoro",

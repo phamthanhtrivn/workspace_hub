@@ -167,6 +167,10 @@ export function PomodoroSessionProvider({ children }: { children: ReactNode }) {
   return userId ? <UserPomodoroSessionProvider key={userId} userId={userId}>{children}</UserPomodoroSessionProvider> : children;
 }
 
+export function useOptionalPomodoroSession() {
+  return useContext(SessionContext);
+}
+
 export function usePomodoroSession() {
   const session = useContext(SessionContext);
   if (!session) throw new Error("PomodoroSessionProvider is required");
