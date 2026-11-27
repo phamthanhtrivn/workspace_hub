@@ -32,7 +32,7 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false,refetchOnWind
 api.defaults.adapter=async config=>({data:{success:true,message:'',data:[]},status:200,statusText:'OK',headers:{},config});
 window.__fixtureRequests=[];
 window.fetch=async(input)=>{window.__fixtureRequests.push(String(input));return new Response(JSON.stringify({success:true,data:[]}),{headers:{'content-type':'application/json'}})};
-store.dispatch(setCredentials({accessToken:'illustration-token',userId:ids.user,email:people[0].email,role:'USER',fullName:people[0].fullName,avatarUrl:null}));
+store.dispatch(setCredentials({accessToken:'illustration-token',userId:ids.user,email:people[0].email,role:'USER',fullName:people[0].fullName,avatarUrl:people[0].avatarUrl}));
 if(screen===9)store.dispatch(setActiveChat({chatId:ids.dm,chatType:'DIRECT_MESSAGE'}));
 function Room(){return <MeetingRoomContent meetingId="11111111-1111-4111-8111-000000000700" joinToken="sprint-review" participantRole="HOST" initialAutoAdmit initialChatEnabled initialScreenShareEnabled initialActiveScreenShareUserId={null} initialScreenShareStartedAt={null} initialChatMuted={false} initialHandRaisedAt={null} settings={{audioEnabled:true,videoEnabled:false}}/>}
 const views={3:Dashboard,4:Projects,5:ProjectDetail,6:ProjectDetail,7:ProjectDetail,8:Chat,9:Chat,10:Documents,11:Documents,12:Calendar,13:PomodoroView,14:MeetingLayout,15:Room,16:MeetingLayout,17:NotebookList,18:()=> <NotebookWorkspace id={ids.notebook}/>,19:Dashboard,20:Dashboard};

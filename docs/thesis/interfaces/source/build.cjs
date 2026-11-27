@@ -3,6 +3,14 @@ const folder=path.resolve(__dirname,'..');const web=path.resolve(folder,'../../.
 const req=createRequire(path.join(web,'package.json'));
 async function main(){
  fs.mkdirSync(path.join(folder,'assets'),{recursive:true});
+ fs.mkdirSync(path.join(folder,'assets/brand'),{recursive:true});
+ fs.mkdirSync(path.join(folder,'assets/avatars'),{recursive:true});
+ for(const name of fs.readdirSync(path.join(web,'public/brand'))){
+  fs.copyFileSync(path.join(web,'public/brand',name),path.join(folder,'assets/brand',name));
+ }
+ for(const name of fs.readdirSync(path.join(web,'public/assets/avatars'))){
+  fs.copyFileSync(path.join(web,'public/assets/avatars',name),path.join(folder,'assets/avatars',name));
+ }
  fs.copyFileSync(req.resolve('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'),path.join(folder,'assets/inter-latin.woff2'));
  fs.copyFileSync(path.join(path.dirname(req.resolve('@fontsource-variable/inter/package.json')),'LICENSE'),path.join(folder,'assets/INTER-LICENSE.txt'));
  const compiled=req('next/dist/compiled/webpack/webpack');const wp=compiled.webpack;const webpack=wp;

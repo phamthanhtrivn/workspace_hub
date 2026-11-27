@@ -6,4 +6,5 @@ state.status=Number(document.body.dataset.screen)===13?'PAUSED':'IDLE';state.not
 for(const key of ['retrySync','retryCompletion','selectFocusTask','requestSessionAction','start','pause','resume','stopSession','selectAmbientTrack','toggleAmbientPlay','changeAmbientVolume','toggleAutoPlayAmbient','retryAudioLibrary','finishActiveTask','startFocus','startFreeFocus','selectTask','confirmFocusSwitch','cancelFocusSwitch','setFocusDialogOpen'])state[key]=asyncNoop;
 export function PomodoroSessionProvider({children}){return children}
 export function usePomodoroSession(){return state}
+export function useOptionalPomodoroSession(){return state}
 export function usePomodoroSessionActions(){return state}
