@@ -96,3 +96,22 @@ test("Notebook preview shows sources, citations and notes without implying live 
     assert.ok(markup.includes(label), label);
   assert.doesNotMatch(markup, /<button|<input|<textarea/);
 });
+
+test("Dashboard preview shows KPI cards, tasks, schedule, notebooks and storage without live controls", () => {
+  const { DashboardPreview } = load(
+    "features/landing/components/preview/dashboard-preview.tsx",
+  );
+  const markup = renderToStaticMarkup(React.createElement(DashboardPreview));
+  for (const label of [
+    "Overdue",
+    "Due today",
+    "Focus today",
+    "Next meeting",
+    "My tasks",
+    "My day",
+    "Recent AI Notebooks",
+    "Documents &amp; Storage",
+  ])
+    assert.ok(markup.includes(label), label);
+  assert.doesNotMatch(markup, /<button|<input|<textarea/);
+});

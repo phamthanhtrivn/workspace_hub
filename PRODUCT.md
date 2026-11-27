@@ -21,13 +21,13 @@ The product connects personal productivity with team collaboration. Project task
 ## Operating Context
 
 - Members sign in with an account, manage personal work, and join projects and communication spaces with different permissions.
-- The dashboard brings together today's timeline, personal and assigned tasks, upcoming meetings, focus sessions, active projects, recent documents, and notifications.
+- The dashboard brings together today's timeline, personal and assigned tasks, upcoming meetings, focus sessions, active projects, recent AI notebooks, recent documents & storage, and notifications.
 - Project work supports board, list, calendar, Gantt, summary, and member views, with task details in a drawer.
 - Real-time conversations include direct messages, channels, threads, reactions, attachments, polls, notes, and linked task/document content.
-- Calendar work includes personal events and tasks, project calendars, recurrence, reminders, and attendee responses.
-- Documents support folders, upload/download, versions, previews, sharing, and public links with access checks.
+- Calendar work includes personal events and tasks, project calendars, recurrence, reminders, upcoming deadlines, and attendee responses.
+- Documents support folders, upload/download, floating upload progress, versions (including manual current version selection), previews, multi-DM/channel copy sending, sharing, and public links with access checks.
 - Meetings include scheduling, joining, device preview, video and screen sharing, participants, chat, and recording management.
-- Pomodoro supports focus/break cycles, task association, session history, and ambient audio.
+- Pomodoro supports focus/break cycles, Fullscreen Zen Mode, session notes, task association, session history/reports, and ambient audio.
 
 ## Capabilities and Constraints
 
