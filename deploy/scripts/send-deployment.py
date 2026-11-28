@@ -25,7 +25,11 @@ RUNTIME_FILES = (
 def package_release(role, sha, archive, repository=ROOT, plan=None):
     """Read an explicit allowlist from Git, never local env files or working edits."""
     paths = {f'deploy/prod/{role}/compose.yml': 'config/compose.yml'}
+    if role == 'app':
+        paths['deploy/prod/app/Caddyfile'] = 'config/Caddyfile'
+        paths['deploy/ai/bootstrap-db.sh'] = 'config/bootstrap-db.sh'
     if role == 'realtime':
+        paths['deploy/prod/realtime/Caddyfile'] = 'config/Caddyfile'
         paths.update({f'deploy/prod/realtime/{name}.yaml': f'config/{name}.yaml'
                       for name in ('livekit', 'egress')})
     if role == 'infra':
@@ -50,10 +54,13 @@ def package_release(role, sha, archive, repository=ROOT, plan=None):
 @contextmanager
 def connection():
     host = os.environ.get('SSH_HOST', '')
+    jump_host = os.environ.get('SSH_JUMP_HOST', '').strip()
     user = os.environ.get('SSH_USER') or 'ubuntu'
     port = os.environ.get('SSH_PORT') or '22'
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]*', host):
         raise ValueError('SSH_HOST must be an IPv4 address or DNS hostname')
+    if jump_host and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]*', jump_host):
+        raise ValueError('SSH_JUMP_HOST must be an IPv4 address or DNS hostname')
     if not re.fullmatch(r'[a-z_][a-z0-9_-]*', user):
         raise ValueError('Invalid SSH_USER')
     if not port.isdecimal() or not 1 <= int(port) <= 65535:
@@ -70,12 +77,16 @@ def connection():
         for path, content in ((key, private_key), (hosts, known_hosts)):
             path.write_text(content.rstrip() + '\n', encoding='utf-8')
             path.chmod(0o600)
-        options = ['-F', '/dev/null', '-i', str(key), '-o', 'IdentitiesOnly=yes',
-                   '-o', 'BatchMode=yes', '-o', 'PreferredAuthentications=publickey',
-                   '-o', 'StrictHostKeyChecking=yes',
-                   '-o', f'UserKnownHostsFile={hosts}', '-o', 'GlobalKnownHostsFile=/dev/null',
-                   '-o', 'ConnectTimeout=30', '-o', 'ServerAliveInterval=15',
-                   '-o', 'ServerAliveCountMax=4']
+        base_options = ['-F', '/dev/null', '-i', str(key), '-o', 'IdentitiesOnly=yes',
+                        '-o', 'BatchMode=yes', '-o', 'PreferredAuthentications=publickey',
+                        '-o', 'StrictHostKeyChecking=yes',
+                        '-o', f'UserKnownHostsFile={hosts}', '-o', 'GlobalKnownHostsFile=/dev/null',
+                        '-o', 'ConnectTimeout=30', '-o', 'ServerAliveInterval=15',
+                        '-o', 'ServerAliveCountMax=4']
+        options = list(base_options)
+        if jump_host and jump_host != host:
+            proxy_cmd = ' '.join(shlex.quote(arg) for arg in ['ssh', *base_options, '-p', port, '-W', '%h:%p', f'{user}@{jump_host}'])
+            options.extend(['-o', f'ProxyCommand={proxy_cmd}'])
         ssh = ['ssh', *options, '-p', port, target]
         yield root, ssh, ['scp', *options, '-P', port], target
 

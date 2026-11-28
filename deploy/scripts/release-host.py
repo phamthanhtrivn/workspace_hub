@@ -12,6 +12,7 @@ from release_state import load, write
 def prepare_mounts(role, root):
     if role == 'realtime':
         os.chown(root / 'egress.runtime.yaml', 1001, 0)
+        (root / 'Caddyfile').chmod(0o644)
     else:
         # These tracked init files contain no credentials. Container users need
         # to traverse the mounted directory and read them; operator env stays 600.
@@ -55,7 +56,10 @@ def deploy(role, directory, plan_file):
     current = json.loads(subprocess.check_output([*prefix, 'config', '--format', 'json'], text=True))['services']
     if not set(HOST_SERVICES[role]) <= set(current):
         raise ValueError('Required host services are missing')
-    paths = {name: root / f'{name}.runtime.yaml' for name in HOST_SERVICES[role]} if role == 'realtime' else {'kafka-init': root / 'kafka-init.sh'}
+    if role == 'realtime':
+        paths = {'livekit': root / 'livekit.runtime.yaml', 'egress': root / 'egress.runtime.yaml', 'caddy': root / 'Caddyfile'}
+    else:
+        paths = {'kafka-init': root / 'kafka-init.sh'}
     hashes = {name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in paths.items()}
     changed, initializer = affected(role, previous, current, hashes)
     selected = [name for name in HOST_SERVICES[role] if name in changed]

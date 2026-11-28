@@ -4,8 +4,17 @@ name: Release production
     branches: [main]
   workflow_dispatch:
     inputs:
+      scope:
+        description: 'Target deployment scope (auto detects from host baselines)'
+        type: choice
+        options:
+          - auto
+          - app
+          - infra
+          - realtime
+        default: auto
       services:
-        description: 'auto, all, or comma-separated Compose services (for example calendar-service,frontend-web)'
+        description: 'auto, all, or comma-separated Compose services (for example calendar-service,frontend-web,ai-service)'
         type: string
         default: auto
 permissions:
@@ -14,6 +23,6 @@ jobs:
   release:
     uses: ./.github/workflows/production-coordinator.yml
     with:
-      scope: ${{ github.event_name == 'push' && 'auto' || 'app' }}
+      scope: ${{ github.event_name == 'push' && 'auto' || inputs.scope || 'auto' }}
       services: ${{ inputs.services || 'auto' }}
     secrets: inherit

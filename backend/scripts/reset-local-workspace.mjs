@@ -15,6 +15,7 @@ const { Kafka } = requireProject('kafkajs');
 const TOPICS = [
   'notification-topic', 'user-profile-events', 'user-direct-message-settings-events',
   'calendar-reminder-events', 'project-task-events', 'project-task-sync-v1',
+  'document-access-realtime-v1',
 ];
 const REDIS_PREFIXES = [
   'AUTH_LOGIN:', 'AUTH_FORGOT:', 'AUTH_VERIFY_EMAIL:', 'AUTH_VERIFY_IP:',

@@ -8,6 +8,9 @@ name: CI
       plan:
         type: string
         default: ''
+      skip_docker_trial:
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -16,6 +19,7 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       node: ${{ steps.plan.outputs.node }}
+      python: ${{ steps.plan.outputs.python }}
       java: ${{ steps.plan.outputs.java }}
       has_images: ${{ steps.plan.outputs.has_images }}
     steps:
@@ -69,22 +73,30 @@ jobs:
       - run: npm run build
       - name: Typecheck test sources
         run: npm run test:typecheck
-  ai-tests:
+  python:
+    needs: changes
+    if: ${{ needs.changes.outputs.python != '[]' }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.changes.outputs.python) }}
     defaults:
       run:
-        working-directory: backend/ai-service/api
+        working-directory: ${{ matrix.directory }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: 22.22.0
-          cache: npm
-          cache-dependency-path: backend/ai-service/api/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - run: npm run test:typecheck
+          python-version: '3.12'
+      - name: Compile Python sources
+        run: python3 -m compileall -q .
+      - name: Run Python tests if present
+        run: |
+          if ls ./test_*.py ./*_test.py ./tests/test_*.py >/dev/null 2>&1; then
+            python3 -m pip install -r requirements.txt pytest
+            pytest -q
+          fi
   java:
     needs: changes
     if: ${{ needs.changes.outputs.java == 'true' }}
@@ -115,7 +127,7 @@ jobs:
       - run: bash deploy/scripts/validate-config.sh
   docker:
     needs: changes
-    if: ${{ needs.changes.outputs.has_images == 'true' }}
+    if: ${{ !inputs.skip_docker_trial && needs.changes.outputs.has_images == 'true' }}
     uses: ./.github/workflows/build-images.yml
     with:
       publish: false

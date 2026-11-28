@@ -1,0 +1,11 @@
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend-web:3000
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy kong:8000 {
+		flush_interval -1
+	}
+}

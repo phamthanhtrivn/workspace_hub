@@ -16,6 +16,11 @@ spec.loader.exec_module(transport)
 
 def read(role):
     os.environ['SSH_HOST'] = os.environ[f'{role.upper()}_SSH_HOST']
+    use_jump = os.environ.get('INFRA_USE_JUMP_HOST', 'true').lower() != 'false'
+    if role == 'infra' and use_jump and os.environ.get('APP_SSH_HOST'):
+        os.environ['SSH_JUMP_HOST'] = os.environ['APP_SSH_HOST']
+    else:
+        os.environ.pop('SSH_JUMP_HOST', None)
     # The old host may not have our new runtime scripts yet. Use only stdlib and
     # never print operator env, runtime env, resolved Compose or Docker credentials.
     source = f'''import json, pathlib, re
