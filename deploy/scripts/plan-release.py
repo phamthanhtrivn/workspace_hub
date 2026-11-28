@@ -5,8 +5,10 @@ import json
 import os
 from pathlib import Path
 import subprocess
-from catalog import IMAGES, ROLES, RUNTIME, classify
+from catalog import AI_IMAGES, APP_CORE, IMAGE_TO_MIGRATIONS, IMAGE_TO_RUNTIME, IMAGES, PYTHON_WORKERS, ROLES, RUNTIME, classify
 from release_state import SHA, validate
+
+RUNTIME_SELECTABLE = set(RUNTIME) | set(AI_IMAGES)
 
 
 def diff(base, head, merge_base=False):
@@ -24,15 +26,25 @@ def selection(value):
     if value in ('auto', 'all'):
         return value
     names = {name.strip() for name in value.split(',')}
-    if not names or not names <= set(RUNTIME):
+    if not names or not names <= RUNTIME_SELECTABLE:
         raise ValueError('Expected auto, all or comma-separated Compose service names')
-    return names
+    expanded = set()
+    for name in names:
+        if name in ('notebook-api', 'notebook-jobs'):
+            expanded.add('ai-service')
+        elif name in IMAGES:
+            expanded.add(name)
+        else:
+            expanded.add(name)
+    return expanded
 
 
 def ci_outputs(images, checks):
+    node_targets = [IMAGES[name]['context'] for name in (*APP_CORE, 'ai-service') if name in checks and name not in ('user-service', 'kong')]
+    python_targets = [PYTHON_WORKERS[name] for name in PYTHON_WORKERS if name in checks]
     return dict(matrix={'include': [IMAGES[name] for name in IMAGES if name in images]},
-                node=[IMAGES[name]['context'] for name in RUNTIME if name in checks and name not in ('user-service', 'kong')],
-                python=False,
+                node=node_targets,
+                python=python_targets,
                 java='user-service' in checks, has_images=bool(images))
 
 
@@ -60,8 +72,9 @@ def production(sha, states, scope='auto', services='auto'):
             if chosen == 'all':
                 selected_images = set(IMAGES)
             elif isinstance(chosen, set) and old:
-                selected_images &= chosen | {name + '-migration' for name in chosen if name.endswith('-service')}
-                selected_images.update(chosen)
+                built_chosen = chosen & set(IMAGES)
+                selected_images &= built_chosen | {name + '-migration' for name in built_chosen if name.endswith('-service') and name != 'ai-service'}
+                selected_images.update(built_chosen)
             if old:
                 selected_images.update(set(IMAGES) - set(old['images']))
             if not permitted:
@@ -69,7 +82,7 @@ def production(sha, states, scope='auto', services='auto'):
             images.update(selected_images)
             checks.update(name.removesuffix('-migration') for name in selected_images)
             if permitted and config_changed:
-                checks.update(RUNTIME)
+                checks.update(APP_CORE + AI_IMAGES)
         enabled = permitted and (old is None or config_changed or bool(selected_images) or scope == role or (role == 'app' and services != 'auto'))
         candidate = copy.deepcopy(old) if old else dict(version=1, config_commit=sha, images={}, last_services=[])
         # Explicit partial APP selection must not mark unselected config as applied.
@@ -77,11 +90,18 @@ def production(sha, states, scope='auto', services='auto'):
             candidate['config_commit'] = sha if enabled else candidate['config_commit']
         for name in selected_images:
             candidate['images'][name] = dict(tag=f'sha-{sha}', source_commit=sha)
-        runtime = [name for name in RUNTIME if name in selected_images]
-        migrations = [name for name in IMAGES if name in selected_images and name.endswith('-migration')]
+        runtime_set = {svc for img in selected_images for svc in IMAGE_TO_RUNTIME.get(img, ())}
+        runtime = [name for name in RUNTIME if name in runtime_set]
+        migration_set = {mig for img in selected_images for mig in IMAGE_TO_MIGRATIONS.get(img, ())}
+        migrations = [name for name in ('user-service-migration', 'project-service-migration', 'communication-service-migration', 'notification-service-migration', 'document-service-migration', 'calendar-service-migration', 'notebook-db-bootstrap', 'ai-service-migration') if name in migration_set]
+        if old is None and role == 'app' and 'notebook-db-bootstrap' not in migrations:
+            migrations.append('notebook-db-bootstrap')
         candidate['last_services'] = runtime if role == 'app' else []
+        restrict = None
+        if isinstance(chosen, set) and old:
+            restrict = sorted({svc for name in chosen for svc in IMAGE_TO_RUNTIME.get(name, (name,)) if svc in RUNTIME})
         plans[role] = dict(enabled=enabled, expected=old, state=candidate, services=runtime,
-                           migrations=migrations, restrict_services=sorted(chosen) if isinstance(chosen, set) and old else None,
+                           migrations=migrations, restrict_services=restrict,
                            bootstrap=old is None, config_changed=config_changed)
     return dict(sha=sha, roles=plans, **ci_outputs(images, checks))
 
@@ -106,7 +126,7 @@ def main():
         result = production(args.sha, json.loads(Path(args.states).read_text()), args.scope, args.services)
     else:
         paths = diff(args.base, args.sha, merge_base=True)
-        result = dict(sha=args.sha, **ci_outputs(*((set(IMAGES), set(RUNTIME)) if paths is None else (classify(paths)[0], classify(paths)[2]))))
+        result = dict(sha=args.sha, **ci_outputs(*((set(IMAGES), set(APP_CORE + AI_IMAGES)) if paths is None else (classify(paths)[0], classify(paths)[2]))))
     Path(args.output).write_text(json.dumps(result), encoding='utf-8')
     if os.environ.get('GITHUB_OUTPUT'):
         outputs = {key: result[key] for key in ('matrix', 'node', 'java', 'python', 'has_images')}

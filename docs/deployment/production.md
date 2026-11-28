@@ -1,24 +1,17 @@
 # WorkspaceHub Docker and EC2 deployment
 
 Commands run from the repository root unless stated otherwise. Three Ubuntu 24.04
-x86_64 EC2 instances share a VPC in Sydney. GitHub builds images and sends only the
+x86_64 EC2 instances share a VPC in Singapore. GitHub builds images and sends only the
 configuration and scripts from the release commit through SCP. EC2 pulls images;
 it needs neither a Git checkout nor application build tools.
 
 | Host | Runtime directory | Services |
 | --- | --- | --- |
-| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
-| REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
-| INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
+| APP | `/opt/workspacehub/app` | Caddy (HTTPS), web, Kong, user, project, communication, document, calendar, notification, notebook-api, notebook-jobs, rag-worker, speech-worker, notebook-qdrant |
+| REALTIME | `/opt/workspacehub/realtime` | Caddy (WSS), LiveKit, Egress |
+| INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer (Private VPC via APP SSH ProxyJump) |
 
-Notebook AI has a separate, manually operated Compose stack on APP; it is not
-part of the 14-image APP release catalog. Its runtime configuration is in
-`deploy/ai/compose.production.yml`; validate credentials and image inputs with
-`backend/scripts/check-ai-infrastructure.mjs`. It uses INFRA PostgreSQL (`notebook_db`, restricted
-`notebook` role) and Redis DB 3; API/jobs/migration join `workspacehub-app_default`.
-Redis uses AOF/everysec/noeviction. Preparing these files does not deploy AI;
-production LLM credentials and published AI/RAG/speech images must be supplied
-separately. Keep real env files outside Git.
+Notebook AI (`notebook-api`, `notebook-jobs`, `rag-worker`, `speech-worker`, `notebook-qdrant`) is integrated into the 17-image APP release catalog and runs on APP with `ai_internal` network isolation. Database provisioning (`notebook-db-bootstrap`) and schema migrations (`ai-service-migration`) run automatically in the `migration` profile before rolling out AI containers. Keep real env files outside Git.
 
 ## Local development
 
@@ -26,9 +19,12 @@ Web and the business applications run on the host; infrastructure, Kong, LiveKit
 
 ## Images and GitHub configuration
 
-Production publishes eight application repositories: `workspacehub-web`,
-`workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
-Six `workspacehub-<service>-migration` repositories contain migration tools.
+Production publishes eleven runtime/worker repositories (`workspacehub-web`,
+`workspacehub-kong`, `workspacehub-{user,project,communication,document,calendar,notification}-service`,
+`workspacehub-ai-service`, `workspacehub-rag-worker`, `workspacehub-speech-worker`)
+and six `workspacehub-<service>-migration` repositories (17 repositories total).
+`notebook-api`, `notebook-jobs`, and `ai-service-migration` share `workspacehub-ai-service`.
+Caddy (`2.10.0-alpine`) and Qdrant (`v1.19.2`) use pinned upstream digests.
 Each image uses `sha-<full Git commit SHA>` for its own last build. Unchanged images
 retain their previous tags, so one APP release can contain different SHA tags.
 Enable immutable SHA tags in Docker Hub;
@@ -156,7 +152,7 @@ egress if your network policy requires stable addresses. Permit your administrat
 IP separately. All hosts also need outbound registry and package access.
 
 APP needs its application S3 instance-role permissions independently of GitHub.
-Keep bucket `workspacehub-s3` and APP `AWS_REGION=ap-southeast-2`. EC2's default SDK
+Keep bucket `workspacehub-s3` and APP `AWS_REGION=ap-southeast-1`. EC2's default SDK
 credential chain can use the instance profile; IMDSv2 tokens should be required
 with response hop limit 2 for bridge containers. Verify bucket access inside an
 application container. REALTIME needs S3 access if future Egress jobs write there.
@@ -175,14 +171,11 @@ or include them in a deployment bundle.
 
 | Role | Required env names |
 | --- | --- |
-| APP | `DOCKERHUB_USERNAME`, `INFRA_PRIVATE_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `FRONTEND_URL`, `JWT_SECRET_KEY`, `INTERNAL_SERVICE_KEY`, `AWS_REGION`, `AWS_S3_BUCKET_NAME`, `GOOGLE_CLIENT_ID`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` |
+| APP | `DOCKERHUB_USERNAME`, `INFRA_PRIVATE_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `NOTEBOOK_POSTGRES_PASSWORD`, `APP_DOMAIN`, `API_DOMAIN`, `FRONTEND_URL`, `JWT_SECRET_KEY`, `AWS_REGION`, `AWS_S3_BUCKET_NAME`, `GOOGLE_CLIENT_ID`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, 16 directional `*_TO_*_KEY` variables (`PROJECT_TO_USER_KEY`, `COMMUNICATION_TO_USER_KEY`, `DOCUMENT_TO_USER_KEY`, `CALENDAR_TO_USER_KEY`, `NOTIFICATION_TO_USER_KEY`, `AI_TO_USER_KEY`, `PROJECT_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_PROJECT_KEY`, `PROJECT_TO_DOCUMENT_KEY`, `DOCUMENT_TO_PROJECT_KEY`, `PROJECT_TO_NOTIFICATION_KEY`, `CALENDAR_TO_COMMUNICATION_KEY`, `AI_TO_PROJECT_KEY`, `AI_TO_CALENDAR_KEY`, `AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`), `CALENDAR_DOCUMENT_SERVICE_KEY`, `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY`, `MEETING_STT_SERVICE_KEY` |
 | INFRA | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `INFRA_BIND_HOST`, `KAFKA_ADVERTISED_HOST` |
-| REALTIME | `INFRA_PRIVATE_HOST`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_IP`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_WEBHOOK_URL` |
+| REALTIME | `INFRA_PRIVATE_HOST`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_IP`, `LIVEKIT_DOMAIN`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_WEBHOOK_URL` |
 
-Optional APP names: `AWS_CLOUDFRONT_URL`, `MAIL_FROM`, `MAIL_PORT` (587),
-`FRONTEND_PORT` (3000), `KONG_PORT` (8000). Match PostgreSQL credentials on APP/INFRA
-and LiveKit credentials on APP/REALTIME. Use a shared JWT secret of at least 32
-random characters. Legacy internal credentials remain shared by existing APP services.
+All 21 service/caller keys (`*_TO_*_KEY`, `CALENDAR_DOCUMENT_SERVICE_KEY`, `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY`, `MEETING_STT_SERVICE_KEY`) and `NOTEBOOK_POSTGRES_PASSWORD` must be at least 32 characters and **distinct** from each other. Optional APP names: `AWS_CLOUDFRONT_URL`, `TRUSTED_PROXY_CIDRS`, `KONG_BIND_HOST` (`127.0.0.1`), `KONG_PORT` (`8000`), `MAIL_FROM`, `MAIL_PORT` (`587`), `MEETING_RECORDING_ENABLED`, `AWS_S3_USE_IAM_ROLE` (`true`), `LIVEKIT_RECORDING_TEMPLATE_URL`, `LIVEKIT_EGRESS_WEBHOOK_URL`, `LIVEKIT_EGRESS_HEALTH_URL`, `CONVERSATION_AI_ENABLED`, `MEETING_SUMMARY_ENABLED`, `VOICE_TRANSCRIPTION_ENABLED`, `MEETING_MEDIA_HOSTS`. Optional REALTIME names for Egress S3: `AWS_S3_BUCKET_NAME`, `AWS_REGION` (uses EC2 IAM Role by default).
 
 Before deploying the Calendar/Document security update, provision a **separate**
 `CALENDAR_DOCUMENT_SERVICE_KEY` of at least 32 random characters in the APP operator

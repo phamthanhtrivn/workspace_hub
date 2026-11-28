@@ -72,8 +72,11 @@ def rollback():
     print('Restored selected application containers; database migrations were not reversed.')
 
 
+ALLOWED_MIGRATIONS = (set(IMAGES) - set(RUNTIME)) | {'notebook-db-bootstrap', 'ai-service-migration'}
+
+
 def deploy(plan):
-    if set(plan['services']) - set(RUNTIME) or set(plan['migrations']) - (set(IMAGES) - set(RUNTIME)):
+    if set(plan['services']) - set(RUNTIME) or set(plan['migrations']) - ALLOWED_MIGRATIONS:
         raise ValueError('Invalid deployment targets')
     old = load(ROOT)
     if old != plan['expected']:

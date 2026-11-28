@@ -58,6 +58,14 @@ services:
           - /health/calendar
         strip_path: true
 
+  - name: ai-service-ready
+    url: http://notebook-api:8087/ready
+    routes:
+      - name: ai-health-route
+        paths:
+          - /health/ai
+        strip_path: true
+
   - name: user-service
     url: http://user-service:8081
     routes:

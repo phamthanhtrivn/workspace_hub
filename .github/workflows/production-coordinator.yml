@@ -34,6 +34,7 @@ jobs:
           APP_SSH_HOST: ${{ vars.APP_SSH_HOST }}
           INFRA_SSH_HOST: ${{ vars.INFRA_SSH_HOST }}
           REALTIME_SSH_HOST: ${{ vars.REALTIME_SSH_HOST }}
+          INFRA_USE_JUMP_HOST: ${{ vars.INFRA_USE_JUMP_HOST || 'true' }}
           SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
           SSH_PORT: ${{ vars.SSH_PORT || '22' }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
@@ -49,6 +50,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       plan: ${{ needs.plan.outputs.plan }}
+      skip_docker_trial: true
     secrets: inherit
   build:
     needs: [plan, ci]
@@ -69,6 +71,7 @@ jobs:
         env:
           RELEASE_PLAN: ${{ needs.plan.outputs.plan }}
           SSH_HOST: ${{ vars.INFRA_SSH_HOST }}
+          SSH_JUMP_HOST: ${{ (vars.INFRA_USE_JUMP_HOST || 'true') != 'false' && vars.APP_SSH_HOST || '' }}
           SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
           SSH_PORT: ${{ vars.SSH_PORT || '22' }}
           SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}

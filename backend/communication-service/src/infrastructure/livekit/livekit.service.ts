@@ -84,16 +84,22 @@ export class LiveKitService {
     return participants.some((participant) => participant.identity === userId);
   }
 
+  private hasS3Credentials(): boolean {
+    return (
+      process.env.AWS_S3_USE_IAM_ROLE === 'true' ||
+      Boolean(process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY)
+    );
+  }
+
   isRecordingConfigured(): boolean {
     return (
       process.env.MEETING_RECORDING_ENABLED === 'true' &&
       this.isConfigured() &&
+      this.hasS3Credentials() &&
       Boolean(
         process.env.AWS_S3_BUCKET_NAME &&
         process.env.JWT_SECRET_KEY &&
         process.env.AWS_REGION &&
-        process.env.AWS_ACCESS_KEY &&
-        process.env.AWS_SECRET_KEY &&
         process.env.LIVEKIT_RECORDING_TEMPLATE_URL &&
         process.env.LIVEKIT_EGRESS_WEBHOOK_URL,
       )
@@ -156,8 +162,12 @@ export class LiveKitService {
             value: {
               bucket: process.env.AWS_S3_BUCKET_NAME!,
               region: process.env.AWS_REGION!,
-              accessKey: process.env.AWS_ACCESS_KEY!,
-              secret: process.env.AWS_SECRET_KEY!,
+              ...(process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY
+                ? {
+                    accessKey: process.env.AWS_ACCESS_KEY,
+                    secret: process.env.AWS_SECRET_KEY,
+                  }
+                : {}),
               endpoint: process.env.AWS_S3_ENDPOINT || '',
               forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
             },

@@ -19,6 +19,9 @@ jobs:
       matrix: ${{ fromJSON(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space for heavy AI worker builds
+        if: ${{ matrix.name == 'rag-worker' || matrix.name == 'speech-worker' }}
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
       - uses: docker/setup-buildx-action@v3
       - name: Validate public release configuration
         if: ${{ inputs.publish }}
@@ -73,6 +76,9 @@ jobs:
       matrix: ${{ fromJSON(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space for heavy AI worker builds
+        if: ${{ matrix.name == 'rag-worker' || matrix.name == 'speech-worker' }}
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
       - uses: docker/setup-buildx-action@v3
       - name: Validate public release configuration
         if: ${{ inputs.publish }}
