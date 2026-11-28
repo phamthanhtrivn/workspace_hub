@@ -10,8 +10,6 @@ import { REPOSITORY_ROOT, readEnvironment } from './local-security/env-files.mjs
 
 const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
 const requireProject = createRequire(resolve(REPOSITORY_ROOT, 'backend/project-service/package.json'));
-const Redis = require('ioredis');
-const { Kafka } = requireProject('kafkajs');
 const TOPICS = [
   'notification-topic', 'user-profile-events', 'user-direct-message-settings-events',
   'calendar-reminder-events', 'project-task-events', 'project-task-sync-v1',
@@ -146,6 +144,7 @@ async function restoreAll(admin, plan, directory, credentialMode) {
 }
 
 async function resetKafka() {
+  const { Kafka } = requireProject('kafkajs');
   const broker = readEnvironment('backend/project-service/.env').values.KAFKA_BROKER;
   const brokers = broker.split(',').map((part) => part.trim());
   if (brokers.some((part) => !/^(127\.0\.0\.1|localhost):\d+$/.test(part))) throw new Error('Kafka reset requires the local broker.');
@@ -183,6 +182,7 @@ async function resetKafka() {
 }
 
 async function resetRedis() {
+  const Redis = require('ioredis');
   const ai = readEnvironment('backend/ai-service/api/.env').values;
   const redisUrl = new URL(ai.REDIS_URL);
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(redisUrl.hostname)) throw new Error('Redis cleanup requires local Redis.');

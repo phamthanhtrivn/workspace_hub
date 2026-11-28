@@ -28,6 +28,8 @@ function detailFixture(sourceType, recurrence = { recurrenceRule: 'FREQ=DAILY' }
         if (!(index in state)) state[index] = initial;
         return [state[index], value => { state[index] = value; }];
       },
+      useSyncExternalStore: (_subscribe, getSnapshot, getServerSnapshot) =>
+        (getServerSnapshot ? getServerSnapshot() : getSnapshot()),
     },
     '@/store/store': { useAppSelector: selector => selector({ auth: { userId: 'owner' } }) },
     '../../hooks/use-calendar-queries': { useCalendarEvent: () => ({}), useRetryCalendarConference: () => ({}) },
