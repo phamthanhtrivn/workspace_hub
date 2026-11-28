@@ -39,10 +39,12 @@ while (( SECONDS < deadline )); do
       fi
     done
     if (( ${#routes[@]} > 0 )); then
-      kong_port=$(compose port kong 8000 | head -n 1 | awk -F: '{print $NF}')
+      kong_addr=$(compose port kong 8000 | head -n 1)
+      kong_addr=${kong_addr/0.0.0.0:/127.0.0.1:}
+      kong_addr=${kong_addr/\[::\]:/127.0.0.1:}
     fi
     for service in "${routes[@]}"; do
-      curl -fsS --max-time 5 "http://127.0.0.1:${kong_port}/health/${service}" >/dev/null || proxies=false
+      curl -fsS --max-time 5 "http://${kong_addr}/health/${service}" >/dev/null || proxies=false
     done
     $proxies && exit 0
   fi

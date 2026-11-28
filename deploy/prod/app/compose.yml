@@ -618,5 +618,4 @@ volumes:
   caddy_data: {}
   caddy_config: {}
 networks:
-  ai_internal:
-    internal: true
+  ai_internal: {}
