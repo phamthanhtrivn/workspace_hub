@@ -4,6 +4,7 @@ import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
 import { cn } from "@/lib/utils";
+import { POPUP_LAYER_CLASS } from "./popup-layer";
 
 function Popover({
   ...props
@@ -36,8 +37,9 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "z-[90] w-72 origin-[var(--radix-popover-content-transform-origin)] rounded-md border bg-popover text-popover-foreground shadow-md outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+          "w-72 origin-[var(--radix-popover-content-transform-origin)] rounded-panel border bg-popover shadow-panel text-popover-foreground outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className,
+          POPUP_LAYER_CLASS,
         )}
         {...props}
       />

@@ -33,9 +33,9 @@ export function useChatScrollBehavior(): UseChatScrollBehaviorReturn {
   }, []);
 
   const highlightElement = useCallback((el: HTMLElement) => {
-    el.classList.add("bg-blue-200", "transition-all", "duration-500");
+    el.classList.add("bg-info-soft", "transition-all", "duration-200");
     setTimeout(
-      () => el.classList.remove("bg-blue-200"),
+      () => el.classList.remove("bg-info-soft"),
       JUMP_TO_MESSAGE_HIGHLIGHT_DURATION_MS,
     );
   }, []);

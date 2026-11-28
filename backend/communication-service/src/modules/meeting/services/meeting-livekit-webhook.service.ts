@@ -53,6 +53,8 @@ export class MeetingLiveKitWebhookService {
     }
 
     if (event.event !== 'room_finished') {
+      if (event.event === 'participant_joined' && event.room?.name)
+        await this.recordingWorker.requestAutomaticRecording(event.room.name);
       return {
         event: event.event,
         handled: false,

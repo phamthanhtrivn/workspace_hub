@@ -1,0 +1,79 @@
+import { Queue, type Job } from "bullmq";
+import { config, connection } from "../../config/env.config";
+export const WORKER_HEARTBEAT_VALUE = "ready:split-v1";
+const options = {
+  connection: {
+    ...connection,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    connectTimeout: 5000,
+  },
+  prefix: "wh-notebook",
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: "exponential" as const, delay: 10000 },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 100 },
+  },
+};
+export const queue = new Queue("notebook-jobs", options);
+export const conversationQueue = new Queue("conversation-ai-jobs", options);
+export const meetingSummaryQueue = new Queue("meeting-summary-jobs", options);
+let lastError = 0;
+for (const current of [queue, conversationQueue, meetingSummaryQueue])
+  current.on("error", () => {
+    if (Date.now() - lastError > 30000) {
+      lastError = Date.now();
+      console.error("Notebook Redis connection unavailable");
+    }
+  });
+export async function enqueue(kind: string, id: string, data: object) {
+  if (config.AI_ENABLED !== "true") return;
+  const jobId = `${kind}-${id}`;
+  const target = kind === "conversation" ? conversationQueue : queue;
+  if (target !== queue) {
+    const legacy = await queue.getJob(jobId);
+    if (legacy && !["failed", "completed"].includes(await legacy.getState()))
+      return;
+  }
+  const old = await target.getJob(jobId);
+  if (old) {
+    const state = await old.getState();
+    if (state === "failed" || state === "completed") {
+      try {
+        await old.retry(state, {
+          resetAttemptsMade: true,
+          resetAttemptsStarted: true,
+        });
+      } catch (error) {
+        // Another enqueue may have moved the same job back to waiting already.
+        if (["failed", "completed"].includes(await old.getState())) throw error;
+      }
+    }
+
+    return;
+  }
+  await target.add(kind, data, {
+    jobId,
+    ...(kind === "index" && config.VISUAL_ENABLED === "true"
+      ? { attempts: 1 }
+      : {}),
+  });
+}
+
+export async function findQueuedJob(
+  kind: string,
+  id: string,
+): Promise<Job | undefined> {
+  const jobId = `${kind}-${id}`;
+
+  return queue.getJob(jobId);
+}
+
+export async function closeQueues() {
+  await Promise.all([
+    queue.close(),
+    conversationQueue.close(),
+    meetingSummaryQueue.close(),
+  ]);
+}

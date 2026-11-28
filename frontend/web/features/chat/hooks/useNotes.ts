@@ -32,16 +32,18 @@ export function useNotes(conversationId: string | undefined, q?: string) {
 
   const queryKey = [...chatKeys.notes(conversationId), q || ""];
 
-  const { data: notes = [], isLoading: loading } = useQuery<NoteResponse[]>({
+  const query = useQuery<NoteResponse[]>({
     queryKey,
     queryFn: async () => {
       const res = await noteApi.getNotesInConversation(conversationId!, q);
-      return res.success ? res.data : [];
+      if (!res.success) throw new Error("Could not load notes");
+      return res.data;
     },
     enabled: !!conversationId,
     staleTime: CHAT_DEFAULT_STALE_TIME_MS,
   });
 
+  const { data: notes = [], isLoading: loading } = query;
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket || !conversationId) return;
@@ -66,5 +68,5 @@ export function useNotes(conversationId: string | undefined, q?: string) {
     };
   }, [conversationId, queryClient]);
 
-  return { notes, loading };
+  return { notes, loading, isError: query.isError, retrying: query.isFetching, retry: query.refetch };
 }

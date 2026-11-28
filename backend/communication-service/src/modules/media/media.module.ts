@@ -1,12 +1,36 @@
 import { Module } from '@nestjs/common';
 import { MediaController } from './media.controller';
 import { MediaService } from './media.service';
-import { S3Module } from 'src/infrastructure/s3/s3.module';
+import { DocumentAttachmentImportService } from './document-attachment-import.service';
+import { DocumentImportCleanupService } from './document-import-cleanup.service';
+import { S3Module } from '../../infrastructure/s3/s3.module';
+import { MediaAccessService } from './media-access.service';
+import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
+import { MeetingPolicyService } from '../meeting/services/meeting-policy.service';
+import { VoiceTranscriptService } from './voice-transcript.service';
+import { VoiceTranscriptDispatchService } from './voice-transcript-dispatch.service';
+import { PrismaModule } from '../../prisma/prisma.module';
+import {
+  VoiceTranscriptController,
+  VoiceTranscriptSourceController,
+} from './voice-transcript.controller';
 
 @Module({
-  imports: [S3Module],
-  controllers: [MediaController],
-  providers: [MediaService],
-  exports: [MediaService],
+  imports: [PrismaModule, S3Module, DirectMessagePermissionModule],
+  controllers: [
+    MediaController,
+    VoiceTranscriptController,
+    VoiceTranscriptSourceController,
+  ],
+  providers: [
+    DocumentAttachmentImportService,
+    DocumentImportCleanupService,
+    MediaService,
+    MediaAccessService,
+    MeetingPolicyService,
+    VoiceTranscriptService,
+    VoiceTranscriptDispatchService,
+  ],
+  exports: [MediaService, VoiceTranscriptDispatchService],
 })
 export class MediaModule {}

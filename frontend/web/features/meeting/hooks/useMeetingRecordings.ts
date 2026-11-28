@@ -1,5 +1,6 @@
 "use client";
 
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,7 +10,7 @@ import type { RecordingQuery } from "../types/meeting-recording.types";
 import {
   recordingErrorMessage,
   recordingErrorIsPermanent,
-} from "./useMeetingRecording";
+} from "../utils/recording-errors";
 import { useRecordingEvents } from "./useRecordingEvents";
 
 export function useMeetingRecordings(params: RecordingQuery) {
@@ -29,7 +30,7 @@ export function useMeetingRecordings(params: RecordingQuery) {
       if (query.state.error) return 30_000;
       if (
         query.state.data?.items.some((item) =>
-          ["STARTING", "PROCESSING"].includes(item.status),
+          ["STARTING", "PAUSING", "PROCESSING"].includes(item.status),
         )
       )
         return 5000;
@@ -42,7 +43,7 @@ export function useMeetingRecordings(params: RecordingQuery) {
       refresh();
       toast.success("Recording deleted");
     },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
   });
   return { query, remove, refresh };
 }

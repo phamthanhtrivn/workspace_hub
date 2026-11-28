@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useMeetingLocation } from "../hooks/use-meeting-location";
 import { toast } from "sonner";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
@@ -11,6 +11,8 @@ import { MeetingPreviousView } from "./history/meeting-previous-view";
 import { MeetingRecordingsView } from "./recordings/meeting-recordings-view";
 import { ScheduleMeetingModal } from "./schedule/schedule-meeting-modal";
 import { UpcomingMeetingsView } from "./schedule/upcoming-meetings-view";
+import { MeetingOverviewUpcoming } from "./overview/meeting-overview-upcoming";
+import { MeetingOverviewRecent } from "./overview/meeting-overview-recent";
 import {
   MeetingDashboardActionId,
   MeetingDashboardNavItemId,
@@ -31,26 +33,35 @@ import { usePreJoinMeetingDevices } from "../hooks/usePreJoinMeetingDevices";
 import { useUpcomingMeetings } from "../hooks/useScheduledMeetings";
 import { meetingKeys } from "../types/meeting.query-keys";
 
+const OVERVIEW_UPCOMING_LIMIT = 3;
+
 export function MeetingLayout() {
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
+  const {
+    activeView: activeNavItemId,
+    changeView: setActiveNavItemId,
+    highlightedMeeting: highlightedMeetingJoinToken,
+  } = useMeetingLocation();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
-  const [activeNavItemId, setActiveNavItemId] = useState(
-    MeetingDashboardNavItemId.OVERVIEW,
-  );
   const [isJoinLinkModalOpen, setIsJoinLinkModalOpen] = useState(false);
   const [isScheduleMeetingModalOpen, setIsScheduleMeetingModalOpen] =
     useState(false);
   const [editingScheduledMeeting, setEditingScheduledMeeting] =
     useState<UpcomingMeetingItem | null>(null);
-  const upcomingOverviewQuery = useUpcomingMeetings({ page: 1, limit: 1 });
   const isPreJoinOpen = flowStep === MeetingFlowStep.PREJOIN;
   const isOverviewActive =
     activeNavItemId === MeetingDashboardNavItemId.OVERVIEW;
   const isUpcomingActive =
     activeNavItemId === MeetingDashboardNavItemId.UPCOMING;
-  const highlightedMeetingJoinToken = searchParams.get("meeting");
+  const overviewEnabled =
+    isOverviewActive && flowStep === MeetingFlowStep.DASHBOARD;
+  const upcomingOverviewQuery = useUpcomingMeetings({
+    page: 1,
+    limit: OVERVIEW_UPCOMING_LIMIT,
+    enabled: overviewEnabled,
+    refetchOnWindowFocus: true,
+  });
   const {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
@@ -84,16 +95,19 @@ export function MeetingLayout() {
   const handleActionClick = (actionId: MeetingDashboardActionId) => {
     if (actionId === MeetingDashboardActionId.VIEW_RECORDINGS) {
       setActiveNavItemId(MeetingDashboardNavItemId.RECORDINGS);
+
       return;
     }
     if (actionId === MeetingDashboardActionId.JOIN_MEETING) {
       setIsJoinLinkModalOpen(true);
+
       return;
     }
 
     if (actionId === MeetingDashboardActionId.SCHEDULE_MEETING) {
       setEditingScheduledMeeting(null);
       setIsScheduleMeetingModalOpen(true);
+
       return;
     }
 
@@ -125,78 +139,103 @@ export function MeetingLayout() {
   const handleViewUpcomingMeetings = () => {
     setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
   };
-  const refreshUpcomingMeetings = useCallback(() => {
+  const refreshMeetingOverview = useCallback(() => {
     void queryClient.invalidateQueries({
       queryKey: meetingKeys.upcomingRoot,
     });
+    void queryClient.invalidateQueries({ queryKey: meetingKeys.historyRoot });
   }, [queryClient]);
 
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === MeetingDashboardNavItemId.UPCOMING || tab === MeetingDashboardNavItemId.RECORDINGS) {
-      const selectUpcomingTimer = window.setTimeout(() => {
-        setActiveNavItemId(tab);
-      }, 0);
-
-      return () => window.clearTimeout(selectUpcomingTimer);
-    }
-  }, [searchParams]);
-
   useMeetingSocket({
-    onMeetingStarted: refreshUpcomingMeetings,
-    onParticipantUpdated: refreshUpcomingMeetings,
+    onHistoryVisibilityUpdated: refreshMeetingOverview,
+    // onStatusUpdated also receives meeting-started events through the socket hook.
+    onStatusUpdated: refreshMeetingOverview,
+    onMeetingEnded: refreshMeetingOverview,
+    onParticipantUpdated: refreshMeetingOverview,
+    onParticipantJoined: refreshMeetingOverview,
+    onParticipantLeft: refreshMeetingOverview,
+    onParticipantRemoved: refreshMeetingOverview,
+    onHostTransferred: refreshMeetingOverview,
+    onReconnect: refreshMeetingOverview,
   });
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
-      <MeetingSidebar
-        activeItemId={activeNavItemId}
-        onItemSelect={setActiveNavItemId}
-      />
+    <div className="@container/meetings h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
+      <div className="flex h-full min-h-0 min-w-0 flex-col @min-[1120px]/meetings:flex-row">
+        <MeetingSidebar
+          activeItemId={activeNavItemId}
+          upcomingCount={upcomingOverviewQuery.data?.data.total}
+          onItemSelect={setActiveNavItemId}
+        />
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5">
-          {isOverviewActive ? (
-            <>
-              <MeetingHero
-                dateLabel={clock.dateLabel}
-                timeLabel={clock.timeLabel}
-                upcomingMeetingCount={
-                  upcomingOverviewQuery.data?.data.total ?? 0
-                }
-                onUpcomingClick={handleViewUpcomingMeetings}
-              />
-
-              <section
-                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-                aria-label="Meeting actions"
-              >
-                {meetingDashboardActions.map((action) => (
-                  <MeetingActionTile
-                    key={action.id}
-                    actionId={action.id}
-                    title={action.title}
-                    description={action.description}
-                    tone={action.tone}
-                    enabled={action.enabled}
-                    onClick={() => handleActionClick(action.id)}
+        <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+          <div
+            key={activeNavItemId}
+            className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-1"
+            role="region"
+            aria-label="Meetings content"
+            tabIndex={0}
+          >
+            <div className="flex min-h-full min-w-0 w-full flex-col gap-5">
+              {isOverviewActive ? (
+                <>
+                  <MeetingHero
+                    dateLabel={clock.dateLabel}
+                    timeLabel={clock.timeLabel}
+                    upcomingMeetingCount={
+                      upcomingOverviewQuery.data?.data.total
+                    }
+                    onUpcomingClick={handleViewUpcomingMeetings}
                   />
-                ))}
-              </section>
-            </>
-          ) : isUpcomingActive ? (
-            <UpcomingMeetingsView
-              highlightJoinToken={highlightedMeetingJoinToken}
-              onSchedule={handleScheduleMeeting}
-              onEdit={handleEditScheduledMeeting}
-            />
-          ) : activeNavItemId === MeetingDashboardNavItemId.RECORDINGS ? (
-            <MeetingRecordingsView />
-          ) : (
-            <MeetingPreviousView />
-          )}
-        </div>
-      </section>
+
+                  <section
+                    className="grid min-w-0 grid-cols-1 gap-4 @min-[480px]/meeting-content:grid-cols-2 @min-[880px]/meeting-content:grid-cols-4"
+                    aria-label="Meeting actions"
+                  >
+                    {meetingDashboardActions.map((action) => (
+                      <MeetingActionTile
+                        key={action.id}
+                        actionId={action.id}
+                        title={action.title}
+                        description={action.description}
+                        tone={action.tone}
+                        enabled={action.enabled}
+                        onClick={() => handleActionClick(action.id)}
+                      />
+                    ))}
+                  </section>
+                  <div className="grid min-w-0 items-start gap-8 @min-[900px]/meeting-content:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                    <MeetingOverviewUpcoming
+                      query={upcomingOverviewQuery}
+                      now={clock.now}
+                      onViewAll={handleViewUpcomingMeetings}
+                      onSchedule={handleScheduleMeeting}
+                      onEdit={handleEditScheduledMeeting}
+                    />
+                    <MeetingOverviewRecent
+                      enabled={overviewEnabled}
+                      now={clock.now}
+                      onViewHistory={() =>
+                        setActiveNavItemId(MeetingDashboardNavItemId.PREVIOUS)
+                      }
+                    />
+                  </div>
+                </>
+              ) : isUpcomingActive ? (
+                <UpcomingMeetingsView
+                  highlightJoinToken={highlightedMeetingJoinToken}
+                  onSchedule={handleScheduleMeeting}
+                  onEdit={handleEditScheduledMeeting}
+                />
+              ) : activeNavItemId === MeetingDashboardNavItemId.RECORDINGS ? (
+                <MeetingRecordingsView />
+              ) : (
+                <MeetingPreviousView />
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
 
       <MeetingJoinLinkModal
         open={isJoinLinkModalOpen}

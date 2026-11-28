@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsNumberString,
   IsArray,
   IsEmail,
   IsEnum,
@@ -23,6 +24,9 @@ export class EnsureProjectRootFolderMemberDto {
 }
 
 export class EnsureProjectRootFolderDto {
+  @IsOptional()
+  @IsNumberString({ no_symbols: true })
+  syncRevision?: string;
   @IsString()
   @IsNotEmpty({ message: 'Folder name cannot be empty' })
   name: string;

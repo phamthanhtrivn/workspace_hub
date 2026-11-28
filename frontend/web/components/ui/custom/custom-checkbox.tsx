@@ -50,7 +50,7 @@ export function CustomCheckbox({
             <label
               htmlFor={checkboxId}
               className={cn(
-                "block cursor-pointer text-xs font-bold text-slate-800",
+                "block cursor-pointer text-xs font-semibold text-foreground",
                 disabled && "cursor-default opacity-60",
                 labelClassName,
               )}
@@ -61,7 +61,7 @@ export function CustomCheckbox({
           {description ? (
             <p
               className={cn(
-                "mt-0.5 text-[11px] leading-relaxed text-slate-500",
+                "mt-0.5 text-xs leading-relaxed text-muted-foreground",
                 disabled && "opacity-60",
                 descriptionClassName,
               )}
@@ -70,7 +70,7 @@ export function CustomCheckbox({
             </p>
           ) : null}
           {error ? (
-            <p className="mt-1 text-[11px] font-semibold text-red-600">
+            <p className="mt-1 text-xs font-semibold text-destructive-content">
               {error}
             </p>
           ) : null}

@@ -1,112 +1,37 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X, FileText } from "lucide-react";
-import RichTextTextarea from "../../input/rich-text-textarea";
-
-interface EditNoteModalProps {
+import { NoteEditorDialog } from "@/components/notes/note-editor-dialog";
+import type { NoteSaveResult } from "@/components/notes/note.constants";
+import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
+import { renderMessageContent } from "../../../utils/message-formatter";
+interface Props {
   isOpen: boolean;
   onClose: () => void;
   initialTitle: string;
   initialContent: string;
-  onSave: (title: string, content: string) => void;
+  onSave: (
+    title: string,
+    content: string,
+  ) => NoteSaveResult | Promise<NoteSaveResult>;
 }
-
-export default function EditNoteModal({
-  isOpen,
+function EditNoteForm({
   onClose,
+  onSave,
   initialTitle,
   initialContent,
-  onSave,
-}: EditNoteModalProps) {
-  const [mounted, setMounted] = useState(false);
-  const [title, setTitle] = useState(initialTitle);
-  const [content, setContent] = useState(initialContent);
+}: Props) {
+  const profiles = useChatMemberProfiles();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen) {
-      setTitle(initialTitle);
-      setContent(initialContent);
-    }
-  }, [isOpen, initialTitle, initialContent]);
-
-  if (!isOpen || !mounted) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-    onSave(title.trim(), content.trim());
-    onClose();
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <FileText size={20} className="text-amber-600" />
-            Edit Note
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter title..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note Content
-            </label>
-            <RichTextTextarea
-              value={content}
-              setValue={setContent}
-              placeholder="Enter note content..."
-              minHeightClassName="min-h-[150px]"
-            />
-          </div>
-
-          <div className="pt-2 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!title.trim() || !content.trim()}
-              className="px-5 py-2.5 rounded-xl font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <NoteEditorDialog
+      editing
+      initialTitle={initialTitle}
+      initialContent={initialContent}
+      onClose={onClose}
+      onSave={(draft) => onSave(draft.title, draft.content)}
+      renderPreview={(content) => renderMessageContent(content, profiles)}
+    />
   );
 }
-
+export default function EditNoteModal(props: Props) {
+  return props.isOpen ? <EditNoteForm {...props} /> : null;
+}

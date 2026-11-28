@@ -1,8 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { RedisIoAdapter } from '../../common/adapters/redis-io.adapter';
+import { SessionRedisIoAdapter } from '../../common/auth/session-redis.adapter';
 
 export async function setupRedis(app: INestApplication): Promise<void> {
-  const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis();
+  const redisIoAdapter = new SessionRedisIoAdapter(app);
+  await redisIoAdapter.connect();
   app.useWebSocketAdapter(redisIoAdapter);
 }

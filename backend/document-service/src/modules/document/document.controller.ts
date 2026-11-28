@@ -1,3 +1,5 @@
+import { OptionalIdentity } from '../../common/decorators/http-authentication.decorator';
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Controller,
   Post,
@@ -13,6 +15,7 @@ import {
   Res,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -21,6 +24,8 @@ import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
+import { SetCurrentVersionDto } from './dto/set-current-version.dto';
+import { DOCUMENT_VERSION_MESSAGES } from './types/document-version.constants';
 import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
@@ -29,6 +34,7 @@ import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto
 import { TaskAttachmentDocumentsDto } from './dto/task-attachment-documents.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
+import { ItemType } from '@prisma/client';
 
 @Controller('api/documents')
 export class DocumentController {
@@ -41,12 +47,13 @@ export class DocumentController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    const expected = process.env.INTERNAL_SERVICE_KEY || 'local-internal-key';
-    if (!serviceKey || serviceKey !== expected) {
+    const expected = process.env.PROJECT_TO_DOCUMENT_KEY;
+    if (!isServiceKeyValid(serviceKey, expected)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }
 
+  @IndependentAuthentication()
   @Post('internal/projects/:projectId/root-folder')
   async ensureProjectRootFolder(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -58,6 +65,7 @@ export class DocumentController {
       projectId,
       dto,
     );
+
     return {
       message: 'Project root folder ensured successfully',
       data: {
@@ -68,6 +76,7 @@ export class DocumentController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/task-attachments/resolve')
   async resolveTaskAttachmentDocuments(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -80,12 +89,14 @@ export class DocumentController {
       dto.projectId,
       dto.documentItemIds,
     );
+
     return {
       message: 'Task attachment documents resolved successfully',
       data: documents,
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/task-attachments/import')
   async importTaskAttachmentDocuments(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -97,7 +108,9 @@ export class DocumentController {
       dto.userEmail,
       dto.projectId,
       dto.documentItemIds,
+      dto.operationId,
     );
+
     return {
       message: 'Task attachment documents imported successfully',
       data: documents,
@@ -116,6 +129,7 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Folder created successfully',
       data: folder,
@@ -134,6 +148,7 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Upload initialized successfully',
       data: result,
@@ -152,9 +167,27 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Document uploaded successfully',
       data: item,
+    };
+  }
+
+  @Get('navigation-summary')
+  async getNavigationSummary(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const summary = await this.documentService.getNavigationSummary(
+      userId,
+      userEmail,
+    );
+
+    return {
+      message: 'Navigation summary retrieved successfully',
+      data: summary,
     };
   }
 
@@ -165,6 +198,8 @@ export class DocumentController {
     @Query('folderId') folderId?: string,
     @Query('starred') starred?: string,
     @Query('archived') archived?: string,
+    @Query('recent') recent?: string,
+    @Query('itemType') itemType?: string,
     @Query('projectId') projectId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -174,6 +209,11 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     const isStarredOnly = starred === 'true';
     const isArchived = archived === 'true';
+    const isRecentOnly = recent === 'true';
+    const resolvedItemType =
+      itemType === ItemType.FOLDER || itemType === ItemType.FILE
+        ? itemType
+        : undefined;
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 12;
 
@@ -181,6 +221,8 @@ export class DocumentController {
       folderId,
       isStarredOnly,
       isArchived,
+      isRecentOnly,
+      itemType: resolvedItemType,
       projectId,
       page: pageNum,
       limit: limitNum,
@@ -259,6 +301,7 @@ export class DocumentController {
         projectId,
       },
     );
+
     return {
       message: 'Document name conflict checked successfully',
       data: result,
@@ -279,6 +322,7 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'Renamed successfully',
       data: item,
@@ -299,6 +343,7 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'Item moved successfully',
       data: item,
@@ -318,6 +363,7 @@ export class DocumentController {
       id,
       true,
     );
+
     return {
       message: 'Item moved to trash',
       data: item,
@@ -337,6 +383,7 @@ export class DocumentController {
       id,
       false,
     );
+
     return {
       message: 'Item restored successfully',
       data: item,
@@ -356,6 +403,7 @@ export class DocumentController {
       id,
       true,
     );
+
     return {
       message: 'Item starred successfully',
       data: item,
@@ -375,6 +423,7 @@ export class DocumentController {
       id,
       false,
     );
+
     return {
       message: 'Item unstarred successfully',
       data: item,
@@ -389,6 +438,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.deleteItemPermanently(userId, userEmail, id);
+
     return {
       message: 'Item permanently deleted successfully',
     };
@@ -406,6 +456,12 @@ export class DocumentController {
       userId,
       userEmail,
     );
+    const userRole = await this.documentService.getPermissionRole(
+      id,
+      userId,
+      userEmail,
+    );
+
     return {
       message: 'Document access verified',
       data: {
@@ -414,6 +470,9 @@ export class DocumentController {
         type: item.type,
         sizeBytes: Number(item.sizeBytes ?? 0),
         mimeType: item.mimeType,
+        userRole,
+        projectId: item.projectId ?? null,
+        isStarred: item.isStarred,
       },
     };
   }
@@ -424,6 +483,7 @@ export class DocumentController {
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
     const url = await this.documentService.getPreviewUrl(
@@ -431,7 +491,9 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
+
     return {
       message: 'Preview link initialized successfully',
       data: { url },
@@ -444,6 +506,7 @@ export class DocumentController {
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
     const url = await this.documentService.getDownloadUrl(
@@ -451,7 +514,9 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
+
     return {
       message: 'Download link initialized successfully',
       data: { url },
@@ -481,6 +546,7 @@ export class DocumentController {
       userEmail,
       id,
     );
+
     return {
       message: 'Versions retrieved successfully',
       data: versions,
@@ -501,10 +567,59 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'New version created successfully',
       data: version,
     };
+  }
+
+  @Put(':id/versions/current')
+  async setCurrentVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
+  }
+
+  @Delete(':id/versions/:versionId')
+  async deleteVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Delete('public/:id/versions/:versionId')
+  async deletePublicVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('versionId', new ParseUUIDPipe()) versionId: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.deleteVersion(id, versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.deleted, data: result };
+  }
+
+  @OptionalIdentity()
+  @Put('public/:id/versions/current')
+  async setPublicCurrentVersion(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetCurrentVersionDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const item = await this.documentService.setCurrentVersion(id, dto.versionId, userId, userEmail);
+    return { message: DOCUMENT_VERSION_MESSAGES.currentUpdated, data: item };
   }
 
   @Get(':id/sharing')
@@ -515,6 +630,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     const result = await this.documentService.getSharing(userId, userEmail, id);
+
     return {
       message: 'Share information retrieved successfully',
       data: result,
@@ -535,6 +651,7 @@ export class DocumentController {
       id,
       dto.linkAccess,
     );
+
     return {
       message: 'Link access updated successfully',
       data: result,
@@ -556,6 +673,7 @@ export class DocumentController {
       dto.email,
       dto.permission,
     );
+
     return {
       message: 'Share added successfully',
       data: result,
@@ -573,6 +691,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Chat metadata retrieved successfully',
       data: result,
@@ -582,12 +701,17 @@ export class DocumentController {
   @Post(':id/sharing/check-permissions')
   async checkPermissions(
     @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
     @Body() dto: CheckPermissionsDto,
   ) {
     const result = await this.documentService.checkEmailsPermissions(
       id,
       dto.emails,
+      userId,
+      userEmail,
     );
+
     return {
       message: 'Permissions checked successfully',
       data: result,
@@ -609,6 +733,7 @@ export class DocumentController {
       dto.emails,
       dto.permission,
     );
+
     return {
       message: 'Batch shares added successfully',
       data: result,
@@ -627,6 +752,7 @@ export class DocumentController {
       userEmail,
       id,
     );
+
     return {
       message: 'Breadcrumbs retrieved successfully',
       data: breadcrumbs,
@@ -642,11 +768,13 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.removeShare(userId, userEmail, id, shareId);
+
     return {
       message: 'Access revoked successfully',
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id')
   async getPublicDocument(
     @Param('id') id: string,
@@ -658,18 +786,21 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public document information retrieved successfully',
       data: result,
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/download-url')
   async getPublicDownloadUrl(
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     const item = await this.documentService.checkPermission(
       id,
@@ -684,19 +815,23 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
+
     return {
       message: 'Public download link initialized successfully',
       data: { url },
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/preview-url')
   async getPublicPreviewUrl(
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     const item = await this.documentService.checkPermission(
       id,
@@ -711,13 +846,16 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
+
     return {
       message: 'Public preview link initialized successfully',
       data: { url },
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/versions')
   async getPublicVersions(
     @Param('id') id: string,
@@ -729,12 +867,14 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public versions retrieved successfully',
       data: versions,
     };
   }
 
+  @OptionalIdentity()
   @Post('public/:id/versions')
   async createPublicVersion(
     @Param('id') id: string,
@@ -748,12 +888,14 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'New public version created successfully',
       data: version,
     };
   }
 
+  @OptionalIdentity()
   @Put('public/:id/rename')
   async renamePublicItem(
     @Param('id') id: string,
@@ -767,12 +909,14 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public document renamed successfully',
       data: result,
     };
   }
 
+  @OptionalIdentity()
   @Post('public/:id/upload/initiate')
   async initiatePublicUpload(
     @Param('id') id: string,
@@ -786,12 +930,14 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public upload initialized successfully',
       data: result,
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/download-folder')
   async downloadPublicFolder(
     @Param('id') id: string,
@@ -802,6 +948,7 @@ export class DocumentController {
     await this.documentService.downloadFolderAsZip(userId, userEmail, id, res);
   }
 
+  @OptionalIdentity()
   @Get('public/:id/children')
   async getPublicFolderChildren(
     @Param('id') id: string,
@@ -816,6 +963,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Children retrieved successfully',
       data: children,

@@ -1,10 +1,11 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import type { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { UpdateTaskPayload } from "../api/task.api";
 import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
 import type { ProjectPermissions } from "../project-permissions";
-import { canMoveTaskToStatus } from "../task-status-transition";
+import { getTaskStatusTransitionReason } from "../task-status-transition";
 import type { TaskDrawerUpdatePayload } from "../types/task-detail-drawer.types";
 import {
   isTerminalTaskStatus,
@@ -91,7 +92,11 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
     const task = options.tasks.find((item) => item.id === taskId);
     if (!task || task.status === newStatus) return;
     if (isTerminalTaskStatus(task.status) || !options.permissions.canContributeTask(task)) return;
-    if (!canMoveTaskToStatus(task, newStatus)) return;
+    const restriction = getTaskStatusTransitionReason(task, newStatus, options.tasks);
+    if (restriction) {
+      toast.error(restriction);
+      return;
+    }
 
     options.setStatusOverrides((current) => ({ ...current, [taskId]: newStatus }));
     try {
@@ -102,13 +107,13 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         return next;
       });
       toast.success("Task status updated");
-    } catch {
+    } catch (permissionError) {
       options.setStatusOverrides((current) => {
         const next = { ...current };
         delete next[taskId];
         return next;
       });
-      toast.error("Failed to update task status");
+      toast.error(getActionErrorMessage(permissionError, "Failed to update task status"));
     }
   };
 
@@ -118,12 +123,20 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       toast.success("Task created");
       options.closeTaskForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save task");
+      toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to save task"));
     }
   };
 
   const updateTaskDirect = async (taskId: string, payload: TaskDrawerUpdatePayload) => {
     if (options.rejectChange(taskId)) throw new Error("You do not have permission to edit this task");
+    const task = options.tasks.find((candidate) => candidate.id === taskId);
+    if (task && payload.status && payload.status !== task.status) {
+      const restriction = getTaskStatusTransitionReason(task, payload.status, options.tasks);
+      if (restriction) {
+        toast.error(restriction);
+        throw new Error(restriction);
+      }
+    }
     try {
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => BACKEND_TASK_FIELDS.has(key)),
@@ -143,7 +156,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       );
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      toast.error(apiError.response?.data?.message || "Failed to update task");
+      toast.error(getActionErrorMessage(error, apiError.response?.data?.message || "Failed to update task"));
       throw error;
     }
   };

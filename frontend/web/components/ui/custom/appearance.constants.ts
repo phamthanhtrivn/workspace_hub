@@ -1,0 +1,66 @@
+export const WORKSPACE_COLOR_OPTIONS = [
+  "#6366f1",
+  "#2563eb",
+  "#0ea5e9",
+  "#14b8a6",
+  "#16a34a",
+  "#22c55e",
+  "#f59e0b",
+  "#f97316",
+  "#ef4444",
+  "#dc2626",
+  "#ec4899",
+  "#8b5cf6",
+  "#7c3aed",
+  "#64748b",
+  "#334155",
+  "#22396f",
+] as const;
+
+export const WORKSPACE_ICON_OPTIONS = [
+  "🚀",
+  "📅",
+  "📚",
+  "📊",
+  "💡",
+  "🎯",
+  "🔧",
+  "📝",
+  "🎨",
+  "⚡",
+  "🏆",
+  "💼",
+  "🎓",
+  "🧪",
+  "📱",
+  "🌐",
+  "🔒",
+  "🏠",
+  "⭐",
+  "🧠",
+  "🎂",
+  "✈️",
+  "🏋️",
+  "🛠️",
+] as const;
+
+// The shared picker respects the existing Project API's Unicode character limit.
+export const WORKSPACE_ICON_MAX_CODE_POINTS = 10;
+export const CUSTOM_COLOR_DEFAULT = "#22396F";
+export const APPEARANCE_COPY = {
+  moreIcons: "More icons",
+  noIcon: "No icon",
+  searchIcons: "Search emoji…",
+  loadingIcons: "Loading icons…",
+  iconTooLong: "Choose an emoji with fewer joined characters.",
+  customColor: "Custom color",
+  colorArea: "Color saturation and brightness",
+  colorAreaHint:
+    "Use left and right for saturation, up and down for brightness.",
+  hue: "Hue",
+  hex: "HEX color",
+  invalidHex: "Enter a HEX color such as #22396F or #36F.",
+  preview: "Color preview",
+  apply: "Apply",
+  cancel: "Cancel",
+} as const;

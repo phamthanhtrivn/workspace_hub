@@ -59,7 +59,7 @@ export function enrichProjectTasks(
       return {
         ...assignee,
         displayName: member?.displayName || assignee.displayName,
-        avatarUrl: member?.avatarUrl || assignee.avatarUrl,
+        avatarUrl: member ? member.avatarUrl : assignee.avatarUrl,
       };
     }),
   }));

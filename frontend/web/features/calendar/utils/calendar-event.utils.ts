@@ -1,4 +1,7 @@
 import { EventInput } from "@fullcalendar/core";
+import { readableTextOnColor } from "@/lib/color";
+import { getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
+import { Temporal } from "temporal-polyfill";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -13,7 +16,6 @@ import {
   CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS,
 } from "../types/calendar.constants";
 import {
-  formatLocalDateKey,
   getExclusiveAllDayEndDateKey,
   isAllDayDateTimeRange,
 } from "./calendar-date.utils";
@@ -37,9 +39,9 @@ export function createInitialCalendarRange(): CalendarEventFilters {
 export function createDefaultEventDraft(
   calendarId?: string,
 ): CalendarEventDraft {
-  const startAt = new Date();
-  startAt.setMinutes(0, 0, 0);
-  startAt.setHours(startAt.getHours() + 1);
+  const startAt = new Date(Temporal.Instant.from(new Date().toISOString())
+    .toZonedDateTimeISO(getDisplayTimezone()).with({ minute: 0, second: 0, millisecond: 0 })
+    .add({ hours: 1 }).toInstant().toString());
 
   const endAt = createEventEndFromStart(startAt);
 
@@ -58,33 +60,18 @@ export function isTaskCalendarEvent(event?: {
   if (!event) return false;
   if (event.sourceType === EventSourceType.TASK) return true;
   if (event.extendedProps?.sourceType === EventSourceType.TASK) return true;
-  if (
-    typeof event.description === "string" &&
-    event.description.includes("[TASK]")
-  ) {
-    return true;
-  }
-  const extDesc = event.extendedProps?.description;
-  if (typeof extDesc === "string" && extDesc.includes("[TASK]")) {
-    return true;
-  }
   return false;
 }
 
-export function cleanTaskDescription(
-  description: string | null | undefined,
-): string {
-  if (!description) return "";
-  return description
-    .replace(/^\[TASK\]\s*/, "")
-    .replace(/\n?\[TASK\]\s*/g, "")
-    .trim();
+export function cleanTaskDescription(description: string | null | undefined): string {
+  return description?.trim() ?? "";
 }
 
 export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
   colorOverride?: string,
   currentUserId?: string | null,
+  displayTimeZone = getDisplayTimezone(),
 ): EventInput {
   const isTask = isTaskCalendarEvent(event);
   const normalizedSourceType = isTask
@@ -94,7 +81,7 @@ export function mapCalendarEventToFullCalendar(
     colorOverride || event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
   const eventColor = colorOverride || event.color || calendarColor;
   const allDay =
-    event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt);
+    event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt, event.timeZone || displayTimeZone);
   const myAttendee =
     event.attendees?.find((a) => a.userId === currentUserId) ??
     (!event.permissions?.canManage && event.permissions?.canRespond && event.attendees?.length
@@ -107,28 +94,33 @@ export function mapCalendarEventToFullCalendar(
     allDay: allDay === event.allDay ? event.allDay : true,
     sourceType: normalizedSourceType,
   };
+  const canEditSchedule = Boolean(
+    event.permissions?.canManage &&
+      !event.recurrenceRule &&
+      !event.recurrenceParentId,
+  );
 
   return {
     id: event.id,
     title: event.title,
-    start: allDay ? formatLocalDateKey(event.startAt) : event.startAt,
+    start: allDay ? zonedDateKey(event.startAt, event.timeZone || displayTimeZone) : event.startAt,
     end: allDay
-      ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt)
+      ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt, event.timeZone || displayTimeZone)
       : event.endAt,
     allDay,
-    backgroundColor: isDeclined ? "#94a3b8" : eventColor,
-    borderColor: isDeclined ? "#94a3b8" : eventColor,
-    textColor: "#ffffff",
+    backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,
+    borderColor: isDeclined ? "var(--muted-foreground)" : eventColor,
+    textColor: isDeclined ? "var(--background)" : readableTextOnColor(eventColor),
     classNames: [
       isTask ? "calendar-task-event" : "calendar-user-event",
       ...(isTask && event.completedAt
         ? ["calendar-task-event-completed"]
         : []),
-      ...(isDeclined ? ["calendar-event-declined opacity-60"] : []),
+      ...(isDeclined ? ["calendar-event-declined"] : []),
     ],
-    editable: event.permissions?.canManage ?? false,
-    durationEditable: event.permissions?.canManage ?? false,
-    startEditable: event.permissions?.canManage ?? false,
+    editable: canEditSchedule,
+    durationEditable: canEditSchedule,
+    startEditable: canEditSchedule,
     extendedProps: {
       model: normalizedEvent,
       calendarId: event.calendarId,

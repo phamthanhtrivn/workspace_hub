@@ -1,4 +1,5 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { kafkaConsumerState } from '../infrastructure/kafka/consumer-lifecycle';
+import { Controller, Get, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { PrismaService } from './prisma/prisma.service';
 import { Public } from './decorators/public.decorator';
@@ -15,6 +16,7 @@ const KAFKA_HEALTH_CACHE_MS = 30_000;
 
 @Controller()
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
   private kafkaCheck?: { result: DependencyCheck; expiresAt: number };
   private kafkaCheckInFlight?: Promise<DependencyCheck>;
 
@@ -30,6 +32,7 @@ export class HealthController {
   @Get('ready')
   async ready() {
     const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
+    checks.push({ name: 'kafka-consumer', status: kafkaConsumerState.ready() ? 'ok' : 'error' });
     const isReady = checks.every((check) => check.status === 'ok');
 
     if (!isReady) {
@@ -105,10 +108,11 @@ export class HealthController {
   }
 
   private errorCheck(name: string, error: unknown): DependencyCheck {
+    this.logger.error(`Readiness check failed: ${name}`, error instanceof Error ? error.stack : undefined);
     return {
       name,
       status: 'error',
-      message: error instanceof Error ? error.message : String(error),
+      message: 'Dependency unavailable',
     };
   }
 }

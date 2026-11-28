@@ -7,36 +7,32 @@ frontend do not need route changes.
 ## Run locally
 
 ```bash
-copy .env.example .env
 npm install
 npm run prisma:generate
 npm run start:dev
 ```
 
 `JWT_SECRET_KEY` must be the same HS256 secret used by User Service and Kong.
-For Docker development, use the centralized stack from the repository root:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
-```
-
-Production keeps port `8082` behind Kong. Development publishes it on loopback.
-See [deployment documentation](../../docs/deployment.md) for the SQL migration
-images, centralized configuration and release procedures.
+Use the existing private .env and host URLs. See
+[local development](../../docs/development/local-setup.md) for infrastructure and
+[deployment](../../docs/deployment/production.md) for EC2 releases.
 
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
-run `prisma migrate` against this database.
+run `prisma migrate` or `prisma db push` against this database. The Prisma model
+does not describe every SQL-owned table, foreign key, index, or migration ledger;
+`db push` can remove them, even before a later step reports an error. After
+applying reviewed SQL migrations, run `npm run prisma:generate` to update the
+query client.
 
 Container startup also does not mutate the database schema. Apply the SQL
 migrations through the deployment/database workflow before starting a new
 service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
 
-`Dockerfile.production` has no Prisma migration target. See the
-[production image guide](../docker/PRODUCTION.md) for deployment steps and the
-two existing `V20` SQL files that must be reconciled with the applied history
-before using a runner that requires unique numeric versions.
+`Dockerfile.production` has no Prisma migration target. Production SQL migration
+images belong to `deploy/shared/sql-migrations`; see
+[deployment](../../docs/deployment/production.md). Apply SQL against the existing history.
 
 Project and invitation notifications use the `notification_outbox` table.
 Application writes and outbox inserts commit together; the in-process worker
@@ -59,6 +55,12 @@ npm run build
 
 This NestJS service is the active Project Service. Apply the SQL migrations in
 order before starting the service in a new environment.
+
+## Account timezone and task dates
+
+Timed task timestamps remain UTC. The web uses the user's saved account timezone for display, Calendar/Gantt placement and timed task editors, converting submitted wall times back to UTC. All-day tasks and project date-only fields retain their calendar dates; all-day deadlines become overdue after their date ends in the viewer's timezone. There is one timezone selector in account Settings. See [timezone behavior](../../docs/features/timezones.md).
+
+Task-card metadata serializes all-day deadlines as `YYYY-MM-DD`; timed deadlines retain ISO UTC timestamps. Previously saved card snapshots keep their recorded metadata until refreshed by source synchronization. This presentation contract does not change the task's stored timestamp.
 
 ## Project production fixes (September 2026)
 
@@ -87,5 +89,3 @@ one transaction. Timed task dates must include a timezone offset or `Z`; null
 start/due dates clear the field. Project task discussions use the persisted
 comment API, refreshed every five seconds while open. Sprint metrics display
 current recorded progress; historical burndown is not generated without history.
-
-To run unit tests, use `npm test`.

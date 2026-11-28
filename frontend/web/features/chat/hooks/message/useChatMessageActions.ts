@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
 import { MessageType, ReactionAction } from "../../types/chat.enums";
 import { useDirectMessageActions } from "../useDirectMessageActions";
+import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
 
 interface UseChatMessageActionsParams {
   conversationId?: string;
@@ -85,7 +87,7 @@ export function useChatMessageActions({
       editingMessage?: ChatMessageResponse | null,
       onEditDone?: () => void,
     ) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
 
       if (editingMessage) {
         // ── Edit mode ──────────────────────────────────────────────────────
@@ -99,10 +101,11 @@ export function useChatMessageActions({
             if (edited) {
               onEditDone?.();
             }
+            return Boolean(edited);
           } catch {
             // error handled inside hook
+            return false;
           }
-          return;
         }
         try {
           await editChannelMessage(editingMessage.id, content);
@@ -110,10 +113,11 @@ export function useChatMessageActions({
             queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
           });
           onEditDone?.();
+          return true;
         } catch (error: unknown) {
-          toast.error(getErrorMessage(error, "Failed to edit message"));
+          toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to edit message")));
+          return false;
         }
-        return;
       }
 
       // ── Send new message ───────────────────────────────────────────────
@@ -130,7 +134,7 @@ export function useChatMessageActions({
         if (sentMessage) {
           appendRealtimeMessage(sentMessage);
         }
-        return;
+        return Boolean(sentMessage);
       }
 
       try {
@@ -142,9 +146,13 @@ export function useChatMessageActions({
 
         if (response.data) {
           appendRealtimeMessage(response.data);
+          return true;
         }
+        toast.error(CHAT_COMPOSER_MESSAGES.sendFailed);
+        return false;
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to send message"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send message")));
+        return false;
       }
     },
     [
@@ -203,7 +211,7 @@ export function useChatMessageActions({
           queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to recall message"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to recall message")));
       }
     },
     [
@@ -240,7 +248,7 @@ export function useChatMessageActions({
           queryKey: chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to update pin status"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to update pin status")));
       }
     },
     [
@@ -268,7 +276,7 @@ export function useChatMessageActions({
       try {
         await reactChannelMessage(messageId, emoji, action);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to react to message"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to react to message")));
       }
     },
     [
@@ -294,19 +302,19 @@ export function useChatMessageActions({
           appendRealtimeMessage(response.data);
         }
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to send poll"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send poll")));
       }
     },
     [appendRealtimeMessage, conversationId, getErrorMessage],
   );
 
   const handlePollVoteMessage = useCallback(
-    async (messageId: string, pollOptionId: string) => {
+    async (messageId: string, pollOptionId: string, selected?: boolean) => {
       if (!conversationId) return;
       try {
-        await voteChannelPoll(conversationId, messageId, pollOptionId);
+        await voteChannelPoll(conversationId, messageId, pollOptionId, selected);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to vote in poll"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to vote in poll")));
       }
     },
     [conversationId, getErrorMessage],
@@ -318,7 +326,7 @@ export function useChatMessageActions({
       try {
         await addChannelPollOption(conversationId, messageId, text);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to add poll option"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to add poll option")));
       }
     },
     [conversationId, getErrorMessage],
@@ -334,37 +342,35 @@ export function useChatMessageActions({
       isLocked: boolean,
     ) => {
       if (!conversationId) return;
-      try {
-        await editChannelPoll(conversationId, messageId, {
-          title,
-          multipleChoice,
-          allowAddOptions,
-          anonymous,
-          isLocked,
-        });
-      } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to edit poll"));
-      }
+      await editChannelPoll(conversationId, messageId, {
+        title,
+        multipleChoice,
+        allowAddOptions,
+        anonymous,
+        isLocked,
+      });
     },
-    [conversationId, getErrorMessage],
+    [conversationId],
   );
 
   // ─── Note ──────────────────────────────────────────────────────────────────
 
   const handleCreateNote = useCallback(
     async (data: CreateNotePayload) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
       try {
         const response = await sendChannelMessage(conversationId, {
           content: "",
           type: MessageType.NOTE,
           noteData: data,
         });
-        if (response.data) {
+        if (response.success && response.data) {
           appendRealtimeMessage(response.data);
         }
+        return response.success && Boolean(response.data);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to send note"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send note")));
+        return false;
       }
     },
     [appendRealtimeMessage, conversationId, getErrorMessage],
@@ -372,14 +378,16 @@ export function useChatMessageActions({
 
   const handleNoteEditMessage = useCallback(
     async (messageId: string, title: string, content: string) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
       try {
-        await editChannelNote(conversationId, messageId, {
+        const response = await editChannelNote(conversationId, messageId, {
           title,
           content,
         });
+        return response.success;
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to edit note"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to edit note")));
+        return false;
       }
     },
     [conversationId, getErrorMessage],

@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import {
   Body,
   Controller,
@@ -34,6 +35,7 @@ export class MemberController {
   }
 
   @Post()
+  @ProjectChange('MEMBER', 'CREATED')
   async add(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -46,6 +48,7 @@ export class MemberController {
   }
 
   @Patch(':memberUserId')
+  @ProjectChange('MEMBER', 'UPDATED')
   async updatePermissions(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -64,6 +67,7 @@ export class MemberController {
   }
 
   @Delete(':memberUserId')
+  @ProjectChange('MEMBER', 'DELETED')
   async remove(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,

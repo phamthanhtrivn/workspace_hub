@@ -1,0 +1,74 @@
+import { z } from "zod";
+import { notebookMetadataSchema } from "./types/notebook-presentation";
+
+export const citationSchema = z.object({
+  id: z.string(),
+  sourceId: z.string(),
+  label: z.string(),
+  text: z.string(),
+  name: z.string(),
+  documentId: z.string(),
+  versionId: z.string(),
+  page: z.number().nullable().optional(),
+  position: z.number(),
+  imageId: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+});
+const sourceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  revision: z.string(),
+  document_id: z.string(),
+  version_id: z.string(),
+  size_bytes: z.coerce.number().nonnegative(),
+  status: z.string(),
+  progress: z.number(),
+  chunk_count: z.number(),
+  error: z.string().nullable(),
+});
+const derivedSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  citations: z.array(citationSchema),
+  hidden: z.boolean().optional(),
+});
+export const notebookListSchema = z.array(
+  notebookMetadataSchema.extend({
+    id: z.string(),
+    title: z.string(),
+    updated_at: z.string(),
+    sources_count: z.number().int().nonnegative(),
+    notes_count: z.number().int().nonnegative(),
+  }),
+);
+export const notebookSchema = notebookMetadataSchema.extend({
+  id: z.string(),
+  title: z.string(),
+  sources: z.array(sourceSchema),
+  messages: z.array(
+    derivedSchema.extend({
+      role: z.string(),
+      sources: z
+        .array(z.object({ id: z.string(), revision: z.string() }))
+        .default([]),
+    }),
+  ),
+  notes: z.array(derivedSchema.extend({ title: z.string() })),
+});
+export type Notebook = z.infer<typeof notebookSchema>;
+export type Source = z.infer<typeof sourceSchema>;
+export type Citation = z.infer<typeof citationSchema>;
+export type NotebookActionKey =
+  | "rename"
+  | "remove"
+  | "create-note"
+  | `note:${string}`
+  | `retry:${string}`
+  | `remove:${string}`;
+
+export type NotebookActionRunner = (
+  action: () => Promise<unknown>,
+  key?: NotebookActionKey,
+) => Promise<boolean>;

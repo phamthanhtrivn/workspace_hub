@@ -1,6 +1,11 @@
 "use client";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 
 import { useState } from "react";
+import { DATE_RANGE_MESSAGES, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
 import { Archive } from "lucide-react";
 import {
   ProjectStatus,
@@ -10,10 +15,8 @@ import {
 import {
   PROJECT_STATUS_SELECT_OPTIONS,
 } from "@/features/project/constants/project.constants";
-import {
-  PROJECT_COLOR_OPTIONS,
-  PROJECT_ICON_OPTIONS,
-} from "@/features/project/constants/project-form.constants";
+import { WorkspaceIconPicker } from "@/components/ui/custom/workspace-icon-picker";
+import { CustomColorPicker } from "@/components/ui/custom/custom-color-picker";
 import { ProjectLabelManager } from "../forms/project-label-manager";
 import {
   Dialog,
@@ -28,7 +31,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectSelect } from "../ui/project-form-controls";
 import ProjectPreviewCard from "../ui/project-preview-card";
-import { cn } from "@/lib/utils";
 
 export default function ProjectSettingsDialog({
   project,
@@ -68,6 +70,7 @@ export default function ProjectSettingsDialog({
   ) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
+  useAccountTimezone();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [selectedColor, setSelectedColor] = useState(project.color);
@@ -77,38 +80,47 @@ export default function ProjectSettingsDialog({
     project.startDate?.slice(0, 10) || "",
   );
   const [dueDate, setDueDate] = useState(project.dueDate?.slice(0, 10) || "");
+  const [pendingAction, setPendingAction] = useState<"save" | "archive" | null>(null);
+  const datesChanged = startDate !== (project.startDate?.slice(0, 10) || "") || dueDate !== (project.dueDate?.slice(0, 10) || "");
+  const dateErrors = getDateRangeErrors({ start: startDate, end: dueDate, mode: "edit", dateOnly: true,
+    allowExistingEndWithoutStart: !datesChanged });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canEditProject || !name.trim() || isBusy) return;
-    if (startDate && dueDate && startDate > dueDate) return;
-    await onSave({
-      name: name.trim(),
-      color: selectedColor,
-      icon: selectedIcon,
-      description: description.trim(),
-      status,
-      startDate: startDate || null,
-      dueDate: dueDate || null,
-    });
+    if (hasDateRangeErrors(dateErrors)) return;
+    setPendingAction("save");
+    try {
+      await onSave({
+        name: name.trim(),
+        color: selectedColor,
+        icon: selectedIcon,
+        description: description.trim(),
+        status,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
+      });
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isBusy && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
-            <DialogTitle className="text-lg font-bold text-[#172B4D]">
+      <DialogContent className="flex max-w-lg flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <form onSubmit={(event) => void handleSubmit(event)} className="flex min-h-0 max-h-[inherit] flex-col">
+          <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
+            <DialogTitle className="text-section-title font-semibold text-foreground">
               {canEditProject ? "Project Settings" : "Project Labels"}
             </DialogTitle>
-            <DialogDescription className="mt-1 text-xs font-semibold text-slate-500">
+            <DialogDescription className="mt-1 text-xs font-semibold text-muted-foreground">
               {canEditProject
                 ? "Update project details, status, timelines, and manage labels."
                 : "Manage custom task tags and labels for this project."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-4 px-5 py-5 overflow-y-auto">
             <ProjectPreviewCard
               name={name}
               description={description}
@@ -120,123 +132,82 @@ export default function ProjectSettingsDialog({
             {canEditProject && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-xs font-bold text-slate-600">
+                  <label className="block text-xs font-semibold text-muted-foreground">
                     Start Date
-                    <Input
-                      type="date"
+                    <CustomDatePicker
+                      disabled={isBusy}
                       value={startDate}
-                      onChange={(event) => setStartDate(event.target.value)}
+                      onChange={nextValue => { setStartDate(nextValue); if (!nextValue) setDueDate(""); }}
                       max={dueDate || undefined}
-                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                      invalid={Boolean(dateErrors.start)}
+                      descriptionId={dateErrors.start ? "settings-start-error" : undefined}
+                      triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      ariaLabel="Start date"
+                      allowClear
                     />
+                    {dateErrors.start && <p id="settings-start-error" role="alert" className="mt-1 text-xs text-destructive-content">{dateErrors.start}</p>}
                   </label>
-                  <label className="block text-xs font-bold text-slate-600">
+                  <label className="block text-xs font-semibold text-muted-foreground">
                     Due Date
-                    <Input
-                      type="date"
+                    <CustomDatePicker
+                      disabled={isBusy || !startDate}
                       value={dueDate}
-                      onChange={(event) => setDueDate(event.target.value)}
+                      onChange={nextValue => setDueDate(nextValue)}
                       min={startDate || undefined}
-                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                      invalid={Boolean(dateErrors.end)}
+                      descriptionId={dateErrors.end || !startDate ? "settings-end-description" : undefined}
+                      triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      ariaLabel="Due date"
+                      allowClear
                     />
+                    {(dateErrors.end || !startDate) && <p id="settings-end-description" role={dateErrors.end ? "alert" : undefined}
+                      className="mt-1 text-xs text-muted-foreground">{dateErrors.end || DATE_RANGE_MESSAGES.startRequired}</p>}
                   </label>
                 </div>
-                {startDate && dueDate && startDate > dueDate && (
-                  <p className="text-xs font-semibold text-red-600">
-                    Start date cannot be after due date.
-                  </p>
-                )}
 
-                <label className="block text-xs font-bold text-slate-600">
-                  Project Name <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Project Name <span className="text-destructive-content">*</span>
                   <Input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     required
                     placeholder="Project name"
-                    className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                    className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                   />
                 </label>
 
-                <label className="block text-xs font-bold text-slate-600">
+                <label className="block text-xs font-semibold text-muted-foreground">
                   Description
                   <Textarea
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     rows={3}
                     placeholder="Optional project description..."
-                    className="mt-1 resize-none rounded-xl border-slate-200 text-xs font-medium"
+                    className="mt-1 resize-none rounded-control border-input text-xs font-medium"
                   />
                 </label>
 
                 <fieldset>
-                  <legend className="block text-xs font-bold text-slate-600">
+                  <legend className="block text-xs font-semibold text-muted-foreground">
                     Project Icon
                   </legend>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {PROJECT_ICON_OPTIONS.map((icon) => {
-                      const selected = selectedIcon === icon;
-
-                      return (
-                        <Button
-                          key={icon}
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Project icon: ${icon}`}
-                          aria-pressed={selected}
-                          onClick={() => setSelectedIcon(icon)}
-                          className={cn(
-                            "h-9 w-9 cursor-pointer rounded-xl border p-0 text-base transition duration-150",
-                            selected
-                              ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
-                              : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200",
-                          )}
-                        >
-                          {icon}
-                        </Button>
-                      );
-                    })}
+                  <div className="mt-2">
+                    <WorkspaceIconPicker value={selectedIcon} onChange={icon => { if (icon) setSelectedIcon(icon); }}
+                      disabled={isBusy} ariaLabel="Project icon" />
                   </div>
                 </fieldset>
 
                 <fieldset>
-                  <legend className="block text-xs font-bold text-slate-600">
-                    Theme Color
+                  <legend className="block text-xs font-semibold text-muted-foreground">
+                    Project Color
                   </legend>
-                  <div className="mt-2 flex flex-wrap gap-2.5">
-                    {PROJECT_COLOR_OPTIONS.map((color) => {
-                      const selected = selectedColor === color;
-
-                      return (
-                        <Button
-                          key={color}
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Project color: ${color}`}
-                          aria-pressed={selected}
-                          onClick={() => setSelectedColor(color)}
-                          className={cn(
-                            "h-8 w-8 cursor-pointer rounded-full border-2 border-white p-0 shadow-sm transition duration-150",
-                            selected
-                              ? "scale-110 hover:scale-110"
-                              : "hover:scale-105 hover:shadow-md",
-                          )}
-                          style={{
-                            backgroundColor: color,
-                            boxShadow: selected
-                              ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
-                              : undefined,
-                          }}
-                        />
-                      );
-                    })}
+                  <div className="mt-2">
+                    <CustomColorPicker value={selectedColor} onChange={setSelectedColor} disabled={isBusy} ariaLabel="Project color" />
                   </div>
                 </fieldset>
 
                 <div>
-                  <span className="block mb-1 text-xs font-bold text-slate-600">
+                  <span className="block mb-1 text-xs font-semibold text-muted-foreground">
                     Status
                   </span>
                   <ProjectSelect
@@ -263,14 +234,18 @@ export default function ProjectSettingsDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+          <DialogFooter className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-5 py-4">
             {canEditProject ? (
               <Button
                 type="button"
                 variant="ghost"
+                loading={isBusy && pendingAction === "archive"}
                 disabled={isBusy}
-                onClick={() => void onArchive()}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                onClick={() => {
+                  setPendingAction("archive");
+                  void onArchive().finally(() => setPendingAction(null));
+                }}
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-control px-3 text-xs font-semibold text-destructive-content hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" /> Archive Project
               </Button>
@@ -282,17 +257,17 @@ export default function ProjectSettingsDialog({
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+                className="cursor-pointer rounded-control font-semibold text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
-              {canEditProject && (
-                <Button
+              {(
+                <Button disabledReason={!(canEditProject) ? PERMISSION_REASON.projectAdmin : undefined} loading={isBusy && pendingAction === "save"}
                   type="submit"
-                  disabled={isBusy || !name.trim()}
-                  className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+                  disabled={isBusy || !name.trim() || hasDateRangeErrors(dateErrors)}
+                  className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
-                  {isBusy ? "Saving..." : "Save Changes"}
+                  {isBusy && pendingAction === "save" ? "Saving..." : "Save Changes"}
                 </Button>
               )}
             </div>

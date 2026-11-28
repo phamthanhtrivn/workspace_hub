@@ -1,5 +1,8 @@
+import { Prisma } from '@prisma/client';
+import { claimUserEvent, InvalidUserEvent } from '../../infrastructure/kafka/user-event-policy';
+import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   UserProfileSnapshotPayload,
   UserProfileSnapshotResponse,
@@ -17,17 +20,25 @@ export class UserProfileSnapshotService {
 
   async upsertFromEvent(payload: UserProfileSnapshotPayload) {
     this.assertValidPayload(payload);
+    return this.prisma.$transaction(async (tx) => {
+      if (!(await claimUserEvent(tx, KAFKA_CONFIG.TOPIC, payload))) return null;
+      return this.applySnapshot(tx, payload);
+    });
+  }
+
+  private async applySnapshot(tx: Prisma.TransactionClient, payload: UserProfileSnapshotPayload) {
+    this.assertValidPayload(payload);
 
     const occurredAt = payload.occurredAt
       ? new Date(payload.occurredAt)
       : new Date();
 
-    const existingSnapshot = await this.prisma.userProfileSnapshot.findUnique({
+    const existingSnapshot = await tx.userProfileSnapshot.findUnique({
       where: { userId: payload.userId },
       select: { syncedAt: true },
     });
 
-    if (existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
+    if (!payload.revision && existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
       this.logger.debug(
         `Ignored stale user profile snapshot event for ${payload.userId}`,
       );
@@ -38,12 +49,12 @@ export class UserProfileSnapshotService {
       payload.eventType === UserProfileSnapshotEventType.REMOVED ||
       payload.eventType === UserProfileSnapshotEventType.DISABLED
     ) {
-      return this.prisma.userProfileSnapshot.deleteMany({
+      return tx.userProfileSnapshot.deleteMany({
         where: { userId: payload.userId },
       });
     }
 
-    return this.prisma.userProfileSnapshot.upsert({
+    return tx.userProfileSnapshot.upsert({
       where: { userId: payload.userId },
       create: {
         userId: payload.userId,
@@ -108,7 +119,9 @@ export class UserProfileSnapshotService {
 
   async attachProfilesToDocumentVersions<T extends { uploadedBy: string }>(
     versions: T[],
-  ): Promise<Array<T & { uploaderProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { uploaderProfile: UserProfileSnapshotResponse | null }>
+  > {
     const profileByUserId = await this.getProfilesByUserIds(
       versions.map((version) => version.uploadedBy),
     );
@@ -119,9 +132,13 @@ export class UserProfileSnapshotService {
     }));
   }
 
-  async attachProfilesToDocumentShares<T extends { shareWithUserId?: string | null }>(
+  async attachProfilesToDocumentShares<
+    T extends { shareWithUserId?: string | null },
+  >(
     shares: T[],
-  ): Promise<Array<T & { shareWithProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { shareWithProfile: UserProfileSnapshotResponse | null }>
+  > {
     const userIds = shares
       .map((share) => share.shareWithUserId)
       .filter((userId): userId is string => Boolean(userId));
@@ -131,7 +148,7 @@ export class UserProfileSnapshotService {
     return shares.map((share) => ({
       ...share,
       shareWithProfile: share.shareWithUserId
-        ? profileByUserId.get(share.shareWithUserId) ?? null
+        ? (profileByUserId.get(share.shareWithUserId) ?? null)
         : null,
     }));
   }
@@ -141,11 +158,11 @@ export class UserProfileSnapshotService {
       !payload ||
       !Object.values(UserProfileSnapshotEventType).includes(payload.eventType)
     ) {
-      throw new Error(UserProfileSnapshotErrorMessage.INVALID_EVENT);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.INVALID_EVENT);
     }
 
     if (!payload.userId) {
-      throw new Error(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
     }
   }
 }

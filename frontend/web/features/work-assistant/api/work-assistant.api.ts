@@ -1,0 +1,218 @@
+import { aiServiceMessage } from "@/lib/ai-feedback";
+import { z } from "zod";
+import { api } from "@/lib/axios";
+import type {
+  ConversationContext,
+  WorkMessage,
+  WorkConversationPage,
+  WorkSession,
+} from "../types";
+const base = "/api/ai/work-assistant";
+class WorkAssistantStreamError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+export async function getCacheAccess(
+  context: ConversationContext,
+  signal?: AbortSignal,
+) {
+  const response = await api.get(base + "/cache-access", {
+    params: context,
+    signal,
+  });
+
+  return z
+    .object({ permissionStamp: z.string().regex(/^[a-f0-9]{64}$/) })
+    .parse(response.data.data);
+}
+export async function getRequestStatus(
+  sessionId: string,
+  requestId: string,
+  context: ConversationContext,
+) {
+  const response = await api.get(
+    `${base}/sessions/${sessionId}/requests/${requestId}`,
+    { params: context },
+  );
+
+  return z
+    .object({
+      status: z.enum([
+        "NOT_FOUND",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELED",
+        "INTERRUPTED",
+      ]),
+    })
+    .parse(response.data.data).status;
+}
+const reference = z.object({
+  id: z.string().uuid(),
+  kind: z.enum(["project", "calendar"]),
+  projectId: z.string().uuid().optional(),
+  title: z.string(),
+  url: z.string(),
+  dueAt: z.string().nullable(),
+});
+const message = z.object({
+  id: z.string().uuid(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  sources: z.array(reference),
+  created_at: z.string(),
+  hidden: z.boolean().optional(),
+  context: z
+    .object({
+      scope: z.object({
+        projectId: z.string().uuid().optional(),
+        audience: z.enum(["mine", "projects", "calendar", "project"]),
+      }),
+      fetchedAt: z.string(),
+      timeZone: z.string(),
+      days: z.union([z.literal(7), z.literal(30)]),
+    })
+    .nullish()
+    .transform((value) => value ?? undefined),
+});
+const session = z.object({
+  id: z.string().uuid(),
+  contextType: z.enum(["dashboard", "projects", "calendar", "project_detail"]),
+  projectId: z.string().uuid().nullable(),
+  messages: z.array(message),
+  nextCursor: z.string().uuid().nullable(),
+});
+export async function getSession(
+  context: ConversationContext,
+  before?: string,
+  signal?: AbortSignal,
+  sessionId?: string,
+): Promise<WorkSession> {
+  return session.parse(
+    (
+      await api.get(base + "/session", {
+        params: { ...context, before, sessionId },
+        signal,
+      })
+    ).data.data,
+  );
+}
+export async function getConversations(
+  context: ConversationContext,
+  before?: string,
+  signal?: AbortSignal,
+): Promise<WorkConversationPage> {
+  const response = await api.get(base + "/sessions", {
+    params: { ...context, before },
+    signal,
+  });
+
+  return response.data.data;
+}
+export async function createConversation(
+  context: ConversationContext,
+): Promise<WorkSession> {
+  return session.parse((await api.post(base + "/sessions", context)).data.data);
+}
+export async function cancelRequest(id: string, sessionId: string) {
+  await api.post(base + "/requests/" + id + "/cancel", { sessionId });
+}
+export type StreamEvent = { event: string; data: unknown };
+export async function consumeEvents(
+  stream: ReadableStream<Uint8Array>,
+  onEvent: (event: StreamEvent) => void,
+) {
+  const reader = stream.getReader(),
+    decoder = new TextDecoder();
+  let buffer = "",
+    done = false;
+  try {
+    while (true) {
+      const part = await reader.read();
+      buffer = (
+        buffer + decoder.decode(part.value, { stream: !part.done })
+      ).replace(/\r\n/g, "\n");
+      if (buffer.length > 1024 * 1024)
+        throw new Error("The response exceeds the size limit.");
+      let split: number;
+      while ((split = buffer.indexOf("\n\n")) >= 0) {
+        const block = buffer.slice(0, split);
+        buffer = buffer.slice(split + 2);
+        const lines = block.split("\n");
+        const event = lines
+          .find((line) => line.startsWith("event:"))
+          ?.slice(6)
+          .trim();
+        const data = lines
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n");
+        if (event && data) {
+          onEvent({ event, data: JSON.parse(data) });
+          if (event === "done" || event === "error") done = true;
+        }
+      }
+      if (part.done) break;
+    }
+    if (!done)
+      throw new Error(
+        "The connection was interrupted. Reopen this conversation before trying again.",
+      );
+  } finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+}
+export async function sendMessage(
+  id: string,
+  question: string,
+  requestId: string,
+  context: ConversationContext,
+  signal: AbortSignal,
+  onStatus: (status: string) => void,
+  onDone: (message: WorkMessage) => void,
+  timeZone?: string,
+  onDelta: (text: string) => void = () => {},
+  onReset: () => void = () => {},
+) {
+  const response = await api.post<ReadableStream<Uint8Array>>(
+    base + "/sessions/" + id + "/messages",
+    {
+      question,
+      requestId,
+      ...context,
+      audience:
+        context.contextType === "projects" || context.contextType === "calendar"
+          ? context.contextType
+          : "mine",
+      timeZone,
+    },
+    { adapter: "fetch", responseType: "stream", signal, timeout: 115000 },
+  );
+  await consumeEvents(response.data, ({ event, data }) => {
+    if (event === "delta")
+      onDelta(z.object({ text: z.string().max(16000) }).parse(data).text);
+    if (event === "answer-reset") onReset();
+    if (event === "status")
+      onStatus(z.object({ message: z.string() }).parse(data).message);
+    if (event === "done")
+      onDone(message.parse(z.object({ message }).parse(data).message));
+    if (event === "error") {
+      const failure = z
+        .object({ message: z.string(), status: z.number().int().optional() })
+        .parse(data);
+      throw new WorkAssistantStreamError(
+        aiServiceMessage(
+          failure.message,
+          "Unable to complete your request. Check your access and try again.",
+        ),
+        failure.status,
+      );
+    }
+  });
+}

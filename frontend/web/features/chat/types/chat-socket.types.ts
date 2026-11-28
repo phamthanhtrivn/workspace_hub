@@ -23,8 +23,14 @@ export type ThreadFollowerPayload =
 
 export interface ChatSocketMessagePayload
   extends ChatMessageResponse, Partial<ChatContextPayload> {
+  aiRequestId?: string;
   mentions?: string[];
   threadFollowers?: ThreadFollowerPayload[];
+}
+
+/** Updates may contain only the changed fields, such as a task card snapshot. */
+export interface ChatSocketMessageUpdatePayload extends Partial<ChatSocketMessagePayload> {
+  id: string;
 }
 
 export interface ChatSocketReadPayload extends Partial<ChatContextPayload> {
@@ -76,7 +82,7 @@ export interface ChatSocketSettingUpdatedPayload extends Partial<ChatContextPayl
   spaceId?: string;
   spaceName?: string | null;
   affectedUserIds?: string[];
-  setting: ConversationSetting | SpaceSettingResponse;
+  setting?: ConversationSetting | SpaceSettingResponse;
 }
 
 export interface ChatSocketUpdatedPayload extends Partial<ChatContextPayload> {
@@ -106,9 +112,19 @@ export interface ChatSocketDirectMessagePermissionPayload {
   allowNewDirectMessages: boolean;
 }
 
+export interface ChatSocketDocumentAccessUpdatedPayload extends Partial<ChatContextPayload> {
+  documentIds: string[];
+}
+
 export interface ChatSocketMediaUpdatedPayload extends Partial<ChatContextPayload> {
   messageId: string;
   media: ChatMessageResponse["medias"];
+}
+
+export interface ChatSocketAiTypingPayload extends ChatContextPayload {
+  requestId: string;
+  threadParentId: string | null;
+  isTyping: boolean;
 }
 
 export interface ChatSocketTypingPayload extends Partial<ChatContextPayload> {
@@ -132,12 +148,18 @@ export interface SendSocketMessageMedia {
 
 export interface ServerToClientChatEvents {
   [event: string]: (...args: never[]) => void;
+  [ChatEvent.AI_TYPING]: (payload: ChatSocketAiTypingPayload) => void;
   [ChatEvent.NEW_MESSAGE]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED]: (
     payload: ChatSocketDirectMessagePermissionPayload,
   ) => void;
   [ChatEvent.MESSAGE_MOVED]: (payload: ChatSocketMessagePayload) => void;
-  [ChatEvent.MESSAGE_UPDATED]: (payload: ChatSocketMessagePayload) => void;
+  [ChatEvent.MESSAGE_UPDATED]: (
+    payload: ChatSocketMessageUpdatePayload,
+  ) => void;
+  [ChatEvent.DOCUMENT_ACCESS_UPDATED]: (
+    payload: ChatSocketDocumentAccessUpdatedPayload,
+  ) => void;
   [ChatEvent.REACTION_UPDATED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_PINNED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_UNPINNED]: (payload: ChatSocketMessagePayload) => void;

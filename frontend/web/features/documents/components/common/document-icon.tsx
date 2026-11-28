@@ -33,11 +33,14 @@ export interface IconConfig {
   colorClass: string;
   bgClass: string;
   bgSelectedClass: string;
+  isFallback?: boolean;
 }
 
 // ─── Icon resolution logic ─────────────────────────────────────────────────────
 
-export function getDocumentIconConfig(item: DocumentItem): IconConfig {
+export function getDocumentIconConfig(
+  item: Pick<DocumentItem, "type" | "name" | "mimeType">,
+): IconConfig {
   const isFolder = item.type === DocumentItemType.FOLDER;
 
   if (isFolder) {
@@ -139,13 +142,13 @@ export function getDocumentIconConfig(item: DocumentItem): IconConfig {
   }
 
   // Default fallback
-  return { icon: FaFile, ...ICON_COLORS.DEFAULT };
+  return { icon: FaFile, ...ICON_COLORS.DEFAULT, isFallback: true };
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export interface DocumentIconProps {
-  item: DocumentItem;
+  item: Pick<DocumentItem, "type" | "name" | "mimeType">;
   iconSize?: number;
   isSelected?: boolean;
   className?: string;
@@ -163,7 +166,7 @@ export function DocumentIcon({
   return (
     <div
       className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-300",
+        "shrink-0 flex items-center justify-center transition-all duration-200",
         isSelected
           ? config.bgSelectedClass
           : `${config.bgClass} ${config.colorClass}`,

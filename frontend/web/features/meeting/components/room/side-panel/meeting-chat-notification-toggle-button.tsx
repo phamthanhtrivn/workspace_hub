@@ -1,6 +1,8 @@
 "use client";
 
 import { Bell, BellOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingChatNotificationToggleButtonProps {
   muted: boolean;
@@ -19,7 +21,7 @@ export function MeetingChatNotificationToggleButton({
   const Icon = muted ? BellOff : Bell;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       disabled={disabled}
       onClick={() => onMutedChange(!muted)}
@@ -28,6 +30,6 @@ export function MeetingChatNotificationToggleButton({
       className={className}
     >
       <Icon className="h-4 w-4" />
-    </button>
+    </Button>
   );
 }

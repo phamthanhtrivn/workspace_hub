@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, User, X } from "lucide-react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { Search, X } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,35 +57,35 @@ export function AttendeePicker({
   return (
     <div className="space-y-2">
       {!compact && (
-        <label className="text-xs font-black uppercase text-slate-400">
+        <label className="text-xs font-semibold uppercase text-muted-foreground">
           {copy.attendees}
         </label>
       )}
       <div className="relative">
         {!compact && (
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 z-10 h-4 w-4 text-muted-foreground" />
         )}
         <Input
           value={query}
           aria-label={compact ? copy.addGuests : copy.searchAttendees}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={compact ? copy.addGuests : copy.searchAttendees}
-          className={`h-auto w-full rounded-lg py-2 pr-3 text-sm text-slate-700 shadow-none outline-none transition placeholder:text-slate-500 ${
+          className={`h-auto w-full rounded-control py-2 pr-3 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground ${
             compact
-              ? "rounded-xl border border-slate-200 bg-white shadow-2xs px-3 font-medium hover:border-slate-300 focus:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
-              : "border border-slate-200 pl-9 font-semibold focus-visible:border-[var(--color-secondary)] focus-visible:ring-4 focus-visible:ring-blue-100"
+              ? "rounded-control border border-input bg-card px-3 font-medium hover:border-input"
+              : "border border-input pl-9 font-semibold"
           }`}
         />
       </div>
 
       {query.trim() && (
-        <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-44 overflow-y-auto rounded-lg border border-border bg-card">
           {loading ? (
-            <div className="px-3 py-3 text-xs font-semibold text-slate-400">
+            <div className="px-3 py-3 text-xs font-semibold text-muted-foreground">
               {copy.searching}
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-3 text-xs font-semibold text-slate-400">
+            <div className="px-3 py-3 text-xs font-semibold text-muted-foreground">
               {copy.noResults}
             </div>
           ) : (
@@ -94,28 +95,23 @@ export function AttendeePicker({
                 type="button"
                 variant="ghost"
                 onClick={() => addUser(user)}
-                className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-none px-3 py-2 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-none px-3 py-2 text-left transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={attendeeIds.has(user.id)}
               >
-                <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
-                  {user.avatarUrl ? (
-                    <Image
-                      src={user.avatarUrl}
-                      alt={user.fullName || user.email}
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-4 w-4 text-slate-400" />
-                  )}
+                <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-muted">
+                  <UserAvatar
+                    src={user?.avatarUrl}
+                    alt={user?.fullName || user?.email}
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-slate-700">
+                  <p className="truncate text-sm font-semibold text-foreground">
                     {user.fullName || user.email}
                   </p>
-                  <p className="truncate text-xs font-semibold text-slate-400">
+                  <p className="truncate text-xs font-semibold text-muted-foreground">
                     {user.email}
                   </p>
                 </div>
@@ -136,21 +132,16 @@ export function AttendeePicker({
             return (
               <span
                 key={attendee.userId}
-                className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600"
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background px-2 py-1 text-xs font-semibold text-muted-foreground"
               >
-                <div className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-200">
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={displayName}
-                      width={20}
-                      height={20}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-3 w-3 text-slate-400" />
-                  )}
+                <div className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-accent">
+                  <UserAvatar
+                    src={avatarUrl}
+                    alt={displayName}
+                    width={20}
+                    height={20}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <span className="max-w-40 truncate">{displayName}</span>
                 <Button
@@ -158,7 +149,7 @@ export function AttendeePicker({
                   variant="ghost"
                   size="icon"
                   onClick={() => removeUser(attendee.userId)}
-                  className="h-5 w-5 cursor-pointer p-0 text-slate-400 hover:bg-transparent hover:text-slate-700"
+                  className="h-5 w-5 cursor-pointer p-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
                   aria-label={copy.delete}
                 >
                   <X className="h-3.5 w-3.5" />

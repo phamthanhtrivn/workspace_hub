@@ -164,7 +164,6 @@ export {
   joinChannel,
   updateChannelInfo,
   updateChannelSettings,
-  getChannelAvatarPresignedUrl,
   muteChannel,
   pinChannel,
   getChannelMessages,

@@ -1,99 +1,27 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
-import RichTextTextarea from "../../input/rich-text-textarea";
-
-interface CreateNoteModalProps {
+import { NoteEditorDialog } from "@/components/notes/note-editor-dialog";
+import type {
+  NoteDraft,
+  NoteSaveResult,
+} from "@/components/notes/note.constants";
+import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
+import { renderMessageContent } from "../../../utils/message-formatter";
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { title: string; content: string }) => void;
+  onSubmit: (draft: NoteDraft) => NoteSaveResult | Promise<NoteSaveResult>;
 }
+function CreateNoteForm({ onClose, onSubmit }: Props) {
+  const profiles = useChatMemberProfiles();
 
-const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-}) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
-    onSubmit({ title, content });
-    setTitle("");
-    setContent("");
-    onClose();
-  };
-
-  if (!mounted) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">
-            Create Note
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter note title..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Note Content
-            </label>
-            <RichTextTextarea
-              value={content}
-              setValue={setContent}
-              placeholder="Enter note content..."
-              focusColorClassName="focus-within:border-blue-500 focus-within:ring-blue-500/10"
-            />
-          </div>
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={!title.trim() || !content.trim()}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              Create Note
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <NoteEditorDialog
+      onClose={onClose}
+      onSave={onSubmit}
+      renderPreview={(content) => renderMessageContent(content, profiles)}
+    />
   );
-};
-
-export default CreateNoteModal;
-
+}
+export default function CreateNoteModal(props: Props) {
+  return props.isOpen ? <CreateNoteForm {...props} /> : null;
+}

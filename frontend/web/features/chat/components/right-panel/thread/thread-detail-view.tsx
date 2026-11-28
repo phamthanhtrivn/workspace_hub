@@ -1,3 +1,15 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { AI_BOT, isAiBot } from "../../../constants/chat-identity";
+import { cn } from "@/lib/utils";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { StorageVideo, StorageLink, StorageImg } from "@/components/common/storage-media";
+import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
+import AiTypingIndicator from "../../message/ai-typing-indicator";
+import { useAiTypingIndicator } from "../../../hooks/message/useAiTypingIndicator";
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
   useEffect,
@@ -5,8 +17,8 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import { X, User, FileText, Download, Bell, Play } from "lucide-react";
-import Image from "next/image";
+import { X, FileText, Download, Bell, Play, Sparkles } from "lucide-react";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   followDirectThread,
@@ -39,15 +51,19 @@ import {
   ThreadMessagesResponse,
 } from "../../../types/chat.types";
 import { SendSocketMessageMedia } from "../../../types/chat-socket.types";
-import ThreadChatInput, {
-  ThreadChatInputRef,
-} from "../../input/thread-chat-input";
+import ThreadChatInput from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import TaskCardMessage from "../../message/task-card-message";
+import { isTaskCardMessage } from "../../../utils/task-card-message";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
+import { isAudioFile, renderAudioPlayer } from "../../../utils/media-utils";
+import { CHAT_COMPOSER_MESSAGES } from "../../../constants/composer.constants";
+
 
 interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;
@@ -93,6 +109,7 @@ export default function ThreadDetailView({
   isDirect = false,
   onBack,
 }: ThreadDetailViewProps) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
@@ -108,14 +125,14 @@ export default function ThreadDetailView({
     enabled: !!spaceId,
   });
 
-  const spaceCreatorId = spaceDetail?.createdBy || null;
+  const isPrivate = activeChat && "spaceId" in activeChat && isPrivateChannel(activeChat);
+  const spaceCreatorId = isPrivate ? activeChat.ownerId ?? null : spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
     threadId: string;
     isFollowing: boolean;
   } | null>(null);
-  const [lightboxMedias, setLightboxMedias] = useState<any[] | null>(null);
+  const [lightboxMedias, setLightboxMedias] = useState<ChatMediaResponse[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const { data: followedThreads = EMPTY_FOLLOWED_THREADS } = useQuery({
     queryKey: chatKeys.followedThreads(currentUserId),
@@ -147,13 +164,18 @@ export default function ThreadDetailView({
       (typeof chatId === "string" ? chatId : null)
     );
   }, [rootMessage]);
+  const aiTyping = useAiTypingIndicator(
+    rootChatId,
+    isDirect ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL,
+    rootMessage.id,
+  );
   const currentMember = activeChat?.members?.find(
     (member) => member.userId === currentUserId,
   );
   const canReplyInThread =
     isDirect ||
     activeChatType !== ChatContextType.CHANNEL ||
-    currentMember?.role !== "MEMBER" ||
+    (isPrivate ? activeChat.ownerId === currentUserId : currentMember?.role !== "MEMBER") ||
     activeChat?.setting?.allowSendMessage !== false;
 
   const handleToggleFollow = async () => {
@@ -202,17 +224,17 @@ export default function ThreadDetailView({
           ? "Following thread notifications"
           : "Unfollowed thread",
       );
-    } catch {
+    } catch (permissionError) {
       setFollowOverride({
         threadId: rootMessage.id,
         isFollowing: !nextFollowingState,
       });
-      toast.error("Failed to change follow status");
+      toast.error(getActionErrorMessage(permissionError, "Failed to change follow status"));
     }
   };
 
   // Fetch thread messages (root message + replies)
-  const { data: threadData, isLoading } = useQuery({
+  const threadQuery = useQuery({
     queryKey: chatKeys.threadMessages(
       isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
       rootMessage.id,
@@ -224,8 +246,11 @@ export default function ThreadDetailView({
     staleTime: 1000 * 30, // 30s
   });
 
+  const { data: threadData, isLoading } = threadQuery;
   const activeRootMessage = threadData?.data?.rootMessage || rootMessage;
   const replies = threadData?.data?.replies || [];
+  const rootIsBot = isAiBot(activeRootMessage.senderId, activeRootMessage.type);
+  const rootAlignToEnd = activeRootMessage.senderId === currentUserId;
 
   const appendThreadReply = useCallback(
     (reply: ChatMessageResponse) => {
@@ -256,7 +281,7 @@ export default function ThreadDetailView({
 
     queryClient.setQueryData(
       chatKeys.followedThreads(currentUserId),
-      (oldThreads: any) =>
+      (oldThreads: FollowedThreadResponse[] | undefined) =>
         Array.isArray(oldThreads)
           ? oldThreads.map((thread) =>
               thread.rootMessage.id === rootMessage.id
@@ -276,31 +301,14 @@ export default function ThreadDetailView({
       });
     });
   }, [currentUserId, isDirect, isFollowing, queryClient, rootMessage.id]);
-  const threadSenderIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (rootMessage.senderId) {
-      ids.add(rootMessage.senderId);
-    }
-    replies.forEach((reply: any) => {
-      if (reply.senderId) {
-        ids.add(reply.senderId);
-      }
-    });
-    if (activeChat && "members" in activeChat && Array.isArray(activeChat.members)) {
-      activeChat.members.forEach((m: any) => {
-        if (m.userId) ids.add(m.userId);
-      });
-    }
-    return Array.from(ids);
-  }, [replies, rootMessage.senderId, activeChat]);
-  const memberProfiles = useChatMemberProfiles(threadSenderIds);
+  const memberProfiles = useChatMemberProfiles([...(rootMessage.mentions ?? []), ...replies.flatMap(reply => reply.mentions ?? [])], { resolveMissing: true });
 
   // Listen to new replies via WebSockets
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    const handleNewMessage = (msg: any) => {
+    const handleNewMessage = (msg: ChatMessageResponse) => {
       if (msg.threadParentId === rootMessage.id) {
         appendThreadReply(msg);
         if (isFollowing) {
@@ -337,33 +345,20 @@ export default function ThreadDetailView({
     }
   }, [replies.length]);
 
-  // Focus input when the thread details view opens or the active thread message changes
-  useEffect(() => {
-    if (!canReplyInThread) return;
-    if (chatInputRef.current) {
-      chatInputRef.current.focus();
-    }
-    const timer = setTimeout(() => {
-      if (chatInputRef.current) {
-        chatInputRef.current.focus();
-      }
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [canReplyInThread, rootMessage.id]);
-
-  const handleSendReply = (
+  const handleSendReply = async (
     content: string,
     media?: SendSocketMessageMedia[],
     mentions?: string[],
-  ) => {
+  ): Promise<boolean> => {
     if (isDirect) {
-      if (!rootChatId) return;
+      if (!rootChatId) return false;
 
-      sendDirectThreadReply({
+      const sentReply = await sendDirectThreadReply({
         conversationId: rootChatId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
+        mentions,
         onSent: () => {
           queryClient.invalidateQueries({
             queryKey: chatKeys.threadMessages(ChatScope.DIRECT, rootMessage.id),
@@ -372,40 +367,37 @@ export default function ThreadDetailView({
             queryKey: chatKeys.threads(ChatScope.DIRECT, rootChatId),
           });
         },
-      })
-        .then((sentReply) => {
-          if (sentReply) {
-            appendThreadReply(sentReply);
-            chatInputRef.current?.focus();
-          }
-        })
-        .catch(() =>
-          toast.error("Failed to send reply"),
-        );
-      return;
+      });
+      if (sentReply) {
+        appendThreadReply(sentReply);
+        return true;
+      }
+      return false;
     }
 
-    if (!rootChatId) return;
+    if (!rootChatId) return false;
     if (!canReplyInThread) {
       toast.error("Only space administrators can reply in this thread.");
-      return;
+      return false;
     }
 
-    sendChannelMessage(rootChatId, {
+    try {
+      const response = await sendChannelMessage(rootChatId, {
         content,
         medias: media,
         threadParentId: rootMessage.id,
         mentions,
-      })
-      .then((response) => {
-        if (response.data) {
-          appendThreadReply(response.data);
-          chatInputRef.current?.focus();
-        }
-      })
-      .catch(() =>
-        toast.error("Failed to send reply"),
-      );
+      });
+      if (response.data) {
+        appendThreadReply(response.data);
+        return true;
+      }
+      toast.error(CHAT_COMPOSER_MESSAGES.sendFailed);
+      return false;
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, "Failed to send reply"));
+      return false;
+    }
   };
 
   const getProfile = (userId: string) => {
@@ -413,59 +405,59 @@ export default function ThreadDetailView({
   };
   const rootProfile =
     activeRootMessage.senderProfile || getProfile(activeRootMessage.senderId);
-  const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
-  const renderThreadMessageMedias = (messageItem: any) => {
+  const renderThreadMessageMedias = (messageItem: ChatMessageResponse) => {
+    const own = messageItem.senderId === currentUserId;
     if (!messageItem.medias || messageItem.medias.length === 0) return null;
 
     const visualMedias = messageItem.medias.filter(
-      (m: any) => m.type === "IMAGE" || m.type === "VIDEO",
+      (m) => !isAudioFile(m) && (m.type === "IMAGE" || m.type === "VIDEO"),
     );
     const fileMedias = messageItem.medias.filter(
-      (m: any) => m.type !== "IMAGE" && m.type !== "VIDEO",
+      (m) => isAudioFile(m) || (m.type !== "IMAGE" && m.type !== "VIDEO"),
     );
 
     return (
-      <div className="mt-2 space-y-2 max-w-full">
+      <div className={cn("mt-2 flex min-w-0 max-w-full flex-col gap-2 text-left", own ? "items-end" : "items-start")}>
         {/* Render images/videos */}
         {visualMedias.length > 0 && (
-          <div className="grid gap-1 grid-cols-1 max-w-[240px]">
-            {visualMedias.map((media: any, index: number) => {
+          <div className="grid min-w-0 w-full max-w-[240px] grid-cols-1 gap-1">
+            {visualMedias.map((media, index: number) => {
               if (media.type === "IMAGE") {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
                       setLightboxMedias(visualMedias);
                       setLightboxIndex(index);
                     }}
-                    className="cursor-pointer overflow-hidden rounded-lg block border border-gray-100 shadow-sm text-left w-full focus:outline-none"
+                    className="cursor-pointer overflow-hidden rounded-control block border border-border text-left w-full focus:outline-none"
                   >
-                    <img
+                    <StorageImg
                       src={media.fileUrl}
                       alt={media.name}
                       className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
                     />
-                  </button>
+                  </Button>
                 );
               } else {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
                       setLightboxMedias(visualMedias);
                       setLightboxIndex(index);
                     }}
-                    className="relative w-full rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-black/5 block text-left focus:outline-none cursor-pointer"
+                    className="relative w-full rounded-control overflow-hidden border border-border bg-overlay/5 block text-left focus:outline-none cursor-pointer"
                   >
-                    <video
+                    <StorageVideo
                       src={media.fileUrl}
                       className="w-full max-h-[160px] object-cover"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/25 transition">
-                      <span className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg animate-in fade-in duration-150">
+                    <span className="absolute inset-0 flex items-center justify-center bg-overlay/10 hover:bg-overlay/25 transition">
+                      <span className="w-8 h-8 bg-overlay/50 rounded-full flex items-center justify-center text-primary-foreground animate-in fade-in duration-150">
                         <Play
                           size={16}
                           fill="currentColor"
@@ -473,7 +465,7 @@ export default function ThreadDetailView({
                         />
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               }
             })}
@@ -483,7 +475,8 @@ export default function ThreadDetailView({
         {/* Render file attachments */}
         {fileMedias.length > 0 && (
           <div className="flex flex-col gap-1.5 max-w-full">
-            {fileMedias.map((media: any) => {
+            {fileMedias.map((media) => {
+              if (isAudioFile(media)) return renderAudioPlayer(media, own, isDirect ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL);
               const formatSize = (bytes: number) => {
                 if (bytes === 0) return "0 B";
                 const k = 1024;
@@ -499,30 +492,30 @@ export default function ThreadDetailView({
               return (
                 <div
                   key={media.id}
-                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition max-w-[240px]"
+                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-border bg-card hover:bg-background transition min-w-0 w-full max-w-[240px]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="p-1.5 rounded-md bg-blue-50 text-blue-500 flex-shrink-0">
+                    <div className="p-1.5 rounded-md bg-info-soft text-info-content flex-shrink-0">
                       <FileText size={16} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-medium truncate text-gray-800">
+                      <span className="text-xs font-medium truncate text-foreground">
                         {media.name}
                       </span>
-                      <span className="text-[9px] text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatSize(media.sizeBytes)}
                       </span>
                     </div>
                   </div>
-                  <a
+                  <StorageLink
                     href={media.fileUrl}
                     download={media.name}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-700 transition"
+                    className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition"
                   >
                     <Download size={14} />
-                  </a>
+                  </StorageLink>
                 </div>
               );
             })}
@@ -533,16 +526,16 @@ export default function ThreadDetailView({
   };
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">
           Thread Discussion
         </h2>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="unstyled"
             onClick={handleToggleFollow}
-            className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
+            className="p-2 hover:bg-muted rounded-full transition cursor-pointer"
             title={
               isFollowing
                 ? "Following this thread"
@@ -552,16 +545,16 @@ export default function ThreadDetailView({
             <Bell
               size={18}
               className={
-                isFollowing ? "fill-blue-500 text-blue-500" : "text-gray-400"
+                isFollowing ? "fill-info-content text-info-content" : "text-muted-foreground"
               }
             />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled" aria-label="Close"
             onClick={onBack}
-            className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition animate-fade-in"
+            className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition animate-fade-in"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -571,15 +564,16 @@ export default function ThreadDetailView({
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
       >
         {/* Root parent message */}
-        <div className="border-b border-gray-100 pb-4">
-          <div className="flex items-start gap-3">
+        <div className="border-b border-border pb-4">
+          <div className={cn("flex min-w-0 items-start gap-2.5", rootAlignToEnd && "flex-row-reverse")}>
             <MessageAvatar
               showAvatar={true}
-              senderName={rootProfile?.fullName || "User"}
+              isBot={rootIsBot}
+              senderName={rootIsBot ? AI_BOT.name : rootProfile?.fullName || "User"}
               senderProfile={rootProfile}
               memberRole={
                 activeChat?.members?.find(
-                  (m: any) => m.userId === rootMessage.senderId,
+                  (m) => m.userId === rootMessage.senderId,
                 )?.role
               }
               spaceCreatorId={spaceCreatorId}
@@ -589,33 +583,39 @@ export default function ThreadDetailView({
                 }
               }}
             />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="font-bold text-xs text-gray-900 truncate">
-                  {rootProfile?.fullName || "User"}
+            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", rootAlignToEnd ? "items-end" : "items-start")}>
+              <div className={cn("mb-1 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", rootAlignToEnd && "flex-row-reverse text-right")}>
+                <span className="font-semibold text-xs text-foreground truncate">
+                  {rootIsBot ? AI_BOT.name : rootProfile?.fullName || "User"}
                 </span>
-                <span className="text-[10px] text-gray-400">
+                {rootIsBot && (
+                  <span
+                    className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-content"
+                    title="AI Bot"
+                  >
+                    <Sparkles className="size-3.5" aria-hidden="true" />
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
                   {formatDateTime(activeRootMessage.createdAt)}
                 </span>
               </div>
-              {activeRootMessage.type === "TASK" ||
-              (activeRootMessage.content &&
-                (activeRootMessage.content.includes("[Task #") ||
-                  activeRootMessage.content.trim().startsWith('{"title":'))) ? (
+              {isTaskCardMessage(activeRootMessage) ? (
                 <TaskCardMessage
                   content={activeRootMessage.content || ""}
                   projectId={spaceDetail?.projectId}
+                  variant="thread"
                   className="max-w-full"
                 />
               ) : (
-                <div className="text-xs text-gray-800 break-words bg-[#F4F5F7] p-3 rounded-2xl border border-gray-200/60 shadow-xs">
+                <div className={cn("text-xs text-foreground text-left min-w-0 max-w-full [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto p-3 rounded-panel border", rootIsBot ? "bg-info-soft/60 border-info-outline/50" : rootAlignToEnd ? "bg-primary-soft/70 border-info-outline/40" : "bg-card border-border")}>
                   {activeRootMessage.content ? (
                     renderMessageContent(
                       activeRootMessage.content,
                       memberProfiles ?? undefined,
                     )
                   ) : (
-                    <span className="text-gray-400 italic">
+                    <span className="text-muted-foreground italic">
                       Attachment
                     </span>
                   )}
@@ -624,29 +624,31 @@ export default function ThreadDetailView({
               )}
             </div>
           </div>
-          <div className="mt-2 pl-11 text-[10px] font-semibold text-gray-500">
+          <div className={cn("mt-2 text-xs font-semibold text-muted-foreground", rootAlignToEnd ? "pr-11 text-right" : "pl-11")}>
             {`${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
           </div>
         </div>
 
         {/* Loading / Replies */}
-        {isLoading ? (
-          <div className="text-center text-xs text-gray-400 py-4">
-            Loading comments...
-          </div>
+        {threadQuery.isError && replies.length > 0 && <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} />}
+        {threadQuery.isError && replies.length === 0 ? <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} /> : isLoading ? (
+          <LoadingState label="Loading comments..." layout="centered" className="text-center text-xs text-muted-foreground py-4" />
         ) : (
           <div className="space-y-4">
-            {replies.map((reply: any) => {
+            {replies.map((reply) => {
               const profile = reply.senderProfile || getProfile(reply.senderId);
+              const bot = isAiBot(reply.senderId, reply.type);
+              const alignToEnd = reply.senderId === currentUserId;
               return (
-                <div key={reply.id} className="flex items-start gap-3">
+                <div key={reply.id} className={cn("flex min-w-0 items-start gap-2.5", alignToEnd && "flex-row-reverse")}>
                   <MessageAvatar
                     showAvatar={true}
-                    senderName={profile?.fullName || "User"}
+                    isBot={bot}
+                    senderName={bot ? AI_BOT.name : profile?.fullName || "User"}
                     senderProfile={profile}
                     memberRole={
                       activeChat?.members?.find(
-                        (m: any) => m.userId === reply.senderId,
+                        (m) => m.userId === reply.senderId,
                       )?.role
                     }
                     spaceCreatorId={spaceCreatorId}
@@ -656,16 +658,24 @@ export default function ThreadDetailView({
                       }
                     }}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between mb-0.5">
-                      <span className="font-bold text-xs text-gray-700 truncate">
-                        {profile?.fullName || "User"}
+                  <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", alignToEnd ? "items-end" : "items-start")}>
+                    <div className={cn("mb-0.5 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", alignToEnd && "flex-row-reverse text-right")}>
+                      <span className="font-semibold text-xs text-foreground truncate">
+                        {bot ? AI_BOT.name : profile?.fullName || "User"}
                       </span>
-                      <span className="text-[9px] text-gray-400">
+                      {bot && (
+                        <span
+                          className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-content"
+                          title="AI Bot"
+                        >
+                          <Sparkles className="size-3.5" aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(reply.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-800 break-words bg-gray-100/50 p-2 rounded-lg">
+                    <div className={cn("text-xs text-foreground text-left min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto p-2 rounded-lg border", bot ? "bg-info-soft/60 border-info-outline/50" : alignToEnd ? "bg-primary-soft/70 border-info-outline/40" : "bg-card border-border")}>
                       {renderMessageContent(
                         reply.content,
                         memberProfiles ?? undefined,
@@ -680,12 +690,14 @@ export default function ThreadDetailView({
         )}
       </div>
 
+      <AiTypingIndicator active={aiTyping} />
+
       {/* Input bar */}
       {canReplyInThread ? (
-        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+        <ThreadChatInput key={`${rootChatId}:${rootMessage.id}`} threadId={rootMessage.id} onSendMessage={handleSendReply} />
       ) : (
-        <div className="w-full border-t border-gray-200 bg-white p-3">
-          <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+        <div className="w-full border-t border-border bg-card p-3">
+          <div className="flex items-center justify-center rounded-panel border border-border bg-background p-3 text-sm text-muted-foreground">
             Only space administrators can reply in this thread.
           </div>
         </div>

@@ -1,7 +1,36 @@
 import { CalendarEvent, CalendarGroupedTasks } from "../types/calendar.types";
+import { getDisplayTimezone, toZonedDateTimeInput, zonedDateKey } from "@/lib/timezone";
+
+function taskWallDate(task: CalendarEvent, timeZone = getDisplayTimezone()): Date {
+  const due = getTaskDueDate(task);
+  const zone = task.allDay ? task.timeZone || task.calendar?.timeZone || timeZone : timeZone;
+  return new Date(`${zonedDateKey(due, zone)}T12:00:00`);
+}
 
 export function isProjectCalendarTask(task: CalendarEvent): boolean {
   return Boolean(task.calendar?.projectId);
+}
+
+export function getTaskDueDate(
+  task: Pick<CalendarEvent, "startAt" | "endAt" | "allDay"> & Partial<Pick<CalendarEvent, "timeZone">>,
+): Date {
+  const end = new Date(task.endAt || task.startAt);
+  if (Number.isNaN(end.getTime())) {
+    return new Date(task.startAt);
+  }
+  if (task.allDay) {
+    const start = new Date(task.startAt);
+    if (
+      !Number.isNaN(start.getTime()) &&
+      end.getTime() > start.getTime() &&
+      toZonedDateTimeInput(end, task.timeZone || getDisplayTimezone()).endsWith("T00:00") &&
+      end.getUTCSeconds() === 0 &&
+      end.getMilliseconds() === 0
+    ) {
+      return new Date(end.getTime() - 1);
+    }
+  }
+  return end;
 }
 
 export type TaskTimeFilter = "all" | "today" | "week" | "month" | "overdue";
@@ -12,7 +41,9 @@ export function filterCalendarTasks(
   timeFilter: TaskTimeFilter = "all",
   statusFilter: TaskStatusFilter = "all",
   referenceDate: Date = new Date(),
+  timeZone = getDisplayTimezone(),
 ): CalendarEvent[] {
+  referenceDate = new Date(`${zonedDateKey(referenceDate, timeZone)}T12:00:00`);
   const startOfToday = new Date(
     referenceDate.getFullYear(),
     referenceDate.getMonth(),
@@ -41,7 +72,7 @@ export function filterCalendarTasks(
     // 2. Time Filter
     if (timeFilter === "all") return true;
 
-    const taskTime = new Date(task.startAt).getTime();
+    const taskTime = taskWallDate(task, timeZone).getTime();
 
     if (timeFilter === "overdue") {
       return !isCompleted && taskTime < startOfToday.getTime();
@@ -110,7 +141,9 @@ export function groupCalendarTasks(
   tasks: CalendarEvent[],
   referenceDate: Date = new Date(),
   options?: { allUpcoming?: boolean; allOverdue?: boolean },
+  timeZone = getDisplayTimezone(),
 ): CalendarGroupedTasks {
+  referenceDate = new Date(`${zonedDateKey(referenceDate, timeZone)}T12:00:00`);
   const overdue: CalendarEvent[] = [];
   const today: CalendarEvent[] = [];
   const upcoming: CalendarEvent[] = [];
@@ -159,7 +192,7 @@ export function groupCalendarTasks(
       continue;
     }
 
-    const taskDate = new Date(task.startAt);
+    const taskDate = taskWallDate(task, timeZone);
     if (taskDate.getTime() < startOfToday.getTime()) {
       if (
         options?.allOverdue ||
@@ -181,24 +214,24 @@ export function groupCalendarTasks(
   }
 
   overdue.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   today.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   upcoming.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   completed.sort((a, b) => {
     const timeA = a.completedAt
       ? new Date(a.completedAt).getTime()
-      : new Date(a.startAt).getTime();
+      : getTaskDueDate(a).getTime();
     const timeB = b.completedAt
       ? new Date(b.completedAt).getTime()
-      : new Date(b.startAt).getTime();
+      : getTaskDueDate(b).getTime();
     return timeB - timeA;
   });
 
@@ -210,11 +243,14 @@ export function formatTaskDueDate(
   allDay: boolean,
   locale: string = "vi",
   referenceDate: Date = new Date(),
+  timeZone = getDisplayTimezone(),
 ): string {
   const date = new Date(startAt);
   if (Number.isNaN(date.getTime())) return "";
 
   const isVi = locale.toLowerCase().startsWith("vi");
+  const taskDay = new Date(`${zonedDateKey(date, timeZone)}T12:00:00`);
+  referenceDate = new Date(`${zonedDateKey(referenceDate)}T12:00:00`);
 
   const startOfToday = new Date(
     referenceDate.getFullYear(),
@@ -227,9 +263,9 @@ export function formatTaskDueDate(
   );
 
   const startOfTaskDay = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
+    taskDay.getFullYear(),
+    taskDay.getMonth(),
+    taskDay.getDate(),
     0,
     0,
     0,
@@ -248,8 +284,9 @@ export function formatTaskDueDate(
   } else if (diffDays === 1) {
     datePrefix = isVi ? "Ngày mai" : "Tomorrow";
   } else {
-    const isCurrentYear = date.getFullYear() === referenceDate.getFullYear();
+    const isCurrentYear = taskDay.getFullYear() === referenceDate.getFullYear();
     datePrefix = date.toLocaleDateString(locale, {
+      timeZone,
       month: "short",
       day: "numeric",
       ...(isCurrentYear ? {} : { year: "numeric" }),
@@ -261,6 +298,7 @@ export function formatTaskDueDate(
   }
 
   const timeStr = date.toLocaleTimeString(locale, {
+    timeZone,
     hour: "numeric",
     minute: "2-digit",
     hour12: !isVi,

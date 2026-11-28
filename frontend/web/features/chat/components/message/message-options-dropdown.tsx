@@ -1,113 +1,160 @@
+
 import React, { useEffect, useRef } from "react";
-import { Edit2, Pin, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Edit2,
+  Loader2,
+  MessageSquare,
+  Pin,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
+
+
+const VIEWPORT_GAP_PX = 12;
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
+  id?: string;
   onClose: () => void;
   buttonRect: DOMRect | null;
+  anchorElementRef: React.RefObject<HTMLButtonElement | null>;
   isMe: boolean;
+  onThreadReply?: () => void;
+  onCopy?: () => void;
   onEdit?: () => void;
   onPin?: () => void;
   onRecall?: () => void;
   canEdit?: boolean;
   canRecall?: boolean;
   isPinned?: boolean;
+  summaryFiles?: { id: string; name: string }[];
+  onSummarize?: (file: { id: string; name: string }) => void;
+  isSummarizing?: boolean;
 }
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   isOpen,
+  id,
   onClose,
   buttonRect,
+  anchorElementRef,
   isMe,
+  onThreadReply,
+  onCopy,
   onEdit,
   onPin,
   onRecall,
   canEdit = false,
   canRecall = true,
   isPinned = false,
+  summaryFiles = [],
+  onSummarize,
+  isSummarizing = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-
+  const threadReplySelected = useRef(false);
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
+    if (isOpen) threadReplySelected.current = false;
+  }, [isOpen]);
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
+
 
   if (!isOpen || !buttonRect) return null;
 
-  const getStyle = (): React.CSSProperties => {
-    const style: React.CSSProperties = {
-      left: isMe ? buttonRect.right + 10 : buttonRect.left,
-      transform: "none",
-    };
 
-    if (buttonRect.bottom > window.innerHeight / 2) {
-      // Open upwards
-      style.bottom = window.innerHeight - buttonRect.top + 10;
-    } else {
-      // Open downwards
-      style.top = buttonRect.bottom + 10;
-    }
-    return style;
-  };
 
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm text-gray-700 animate-in fade-in zoom-in-95 duration-100"
-      style={getStyle()}
-    >
-      {isMe && canEdit && (
-        <button
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} anchorElementRef={anchorElementRef} restoreFocus={() => !threadReplySelected.current} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+      {onThreadReply && (
+        <DropdownMenuItem closeOnClick={false}
+          onClick={() => {
+            threadReplySelected.current = true;
+            onThreadReply();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <MessageSquare size={16} />
+          <span>Reply in thread</span>
+        </DropdownMenuItem>
+      )}
+
+      {onCopy && (
+        <DropdownMenuItem closeOnClick={false}
+          onClick={() => {
+            onCopy();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <Copy size={16} aria-hidden="true" />
+          <span>Copy message</span>
+        </DropdownMenuItem>
+      )}
+
+      {isMe && (
+        <DropdownMenuItem closeOnClick={false}
+          disabledReason={!canEdit ? PERMISSION_REASON.messageUnavailable : undefined}
           onClick={() => {
             onEdit?.();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
         >
           <Edit2 size={16} />
           <span>Edit message</span>
-        </button>
+        </DropdownMenuItem>
       )}
 
-      <button
+      <DropdownMenuItem closeOnClick={false}
         onClick={() => {
           onPin?.();
           onClose();
         }}
-        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+        className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
       >
         <Pin size={16} />
         <span>
           {isPinned ? "Unpin message" : "Pin message"}
         </span>
-      </button>
+      </DropdownMenuItem>
 
-      {isMe && canRecall && (
+      {onSummarize && summaryFiles.map((file) => (
+        <DropdownMenuItem
+          key={file.id}
+          closeOnClick={false}
+          disabled={isSummarizing}
+          onClick={() => {
+            onSummarize(file);
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
+          title={file.name}
+        >
+          {isSummarizing ? <Loader2 size={16} className="shrink-0 motion-safe:animate-spin" /> : <Sparkles size={16} className="shrink-0" />}
+          <span className="min-w-0 break-words">{summaryFiles.length === 1 ? "Summarize with AI" : `Summarize: ${file.name}`}</span>
+        </DropdownMenuItem>
+      ))}
+
+      {isMe && (
         <>
-          <div className="h-px bg-gray-100 my-1 mx-2" />
-          <button
+          <div className="h-px bg-muted my-1 mx-2" />
+          <DropdownMenuItem closeOnClick={false}
+            disabledReason={!canRecall ? PERMISSION_REASON.messageUnavailable : undefined}
             onClick={() => {
               onRecall?.();
               onClose();
             }}
-            className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-destructive-soft text-destructive-content flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
             <span>Recall message</span>
-          </button>
+          </DropdownMenuItem>
         </>
       )}
-    </div>
-  );
+    </AnchoredMenu>;
 };

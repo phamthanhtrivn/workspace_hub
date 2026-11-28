@@ -2,6 +2,7 @@ _format_version: "3.0"
 _transform: true
 
 consumers:
+  - username: workspace-hub-anonymous
   - username: workspace-hub-api
     jwt_secrets:
       - key: workspace-hub
@@ -57,6 +58,14 @@ services:
           - /health/calendar
         strip_path: true
 
+  - name: ai-service-ready
+    url: http://notebook-api:8087/ready
+    routes:
+      - name: ai-health-route
+        paths:
+          - /health/ai
+        strip_path: true
+
   - name: user-service
     url: http://user-service:8081
     routes:
@@ -76,13 +85,11 @@ services:
       - name: project-routes
         paths:
           - /api/projects
-          - /api/sprints
           - /api/project-invitations
           - /api/tasks
           - /api/checklists
           - /api/labels
           - /api/task-comments
-          - /api/pomodoros
         strip_path: false
 
       - name: project-websocket-route
@@ -101,7 +108,6 @@ services:
         strip_path: false
       - name: communication-routes
         paths:
-          - /api/conversations
           - /api/direct-conversations
           - /api/channels
           - /api/spaces
@@ -151,7 +157,22 @@ services:
           - /api/calendar
         strip_path: false
 
+  - name: notebook-ai-service
+    url: http://notebook-api:8087
+    connect_timeout: 5000
+    read_timeout: 120000
+    write_timeout: 10000
+    retries: 0
+    routes:
+      - name: notebook-ai-routes
+        paths:
+          - /api/ai
+        strip_path: false
+        request_buffering: false
+        response_buffering: false
+
 plugins:
+  - name: gateway-boundary
   # ==========================================
   # GLOBAL PLUGINS (Applied to all routes)
   # ==========================================
@@ -175,12 +196,17 @@ plugins:
         - X-Requested-With
         - Cookie
         - Idempotency-Key
+        - X-File-Size
+        - X-Upload-Count
+        - X-Upload-Bytes
       exposed_headers:
         - Set-Cookie
       credentials: true
 
   - name: rate-limiting
     config:
+      limit_by: header
+      header_name: X-User-Id
       minute: 600
       policy: local
 
@@ -197,12 +223,25 @@ plugins:
   - name: file-log
     config:
       path: /dev/stdout
+      custom_fields_by_lua:
+        request_id: "return kong.request.get_header('X-Request-ID')"
+        request.headers: "return nil"
+        response.headers: "return nil"
+        request.querystring: "return nil"
+        request.uri: "return kong.request.get_path()"
+        request.url: "return kong.request.get_path()"
+        upstream_uri: "return nil"
 
   # ==========================================
   # ROUTE-SPECIFIC PLUGINS (Authentication)
   # ==========================================
 
   # user-routes
+  - name: request-size-limiting
+    route: notebook-ai-routes
+    config:
+      allowed_payload_size: 20 # One transient file check; persistent files still use Document Service.
+
   - name: jwt
     route: user-routes
     config:
@@ -268,6 +307,22 @@ plugins:
 
   # document-routes
   - name: jwt
+    route: notebook-ai-routes
+    config:
+      claims_to_verify: [exp]
+
+  - name: jwt-user-context
+    route: notebook-ai-routes
+    config:
+      gateway_service_key: $AI_GATEWAY_KEY
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
+
+  # document-routes
+  - name: jwt
     route: document-routes
     config:
       claims_to_verify:
@@ -283,6 +338,12 @@ plugins:
       header_user_avatar: X-User-Avatar
 
   # document-public-routes
+  - name: jwt
+    route: document-public-routes
+    config:
+      claims_to_verify: [exp]
+      anonymous: workspace-hub-anonymous
+
   - name: jwt-user-context
     route: document-public-routes
     config:

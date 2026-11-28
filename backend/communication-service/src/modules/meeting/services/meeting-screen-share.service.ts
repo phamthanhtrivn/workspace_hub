@@ -8,6 +8,7 @@ import {
   MeetingEventType,
   MeetingParticipantStatus,
   MeetingRole,
+  MeetingStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
@@ -90,15 +91,14 @@ export class MeetingScreenShareService {
 
     const now = new Date();
     const updateResult = await this.prisma.meeting.updateMany({
-      where: previousScreenShareUserId
-        ? {
-            id: meeting.id,
-            activeScreenShareUserId: previousScreenShareUserId,
-          }
-        : {
-            id: meeting.id,
-            activeScreenShareUserId: null,
-          },
+      where: {
+        id: meeting.id,
+        status: MeetingStatus.LIVE,
+        participants: {
+          some: { userId, status: MeetingParticipantStatus.JOINED },
+        },
+        activeScreenShareUserId: previousScreenShareUserId,
+      },
       data: {
         activeScreenShareUserId: userId,
         screenShareStartedAt: now,
@@ -106,6 +106,10 @@ export class MeetingScreenShareService {
     });
 
     if (updateResult.count === 0) {
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
       throw new ConflictException(
         MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_ALREADY_ACTIVE,
       );

@@ -61,14 +61,15 @@ export function useMeetingRoomChat({
   const profilesByUserId = useMemo(() => {
     const profiles: Record<string, MeetingParticipantProfile> = {};
 
-    participantsQuery.data?.data.items.forEach((participant) => {
-      if (participant.profile) {
-        profiles[participant.userId] = participant.profile;
-      }
-    });
     messages.forEach((message) => {
       if (message.senderProfile) {
         profiles[message.senderId] = message.senderProfile;
+      }
+    });
+    // Participant responses can be newer than profiles cached with old messages.
+    participantsQuery.data?.data.items.forEach((participant) => {
+      if (participant.profile) {
+        profiles[participant.userId] = participant.profile;
       }
     });
 

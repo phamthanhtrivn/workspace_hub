@@ -71,14 +71,14 @@ BEGIN
     FOR parent_index IN 1..3 LOOP
       task_index := (item_index - 1) * 3 + parent_index;
       parent_id := gen_random_uuid();
-      INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, archived, created_at, updated_at, version)
+      INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, created_at, updated_at, version)
       VALUES (
         parent_id, project_id, (parent_index - 1) * 3 + 1, NULL, parent_titles[task_index],
         'Task lớn cần được theo dõi bằng các subtask và checklist.',
         CASE WHEN parent_index = 1 THEN 'HIGH' WHEN parent_index = 2 THEN 'MEDIUM' ELSE 'LOW' END,
         CASE WHEN parent_index = 1 THEN 'IN_PROGRESS' WHEN parent_index = 2 THEN 'TODO' ELSE 'IN_REVIEW' END,
         owner_id, owner_id, CURRENT_DATE + parent_index - 1, CURRENT_DATE + parent_index + 6, FALSE, NULL,
-        LPAD(parent_index::TEXT, 3, '0'), FALSE, created_at, created_at, 0
+        LPAD(parent_index::TEXT, 3, '0'), created_at, created_at, 0
       );
 
       SELECT tl.id INTO label_id FROM task_labels AS tl WHERE tl.project_id = demo_data.project_id ORDER BY tl.name LIMIT 1;
@@ -93,7 +93,7 @@ BEGIN
 
       FOR subtask_index IN 1..2 LOOP
         child_id := gen_random_uuid();
-        INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, archived, created_at, updated_at, version)
+        INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, created_at, updated_at, version)
         VALUES (
           child_id, project_id, (parent_index - 1) * 3 + 1 + subtask_index, parent_id,
           CASE WHEN subtask_index = 1 THEN subtask_a[task_index] ELSE subtask_b[task_index] END,
@@ -101,7 +101,7 @@ BEGIN
           CASE WHEN subtask_index = 1 THEN 'MEDIUM' ELSE 'LOW' END,
           CASE WHEN subtask_index = 1 THEN 'TODO' ELSE 'IN_PROGRESS' END,
           owner_id, owner_id, CURRENT_DATE + parent_index - 1, CURRENT_DATE + parent_index + 4, FALSE, NULL,
-          LPAD((parent_index * 10 + subtask_index)::TEXT, 3, '0'), FALSE, created_at, created_at, 0
+          LPAD((parent_index * 10 + subtask_index)::TEXT, 3, '0'), created_at, created_at, 0
         );
 
         INSERT INTO task_assignees (id, task_id, project_id, user_id, assigned_at)

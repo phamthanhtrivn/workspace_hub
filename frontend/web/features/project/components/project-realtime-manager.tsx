@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAppSelector } from "@/store/store";
+import { WORK_ASSISTANT_QUERY_ROOT } from "@/features/work-assistant/constants/work-assistant-query";
 import {
   getProjects,
   type ProjectListQuery,
@@ -11,8 +12,8 @@ import {
 import {
   applyProjectSpaceSocketEvent,
   applyTaskSocketEvent,
-  projectQueriesForEvent,
 } from "../api/project-realtime";
+import { invalidateProjectChange } from "../api/project-invalidation";
 import {
   projectSocketService,
   type ProjectChangedEvent,
@@ -36,13 +37,18 @@ export default function ProjectRealtimeManager() {
   useEffect(() => {
     if (!token) return;
 
+    let isCancelled = false;
+    let syncRevision = 0;
     const socket = projectSocketService.connect(token);
     const syncProjects = async () => {
+      const revision = ++syncRevision;
       try {
         const projects = await queryClient.fetchQuery({
           queryKey: projectKeys.list(PROJECT_SYNC_QUERY),
           queryFn: () => getProjects(PROJECT_SYNC_QUERY),
+          staleTime: 0,
         });
+        if (isCancelled || revision !== syncRevision) return;
         projectSocketService.syncProjects(
           projects.data.map((project) => project.id),
         );
@@ -51,6 +57,9 @@ export default function ProjectRealtimeManager() {
       }
     };
     const handleChange = (event: ProjectChangedEvent) => {
+      if (event.resource === "MEMBER" || (event.resource === "PROJECT" && event.action === "DELETED")) {
+        void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+      }
       if (event.resource === "TASK") {
         queryClient.setQueryData<Task[]>(
           taskKeys.project(event.projectId),
@@ -63,9 +72,7 @@ export default function ProjectRealtimeManager() {
           (current) => applyProjectSpaceSocketEvent(current, event),
         );
       }
-      for (const invalidation of projectQueriesForEvent(event)) {
-        void queryClient.invalidateQueries(invalidation);
-      }
+      void invalidateProjectChange(queryClient, event);
       if (
         event.resource === "PROJECT" ||
         event.resource === "MEMBER" ||
@@ -75,12 +82,19 @@ export default function ProjectRealtimeManager() {
       }
     };
 
-    socket.on("connect", syncProjects);
+    const reconcileProjects = () => {
+      void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+      void queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void syncProjects();
+    };
+    socket.on("connect", reconcileProjects);
     socket.on("project:changed", handleChange);
-    if (socket.connected) void syncProjects();
+    if (socket.connected) reconcileProjects();
 
     return () => {
-      socket.off("connect", syncProjects);
+      isCancelled = true;
+      socket.off("connect", reconcileProjects);
       socket.off("project:changed", handleChange);
     };
   }, [queryClient, token]);

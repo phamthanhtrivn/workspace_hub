@@ -1,14 +1,23 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { IconButton } from "@/components/ui/icon-button";
+
+import { useCallback, useMemo } from "react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ShareModalListProps {
   documentItemId: string;
@@ -38,6 +47,7 @@ export function ShareModalList({
         emails.add(share.shareWithEmail.toLowerCase());
       }
     });
+
     return Array.from(emails);
   }, [ownerEmail, shares]);
 
@@ -58,6 +68,7 @@ export function ShareModalList({
         }
       });
     }
+
     return map;
   }, [profilesResponse]);
 
@@ -74,8 +85,8 @@ export function ShareModalList({
       onShareUpdated?.();
     },
     onError: (err) => {
-      console.error("Failed to remove share", err);
-      toast.error("Failed to revoke access");
+      logActionError("Failed to remove share", err);
+      toast.error(getActionErrorMessage(err, "Failed to revoke access"));
     },
   });
 
@@ -95,8 +106,10 @@ export function ShareModalList({
       onShareUpdated?.();
     },
     onError: (err) => {
-      console.error("Failed to update permission", err);
-      toast.error("Failed to update access permission");
+      logActionError("Failed to update permission", err);
+      toast.error(
+        getActionErrorMessage(err, "Failed to update access permission"),
+      );
     },
   });
 
@@ -118,79 +131,76 @@ export function ShareModalList({
   const permissionLabel = (permission: SharePermission | "OWNER") => {
     if (permission === "OWNER") return "Owner";
     if (permission === SharePermission.EDITOR) return "Can edit";
+
     return "Can view";
   };
 
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         People with access
       </h4>
-      <div className="divide-y divide-slate-50 border border-slate-100 rounded-2xl p-2 max-h-64 overflow-y-auto bg-white">
+      <div className="divide-y divide-border border border-border rounded-panel p-2 max-h-64 overflow-y-auto bg-card">
         {/* Owner Item */}
-        <div className="flex items-center justify-between p-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black uppercase tracking-wider shrink-0 relative overflow-hidden">
-              {ownerProfile?.avatarUrl ? (
-                <Image
-                  src={ownerProfile.avatarUrl}
-                  alt={ownerProfile.fullName || ownerEmail}
-                  fill
-                  sizes="32px"
-                  className="object-cover rounded-full"
-                />
-              ) : (
-                (ownerProfile?.fullName || ownerEmail).slice(0, 2)
-              )}
+            <div className="w-8 h-8 rounded-full bg-info-soft text-info-content flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
+              <UserAvatar
+                src={ownerProfile?.avatarUrl}
+                alt={ownerProfile?.fullName || ownerEmail}
+                fill
+                sizes="32px"
+                className="object-cover rounded-full"
+              />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-700 truncate max-w-[220px]">
+              <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">
                 {ownerProfile?.fullName || ownerEmail}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 truncate max-w-[220px]">
+              <p className="text-xs font-semibold text-muted-foreground truncate max-w-[220px]">
                 {ownerEmail}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2 py-1 uppercase tracking-wide">
+          <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2 py-1 uppercase tracking-wide">
             Owner
           </span>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 size={20} className="animate-spin text-slate-400" />
+          <div role="status" className="flex items-center justify-center py-6">
+            <Spinner size={24} />
+            <span className="sr-only">Loading…</span>
           </div>
         ) : (
           shares.map((share) => {
-            const profile = profilesMap.get(share.shareWithEmail.toLowerCase()) || {
+            const profile = profilesMap.get(
+              share.shareWithEmail.toLowerCase(),
+            ) || {
               fullName: share.shareWithProfile?.fullName || undefined,
               avatarUrl: share.shareWithProfile?.avatarUrl || undefined,
             };
+
             return (
               <div
                 key={share.id}
-                className="flex items-center justify-between p-2"
+                className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black uppercase tracking-wider shrink-0 relative overflow-hidden">
-                    {profile?.avatarUrl ? (
-                      <Image
-                        src={profile.avatarUrl}
-                        alt={profile.fullName || share.shareWithEmail}
-                        fill
-                        sizes="32px"
-                        className="object-cover rounded-full"
-                      />
-                    ) : (
-                      (profile?.fullName || share.shareWithEmail).slice(0, 2)
-                    )}
+                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
+                    <UserAvatar
+                      src={profile?.avatarUrl}
+                      alt={profile?.fullName || share?.shareWithEmail}
+                      fill
+                      sizes="32px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-700 truncate max-w-[220px]">
+                    <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">
                       {profile?.fullName || share.shareWithEmail}
                     </p>
-                    <p className="flex items-center gap-2 text-[10px] font-bold text-slate-400 truncate max-w-[220px]">
+                    <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground truncate max-w-[220px]">
                       {share.shareWithEmail}
                     </p>
                   </div>
@@ -198,33 +208,39 @@ export function ShareModalList({
                 <div className="flex items-center gap-1 shrink-0">
                   {isOwner ? (
                     <>
-                      <select
+                      <CustomSelect
+                        sizeToOptions
+                        ariaLabel="Share permission"
                         value={share.permission}
-                        onChange={(e) =>
+                        onChange={(nextValue) =>
                           void handleUpdateSharePermission(
                             share.shareWithEmail,
-                            e.target.value as SharePermission,
+                            nextValue as SharePermission,
                           )
                         }
-                        className="bg-transparent hover:bg-slate-50 border-0 rounded-lg py-1 px-1.5 text-xs font-black text-slate-500 hover:text-slate-700 outline-hidden transition-all cursor-pointer"
+                        triggerClassName="bg-transparent hover:bg-background border-0 rounded-lg py-1 px-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground outline-hidden transition-all cursor-pointer"
                       >
                         {Object.values(SharePermission).map((value) => (
                           <option key={value} value={value}>
                             {permissionLabel(value)}
                           </option>
                         ))}
-                      </select>
-                      <button
+                      </CustomSelect>
+                      <IconButton
+                        label="Remove sharing access"
+                        showTooltip={false}
+                        size="icon-sm"
+                        aria-label="Remove sharing access"
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </IconButton>
                     </>
                   ) : (
-                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2.5 py-1 uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2.5 py-1 uppercase tracking-wide">
                       {permissionLabel(share.permission)}
                     </span>
                   )}

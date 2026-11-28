@@ -1,6 +1,7 @@
 import type { UpdateTaskPayload } from "../api/task.api";
 import type {
   ProjectMember,
+  Project,
   Task,
   TaskChecklist,
   TaskDependency,
@@ -16,7 +17,7 @@ export interface TaskDetailDrawerProps {
   task: Task | null;
   tasks?: Task[];
   members?: ProjectMember[];
-  project?: unknown;
+  project?: Project;
   onClose: () => void;
   onOpenChat?: (task: Task) => void;
   onTaskClick?: (task: Task) => void;
@@ -33,4 +34,5 @@ export interface TaskDetailDrawerProps {
   canEditTask?: boolean;
   canContributeTask?: boolean;
   canComment?: boolean;
+  canEditDocuments?: boolean;
 }

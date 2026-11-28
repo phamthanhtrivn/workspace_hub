@@ -19,6 +19,7 @@ import {
   type ProjectListQuery,
   type UpdateProjectPayload,
 } from "../api/project.api";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export const projectKeys = {
   all: ["projects"] as const,
@@ -63,7 +64,7 @@ export function useCreateProject() {
 
   return useMutation({
     mutationFn: (payload: CreateProjectPayload) => createProject(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: projectKeys.all }),
+    onSuccess: (project) => invalidateProjectChange(queryClient, { projectId: project.id, resource: 'PROJECT', action: 'CREATED' }),
   });
 }
 
@@ -72,10 +73,7 @@ export function useUpdateProject(projectId: string) {
 
   return useMutation({
     mutationFn: (payload: UpdateProjectPayload) => updateProject(projectId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
-      queryClient.invalidateQueries({ queryKey: projectKeys.detail(projectId) });
-    },
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'PROJECT', action: 'UPDATED' }),
   });
 }
 
@@ -85,7 +83,7 @@ export function useArchiveProject(projectId: string) {
   return useMutation({
     mutationFn: () => archiveProject(projectId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      void invalidateProjectChange(queryClient, { projectId, resource: 'PROJECT', action: 'DELETED' });
       queryClient.removeQueries({ queryKey: projectKeys.detail(projectId) });
     },
   });

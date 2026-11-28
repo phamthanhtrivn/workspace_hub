@@ -1,4 +1,5 @@
 import type { MeetingRoomReactionEmoji } from "./meeting.constants";
+import type { RecordingLayout } from "./meeting-recording.types";
 
 export enum MeetingFlowStep {
   DASHBOARD = "dashboard",
@@ -39,6 +40,8 @@ export interface MeetingDeviceOption {
 }
 
 export interface MeetingPreJoinSettings {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   cameraEnabled: boolean;
   microphoneEnabled: boolean;
   cameraDeviceId: string;
@@ -48,6 +51,8 @@ export interface MeetingPreJoinSettings {
 }
 
 export interface CreateInstantMeetingPayload {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   password?: string;
   autoAdmit?: boolean;
   chatEnabled?: boolean;
@@ -338,6 +343,24 @@ export type MeetingType = "INSTANT" | "SCHEDULED";
 
 export type MeetingStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
 
+export type MeetingHistoryVisibility = "visible" | "hidden";
+
+export interface MeetingHistoryVisibilityResponse {
+  meetingId: string;
+  hidden: boolean;
+}
+
+export type MeetingHistoryBulkVisibilityPayload = {
+  hidden: boolean;
+  expectedCount: number;
+} & ({ scope: "all" } | { scope: "selected"; meetingIds: string[] });
+
+export interface MeetingHistoryBulkVisibilityResponse {
+  hidden: boolean;
+  affectedCount: number;
+  batchId: string | null;
+}
+
 export interface MeetingHistoryItem {
   id: string;
   joinToken: string;
@@ -352,9 +375,11 @@ export interface MeetingHistoryItem {
 }
 
 export type MeetingHistoryResponse =
-  MeetingPaginatedResponse<MeetingHistoryItem>;
+  MeetingPaginatedResponse<MeetingHistoryItem> & { actionableTotal: number };
 
 export interface ScheduledMeetingPayload {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   title: string;
   scheduledStartAt: string;
   scheduledEndAt: string;
@@ -370,6 +395,8 @@ export interface ScheduledMeetingPayload {
 export type UpdateScheduledMeetingPayload = Partial<ScheduledMeetingPayload>;
 
 export interface ScheduledMeetingResponse {
+  autoRecord: boolean;
+  recordingLayout: RecordingLayout;
   id: string;
   joinToken: string;
   title: string;
@@ -393,6 +420,8 @@ export interface ScheduledMeetingInvitationResponse {
 }
 
 export interface UpcomingMeetingItem {
+  autoRecord: boolean;
+  recordingLayout: RecordingLayout;
   id: string;
   joinToken: string;
   title: string;
@@ -526,6 +555,7 @@ export interface UpdateMeetingParticipantViewPreferencePayload {
 }
 
 export interface CreateMeetingMessagePayload {
+  clientRequestId?: string;
   content?: string;
   medias?: MeetingMessageMediaPayload[];
 }

@@ -13,8 +13,11 @@ export function buildCalendarEventUpdate(
   event: CalendarEvent,
   values: CalendarEventFormValues,
 ): UpdateCalendarEventPayload {
+  const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
   const payload: UpdateCalendarEventPayload = {
+    ...(!isRecurring && values.recurrenceRule ? { timeZone: values.timeZone } : {}),
     recurrenceScope: values.recurrenceScope,
+    ...(values.conference && values.conference.enabled !== Boolean(event.conference?.enabled) ? { conference: values.conference } : {}),
   };
   const scalarFields = [
     "calendarId",
@@ -29,6 +32,7 @@ export function buildCalendarEventUpdate(
     "recurrenceRule",
   ] as const;
   for (const field of scalarFields) {
+    if (isRecurring && (field === "allDay" || field === "recurrenceRule")) continue;
     const next = values[field];
     if (next !== undefined && next !== (event[field] ?? null)) {
       Object.assign(payload, { [field]: next });
@@ -36,7 +40,7 @@ export function buildCalendarEventUpdate(
   }
   // The editor only exposes minutes; opening it must not erase seconds.
   for (const field of ["startAt", "endAt"] as const) {
-    if (toDateTimeLocal(values[field]) !== toDateTimeLocal(event[field])) {
+    if (!isRecurring && toDateTimeLocal(values[field]) !== toDateTimeLocal(event[field])) {
       payload[field] = values[field];
     }
   }

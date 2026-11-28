@@ -10,20 +10,34 @@ import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
 import {
   ListRecordingsDto,
   StartMeetingRecordingDto,
+  RecordingSettingsDto,
 } from '../dto/meeting-recording.dto';
 import {
   ACTIVE_RECORDING_STATUSES,
+  RECORDING_CAPACITY_STATUSES,
+  recordingSegmentKey,
   recordingCapabilities,
   recordingError,
 } from '../utils/meeting-recording.utils';
+import { MeetingRecordingMediaService } from './meeting-recording-media.service';
+import { MeetingRecordingRequestsService } from './meeting-recording-requests.service';
+import { recordingWorkerEvents } from '../utils/recording-worker-events';
 
 const recordingInclude = {
   meeting: { select: { title: true, joinToken: true } },
-  permissions: true,
+  permissions: { select: { userId: true, canDownload: true } },
 } satisfies Prisma.MeetingRecordingInclude;
 type RecordingWithAccess = Prisma.MeetingRecordingGetPayload<{
   include: typeof recordingInclude;
 }>;
+type RecordingAccessGrant = {
+  recordingId: string;
+  grantedBy: string;
+  canDownload: boolean;
+};
+
+const RECORDING_PERMISSION_BATCH_SIZE = 500;
+const RECORDING_SHARE_TRANSACTION_TIMEOUT_MS = 15_000;
 
 @Injectable()
 export class MeetingRecordingService {
@@ -33,6 +47,8 @@ export class MeetingRecordingService {
     private readonly s3: S3Service,
     private readonly policy: MeetingPolicyService,
     private readonly realtime: MeetingRealtimeService,
+    private readonly media?: MeetingRecordingMediaService,
+    private readonly requests?: MeetingRecordingRequestsService,
   ) {}
 
   async status(joinToken: string, userId: string) {
@@ -44,15 +60,25 @@ export class MeetingRecordingService {
         status: { in: ACTIVE_RECORDING_STATUSES },
       },
     });
-    const available = this.liveKit.isRecordingConfigured();
+    const readiness = await this.liveKit.recordingReadiness();
+    const available = readiness.ready;
     const capabilities = recordingCapabilities(participant, recording, userId);
+
     return {
+      ...(await this.requests?.snapshot(meeting, participant)),
       meetingId: meeting.id,
       ownerId: meeting.createdBy,
+      settings: {
+        autoRecord: meeting.autoRecord,
+        layout: meeting.recordingLayout,
+      },
+      pauseAvailable: Boolean(this.media?.isAvailable()),
+      customLayoutsAvailable: Boolean(
+        process.env.LIVEKIT_RECORDING_TEMPLATE_URL,
+      ),
       recordingAvailable: available,
-      unavailableReason: available
-        ? null
-        : 'Recording service is not configured',
+      unavailableReason: readiness.reason,
+      unavailableCode: readiness.code,
       recording: recording
         ? {
             id: recording.id,
@@ -61,13 +87,49 @@ export class MeetingRecordingService {
             stoppedAt: recording.stoppedAt,
             stopRequestedAt: recording.stopRequestedAt,
             version: recording.version,
+            layout: recording.layout,
+            recordedSeconds: recording.durationSeconds ?? 0,
+            segmentStartedAt: recording.segmentStartedAt,
           }
         : null,
       capabilities: {
         ...capabilities,
         canStart: available && capabilities.canStart,
+        canPause: Boolean(
+          capabilities.canStop &&
+          recording?.status === 'RECORDING' &&
+          recording.segmentKey &&
+          this.media?.isAvailable(),
+        ),
+        canResume: Boolean(
+          capabilities.canStop &&
+          recording?.status === 'PAUSED' &&
+          this.media?.isAvailable(),
+        ),
       },
     };
+  }
+
+  async setCapturePermission(
+    joinToken: string,
+    userId: string,
+    enabled: boolean,
+  ) {
+    const { meeting, participant } =
+      await this.policy.assertJoinedMeetingParticipant({ joinToken, userId });
+    if (enabled && !recordingCapabilities(participant).canStart)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'You cannot record this meeting',
+      );
+    await this.liveKit.setRecordingCapturePermission(
+      meeting.roomName,
+      userId,
+      enabled,
+    );
+
+    return { enabled };
   }
 
   async start(
@@ -75,28 +137,67 @@ export class MeetingRecordingService {
     userId: string,
     dto: StartMeetingRecordingDto,
     key?: string,
+    automatic = false,
   ) {
-    const { meeting } = await this.policy.assertJoinedMeetingParticipant({
-      joinToken,
-      userId,
-    });
+    const { meeting, participant: actor } =
+      await this.policy.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
     const requestKey = this.requestKey(userId, meeting.id, 'START', key);
-    const layout = dto.layout ?? 'speaker';
+    const layout = dto.captureTrackSid
+      ? `app:${dto.captureTrackSid}`
+      : (dto.layout ?? 'speaker');
+    if (layout === 'screen' && !process.env.LIVEKIT_RECORDING_TEMPLATE_URL)
+      recordingError(
+        503,
+        'RECORDING_LAYOUT_UNAVAILABLE',
+        'Screen-only recording is not configured',
+      );
     const requestHash = createHash('sha256').update(layout).digest('hex');
     const existing = await this.prisma.meetingRecordingJob.findUnique({
       where: { requestKey },
     });
     if (existing) return this.replay(existing, userId, requestHash);
-    if (!this.liveKit.isRecordingConfigured())
+    if (!recordingCapabilities(actor).canStart)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'You cannot record this meeting',
+      );
+    if (dto.captureTrackSid) {
+      const participant = await this.liveKit
+        .createRoomServiceClient()
+        .getParticipant(meeting.roomName, userId);
+      if (
+        !participant.tracks.some(
+          (track) =>
+            track.sid === dto.captureTrackSid &&
+            track.name === 'meeting-tab-recording',
+        )
+      )
+        recordingError(
+          400,
+          'RECORDING_CAPTURE_INVALID',
+          'The meeting tab capture is no longer available. Start recording again.',
+        );
+    }
+    const readiness = await this.liveKit.recordingReadiness();
+    if (!readiness.ready)
+      recordingError(503, readiness.code!, readiness.reason!);
+
+    try {
+      await this.liveKit.listRecordings();
+    } catch {
       recordingError(
         503,
         'RECORDING_UNAVAILABLE',
-        'Recording service is not configured',
+        'Recording service is unavailable. Please try again when it is connected.',
       );
-
+    }
     const id = randomUUID();
     try {
-      await this.prisma.$transaction(async (tx) => {
+      const replay = await this.prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
         const current = await tx.meeting.findUniqueOrThrow({
           where: { id: meeting.id },
@@ -112,6 +213,23 @@ export class MeetingRecordingService {
             'RECORDING_FORBIDDEN',
             'You cannot record this meeting',
           );
+        // Another request with this key may have committed while we waited for the lock.
+        const duplicate = await tx.meetingRecordingJob.findUnique({
+          where: { requestKey },
+        });
+        if (duplicate) return duplicate;
+        if (
+          automatic &&
+          (!current.autoRecord ||
+            (await tx.meetingRecording.count({
+              where: { meetingId: meeting.id },
+            })) > 0)
+        )
+          recordingError(
+            409,
+            'AUTO_RECORDING_SKIPPED',
+            'Automatic recording is disabled or has already run',
+          );
         const active = await tx.meetingRecording.findFirst({
           where: {
             meetingId: meeting.id,
@@ -124,9 +242,9 @@ export class MeetingRecordingService {
             'RECORDING_ALREADY_ACTIVE',
             'A recording is already active or processing',
           );
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(61009001)`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(61009001)`;
         const activeCount = await tx.meetingRecording.count({
-          where: { status: { in: ACTIVE_RECORDING_STATUSES } },
+          where: { status: { in: RECORDING_CAPACITY_STATUSES } },
         });
         if (
           activeCount >=
@@ -147,6 +265,11 @@ export class MeetingRecordingService {
             status: MeetingRecordingStatus.STARTING,
             title,
             layout,
+            segmentKey: this.media?.isAvailable()
+              ? recordingSegmentKey(meeting.id, id, 0)
+              : null,
+            controlRequestedBy: userId,
+            durationSeconds: 0,
             s3Key: `recordings/${meeting.id}/${id}.mp4`,
             fileName: `${id}.mp4`,
             mimeType: 'video/mp4',
@@ -154,6 +277,7 @@ export class MeetingRecordingService {
           },
         });
       });
+      if (replay) return this.replay(replay, userId, requestHash);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -177,6 +301,8 @@ export class MeetingRecordingService {
       status: 'STARTING',
       version: 0,
     });
+    recordingWorkerEvents.emit('wake');
+
     return { id, status: MeetingRecordingStatus.STARTING };
   }
 
@@ -191,6 +317,7 @@ export class MeetingRecordingService {
       userId,
     });
     const requestKey = this.requestKey(userId, meeting.id, 'STOP', key);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
       const recording = await tx.meetingRecording.findUnique({
@@ -238,10 +365,245 @@ export class MeetingRecordingService {
       await tx.meetingRecordingJob.upsert({
         where: { recordingId_kind: { recordingId, kind: 'STOP' } },
         create: { recordingId, kind: 'STOP', requestKey },
-        update: {},
+        update: {
+          state: 'PENDING',
+          attempts: 0,
+          leaseToken: null,
+          leaseUntil: null,
+          nextAttemptAt: new Date(),
+        },
       });
+      if (recording.segmentKey && recording.status === 'PAUSED') {
+        await tx.meetingRecording.update({
+          where: { id: recordingId },
+          data: { failureCode: 'MERGE_PENDING' },
+        });
+        await tx.meetingRecordingJob.upsert({
+          where: { recordingId_kind: { recordingId, kind: 'MERGE' } },
+          create: { recordingId, kind: 'MERGE' },
+          update: {},
+        });
+      }
+
       return { id: recordingId, status: MeetingRecordingStatus.PROCESSING };
     });
+  }
+
+  async configure(
+    joinToken: string,
+    userId: string,
+    dto: RecordingSettingsDto,
+  ) {
+    const { meeting } = await this.policy.assertMeetingHost({
+      joinToken,
+      userId,
+    });
+    if (dto.layout === 'screen' && !process.env.LIVEKIT_RECORDING_TEMPLATE_URL)
+      recordingError(
+        503,
+        'RECORDING_LAYOUT_UNAVAILABLE',
+        'Screen-only recording is not configured',
+      );
+    const settings = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      const actor = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (
+        actor?.status !== 'JOINED' ||
+        actor.role !== 'HOST' ||
+        current.hostId !== userId
+      )
+        recordingError(
+          403,
+          'RECORDING_FORBIDDEN',
+          'Only the joined host can change recording settings',
+        );
+      if (current.status !== 'LIVE')
+        recordingError(409, 'MEETING_NOT_LIVE', 'Meeting is not live');
+
+      return tx.meeting.update({
+        where: { id: meeting.id },
+        data: {
+          autoRecord: dto.autoRecord,
+          recordingLayout: dto.layout,
+        },
+      });
+    });
+    this.realtime.emitMeetingEvent(meeting.id, MeetingEvent.RECORDING_UPDATED, {
+      meetingId: meeting.id,
+    });
+
+    return {
+      autoRecord: settings.autoRecord,
+      layout: settings.recordingLayout,
+    };
+  }
+
+  async pause(joinToken: string, userId: string, id: string, key?: string) {
+    return this.transition(joinToken, userId, id, 'PAUSE', key);
+  }
+
+  async resume(joinToken: string, userId: string, id: string, key?: string) {
+    return this.transition(joinToken, userId, id, 'RESUME', key);
+  }
+
+  private async transition(
+    joinToken: string,
+    userId: string,
+    id: string,
+    operation: 'PAUSE' | 'RESUME',
+    key?: string,
+  ) {
+    const { meeting } = await this.policy.assertJoinedMeetingParticipant({
+      joinToken,
+      userId,
+    });
+    const requestKey = this.requestKey(userId, meeting.id, operation, key);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      const recording = await tx.meetingRecording.findUnique({ where: { id } });
+      if (!recording || recording.meetingId !== meeting.id)
+        recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+      const actor = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (!recordingCapabilities(actor ?? undefined, recording, userId).canStop)
+        recordingError(
+          403,
+          'RECORDING_FORBIDDEN',
+          'You cannot control this recording',
+        );
+      if (current.status !== 'LIVE')
+        recordingError(409, 'MEETING_NOT_LIVE', 'Meeting is not live');
+      const previous = await tx.meetingRecordingJob.findUnique({
+        where: { requestKey },
+      });
+      if (previous) {
+        if (previous.recordingId !== id)
+          recordingError(
+            409,
+            'IDEMPOTENCY_CONFLICT',
+            'This key was used for another recording',
+          );
+
+        return { id, status: recording.status };
+      }
+      if (!this.media?.isAvailable() || !recording.segmentKey)
+        recordingError(
+          503,
+          'RECORDING_PAUSE_UNAVAILABLE',
+          'Pause/Resume is unavailable for this recording',
+        );
+      const expected = operation === 'PAUSE' ? 'RECORDING' : 'PAUSED';
+      if (recording.status !== expected)
+        recordingError(
+          409,
+          'RECORDING_STATE_CONFLICT',
+          `Recording must be ${expected.toLowerCase()}`,
+        );
+      if (operation === 'RESUME') {
+        if (!this.liveKit.isRecordingConfigured())
+          recordingError(
+            503,
+            'RECORDING_UNAVAILABLE',
+            'Recording service is unavailable',
+          );
+        if (recording.segmentIndex >= 99)
+          recordingError(
+            429,
+            'RECORDING_SEGMENT_LIMIT',
+            'Recording pause limit reached',
+          );
+        if (
+          (recording.durationSeconds ?? 0) >=
+          Number(process.env.MEETING_RECORDING_MAX_MINUTES || 120) * 60
+        )
+          recordingError(
+            409,
+            'RECORDING_DURATION_LIMIT',
+            'Recording duration limit reached',
+          );
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(61009001)`;
+        const count = await tx.meetingRecording.count({
+          where: { status: { in: RECORDING_CAPACITY_STATUSES } },
+        });
+        if (count >= Number(process.env.MEETING_RECORDING_MAX_CONCURRENT || 1))
+          recordingError(
+            429,
+            'RECORDING_CAPACITY',
+            'Recording capacity reached; try again later',
+          );
+      }
+      const status =
+        operation === 'PAUSE'
+          ? MeetingRecordingStatus.PAUSING
+          : MeetingRecordingStatus.STARTING;
+      await tx.meetingRecording.update({
+        where: { id },
+        data:
+          operation === 'PAUSE'
+            ? {
+                status,
+                pauseRequestedAt: new Date(),
+                version: { increment: 1 },
+              }
+            : {
+                status,
+                pauseRequestedAt: null,
+                livekitEgressId: null,
+                egressUpdatedAt: 0n,
+                segmentIndex: { increment: 1 },
+                segmentStartedAt: null,
+                segmentDurationSeconds: null,
+                stoppedAt: null,
+                controlRequestedBy: userId,
+                segmentKey: recordingSegmentKey(
+                  meeting.id,
+                  id,
+                  recording.segmentIndex + 1,
+                ),
+                failureCode: null,
+                version: { increment: 1 },
+              },
+      });
+      const kind = operation === 'PAUSE' ? 'STOP' : 'START';
+      await tx.meetingRecordingJob.upsert({
+        where: { recordingId_kind: { recordingId: id, kind } },
+        create: { recordingId: id, kind },
+        update: {
+          state: 'PENDING',
+          attempts: 0,
+          nextAttemptAt: new Date(),
+          leaseToken: null,
+          leaseUntil: null,
+          dispatchedAt: null,
+        },
+      });
+      await tx.meetingRecordingJob.create({
+        data: {
+          recordingId: id,
+          kind: `${operation}:${createHash('sha256').update(requestKey).digest('hex')}`,
+          requestKey,
+          state: 'DONE',
+        },
+      });
+
+      return { id, status };
+    });
+    this.realtime.emitMeetingEvent(meeting.id, MeetingEvent.RECORDING_UPDATED, {
+      meetingId: meeting.id,
+      recordingId: id,
+      status: result.status,
+    });
+
+    return result;
   }
 
   async grantRecording(
@@ -292,6 +654,11 @@ export class MeetingRecordingService {
           'PARTICIPANT_CHANGED',
           'Participant has left or changed role',
         );
+      await tx.meetingParticipant.updateMany({
+        where: { id: target.id, recordingRequestState: 'PENDING' },
+        data: { recordingRequestState: canRecord ? 'APPROVED' : 'REJECTED' },
+      });
+
       return tx.meetingParticipant.findUniqueOrThrow({
         where: { id: target.id },
       });
@@ -306,10 +673,28 @@ export class MeetingRecordingService {
       MeetingEvent.RECORDING_PERMISSION_UPDATED,
       payload,
     );
+    this.realtime.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.RECORDING_REQUEST_UPDATED,
+      { meetingId: meeting.id },
+    );
+
     return payload;
   }
 
   async list(userId: string, query: ListRecordingsDto, joinToken?: string) {
+    const fromDate = query.fromDate ? new Date(query.fromDate) : undefined;
+    const toDate = query.toDate ? new Date(query.toDate) : undefined;
+    if (
+      (fromDate && !Number.isFinite(fromDate.getTime())) ||
+      (toDate && !Number.isFinite(toDate.getTime())) ||
+      (fromDate && toDate && fromDate >= toDate)
+    )
+      recordingError(
+        400,
+        'RECORDING_DATE_RANGE_INVALID',
+        'Choose a valid recording date range.',
+      );
     let meetingId = query.meetingId;
     if (joinToken) {
       const meeting = await this.prisma.meeting.findUnique({
@@ -330,6 +715,9 @@ export class MeetingRecordingService {
             };
     const where: Prisma.MeetingRecordingWhereInput = {
       AND: [access, { status: { not: 'DELETED' } }],
+      ...(fromDate || toDate
+        ? { requestedAt: { gte: fromDate, lt: toDate } }
+        : {}),
       meetingId,
       ...(query.status ? { status: query.status } : {}),
       ...(query.search?.trim()
@@ -342,12 +730,16 @@ export class MeetingRecordingService {
       this.prisma.meetingRecording.count({ where }),
       this.prisma.meetingRecording.findMany({
         where,
-        include: recordingInclude,
+        include: {
+          ...recordingInclude,
+          permissions: { ...recordingInclude.permissions, where: { userId } },
+        },
         orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
       }),
     ]);
+
     return {
       items: recordings.map((recording) => this.present(recording, userId)),
       page,
@@ -367,7 +759,49 @@ export class MeetingRecordingService {
       recordingError(403, 'RECORDING_FORBIDDEN', 'Downloading is not allowed');
     if (recording.status !== 'COMPLETED' || !recording.s3Key)
       recordingError(409, 'RECORDING_NOT_READY', 'Recording is not ready');
-    return this.s3.generateRecordingUrl(recording.s3Key, download);
+    const signed = await this.s3.generateRecordingUrl(
+      recording.s3Key,
+      download,
+    );
+    const current = await this.assertAccess(id, userId);
+    if (download && !this.present(current, userId).capabilities.canDownload)
+      recordingError(403, 'RECORDING_FORBIDDEN', 'Downloading is not allowed');
+
+    return signed;
+  }
+
+  async summarySource(id: string, userId: string) {
+    const recording = await this.assertOwner(id, userId);
+    if (
+      recording.status !== 'COMPLETED' ||
+      !recording.s3Key ||
+      !recording.sizeBytes ||
+      !recording.durationSeconds
+    )
+      recordingError(
+        409,
+        'RECORDING_NOT_READY',
+        'A completed recording is required',
+      );
+    const revision = createHash('sha256')
+      .update(
+        JSON.stringify([
+          recording.id,
+          recording.s3Key,
+          String(recording.sizeBytes),
+          recording.durationSeconds,
+          recording.completedAt,
+        ]),
+      )
+      .digest('hex');
+
+    return {
+      recordingId: id,
+      revision,
+      sizeBytes: Number(recording.sizeBytes),
+      durationSeconds: recording.durationSeconds,
+      ...(await this.s3.generateRecordingUrl(recording.s3Key, false)),
+    };
   }
 
   async rename(id: string, userId: string, title: string) {
@@ -378,21 +812,25 @@ export class MeetingRecordingService {
       where: { id },
       data: { title: title.trim() },
     });
+
     return this.detail(id, userId);
   }
 
   async permissions(id: string, userId: string) {
-    const permissions = (await this.assertOwner(id, userId)).permissions;
+    const permissions = (await this.assertOwner(id, userId, true)).permissions;
+    if (!permissions.length) return [];
     const profiles = await this.prisma.userProfileSnapshot.findMany({
       where: { userId: { in: permissions.map((p) => p.userId) } },
-      select: { userId: true, fullName: true, email: true },
+      select: { userId: true, fullName: true, email: true, avatarUrl: true },
     });
+    const profileById = new Map(
+      profiles.map((profile) => [profile.userId, profile]),
+    );
+
     return permissions.map((permission) => ({
       userId: permission.userId,
       canDownload: permission.canDownload,
-      profile:
-        profiles.find((profile) => profile.userId === permission.userId) ??
-        null,
+      profile: profileById.get(permission.userId) ?? null,
     }));
   }
 
@@ -414,12 +852,8 @@ export class MeetingRecordingService {
     });
     if (!account) recordingError(404, 'USER_NOT_FOUND', 'User not found');
     const permission = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
-      const current = await tx.meetingRecording.findUniqueOrThrow({
-        where: { id },
-      });
-      if (current.status === 'DELETED')
-        recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+      await this.lockOwnedRecording(tx, id, userId);
+
       return tx.meetingRecordingPermission.upsert({
         where: {
           recordingId_userId: { recordingId: id, userId: targetUserId },
@@ -438,60 +872,79 @@ export class MeetingRecordingService {
       MeetingEvent.RECORDING_ACCESS_UPDATED,
       { recordingId: id },
     );
+
     return permission;
   }
 
   async shareParticipants(id: string, userId: string, canDownload: boolean) {
     const recording = await this.assertOwner(id, userId);
-    if (!recording.stopRequestedAt && !recording.stoppedAt)
-      recordingError(
-        409,
-        'RECORDING_NOT_READY',
-        'Stop recording before sharing with attendees',
-      );
-    const attended = await this.prisma.meetingEvent.findMany({
-      where: {
-        meetingId: recording.meetingId,
-        type: 'PARTICIPANT_JOINED',
-        createdAt: { lte: recording.stopRequestedAt ?? recording.stoppedAt! },
-        actorId: { not: null },
+    const recipientIds = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${recording.meetingId}::uuid FOR UPDATE`;
+        const current = await this.lockOwnedRecording(tx, id, userId);
+        const cutoff = current.stopRequestedAt ?? current.stoppedAt;
+        if (!cutoff)
+          recordingError(
+            409,
+            'RECORDING_NOT_READY',
+            'Stop recording before sharing with attendees',
+          );
+        // Lock recipients so removal either precedes this grant or revokes it afterwards.
+        const recipients = await tx.$queryRaw<{ userId: string }[]>`
+        SELECT p.user_id AS "userId" FROM meeting_participants p
+        WHERE p.meeting_id = ${recording.meetingId}::uuid
+          AND p.user_id <> ${userId}::uuid AND p.status <> 'REMOVED'
+          AND (p.joined_at <= ${cutoff} OR EXISTS (
+            SELECT 1 FROM meeting_events e WHERE e.meeting_id = p.meeting_id
+              AND e.actor_id = p.user_id AND e.type = 'PARTICIPANT_JOINED'
+              AND e.created_at <= ${cutoff}
+          ))
+        ORDER BY p.id FOR UPDATE OF p`;
+        const ids = recipients.map((recipient) => recipient.userId);
+        if (!ids.length) return ids;
+        const accountCount = await tx.userProfileSnapshot.count({
+          where: { userId: { in: ids } },
+        });
+        if (accountCount !== ids.length)
+          recordingError(
+            404,
+            'USER_NOT_FOUND',
+            'An attendee account is unavailable',
+          );
+        await this.upsertAttendeePermissions(tx, ids, {
+          recordingId: id,
+          grantedBy: userId,
+          canDownload,
+        });
+
+        return ids;
       },
-      distinct: ['actorId'],
-      select: { actorId: true },
-    });
-    const participants = await this.prisma.meetingParticipant.findMany({
-      where: {
-        meetingId: recording.meetingId,
-        status: { not: 'REMOVED' },
-        OR: [
-          { userId: { in: attended.map((event) => event.actorId!) } },
-          {
-            joinedAt: {
-              lte: recording.stopRequestedAt ?? recording.stoppedAt!,
-            },
-          },
-        ],
-      },
-      select: { userId: true },
-    });
-    const recipientIds = participants
-      .map((p) => p.userId)
-      .filter((id) => id !== recording.ownerId);
+      { timeout: RECORDING_SHARE_TRANSACTION_TIMEOUT_MS },
+    );
     for (const recipientId of recipientIds)
-      await this.share(id, userId, recipientId, canDownload);
+      this.realtime.emitUserEvent(
+        recipientId,
+        MeetingEvent.RECORDING_ACCESS_UPDATED,
+        { recordingId: id },
+      );
+
     return { sharedCount: recipientIds.length };
   }
 
   async revoke(id: string, userId: string, targetUserId: string) {
     await this.assertOwner(id, userId);
-    await this.prisma.meetingRecordingPermission.deleteMany({
-      where: { recordingId: id, userId: targetUserId },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockOwnedRecording(tx, id, userId);
+      await tx.meetingRecordingPermission.deleteMany({
+        where: { recordingId: id, userId: targetUserId },
+      });
     });
     this.realtime.emitUserEvent(
       targetUserId,
       MeetingEvent.RECORDING_ACCESS_UPDATED,
       { recordingId: id },
     );
+
     return { revoked: true };
   }
 
@@ -503,7 +956,7 @@ export class MeetingRecordingService {
         'RECORDING_FORBIDDEN',
         'Only the owner can delete recordings',
       );
-    await this.prisma.$transaction(async (tx) => {
+    const recipientIds = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
       const current = await tx.meetingRecording.findUniqueOrThrow({
         where: { id },
@@ -514,6 +967,10 @@ export class MeetingRecordingService {
           'RECORDING_ALREADY_ACTIVE',
           'Stop and finish processing before deleting',
         );
+      const permissions = await tx.meetingRecordingPermission.findMany({
+        where: { recordingId: id },
+        select: { userId: true },
+      });
       await tx.meetingRecording.update({
         where: { id },
         data: {
@@ -530,14 +987,14 @@ export class MeetingRecordingService {
         create: { recordingId: id, kind: 'DELETE' },
         update: {},
       });
+
+      return permissions.map((permission) => permission.userId);
     });
-    for (const recipient of new Set([
-      userId,
-      ...recording.permissions.map((p) => p.userId),
-    ]))
+    for (const recipient of new Set([userId, ...recipientIds]))
       this.realtime.emitUserEvent(recipient, MeetingEvent.RECORDING_DELETED, {
         recordingId: id,
       });
+
     return { id, status: 'DELETED' };
   }
 
@@ -545,10 +1002,17 @@ export class MeetingRecordingService {
     id: string,
     userId: string,
     allowDeleted = false,
+    allPermissions = false,
   ): Promise<RecordingWithAccess> {
     const recording = await this.prisma.meetingRecording.findUnique({
       where: { id },
-      include: recordingInclude,
+      include: {
+        ...recordingInclude,
+        permissions: {
+          ...recordingInclude.permissions,
+          ...(allPermissions ? {} : { where: { userId } }),
+        },
+      },
     });
     if (
       !recording ||
@@ -557,22 +1021,83 @@ export class MeetingRecordingService {
         !recording.permissions.some((p) => p.userId === userId))
     )
       recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+
     return recording;
   }
 
-  private async assertOwner(id: string, userId: string) {
-    const recording = await this.assertAccess(id, userId);
+  private async assertOwner(
+    id: string,
+    userId: string,
+    allPermissions = false,
+  ) {
+    const recording = await this.assertAccess(
+      id,
+      userId,
+      false,
+      allPermissions,
+    );
     if (recording.ownerId !== userId)
       recordingError(
         403,
         'RECORDING_FORBIDDEN',
         'Only the owner can manage recordings',
       );
+
     return recording;
+  }
+
+  private async lockOwnedRecording(
+    tx: Prisma.TransactionClient,
+    id: string,
+    userId: string,
+  ) {
+    await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
+    const recording = await tx.meetingRecording.findUniqueOrThrow({
+      where: { id },
+    });
+    if (recording.status === 'DELETED')
+      recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+    if (recording.ownerId !== userId)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'Only the owner can manage recordings',
+      );
+
+    return recording;
+  }
+
+  private async upsertAttendeePermissions(
+    tx: Prisma.TransactionClient,
+    recipientIds: string[],
+    grant: RecordingAccessGrant,
+  ) {
+    const now = new Date();
+    for (
+      let offset = 0;
+      offset < recipientIds.length;
+      offset += RECORDING_PERMISSION_BATCH_SIZE
+    ) {
+      const values = recipientIds
+        .slice(offset, offset + RECORDING_PERMISSION_BATCH_SIZE)
+        .map(
+          (recipientId) => Prisma.sql`
+          (${randomUUID()}::uuid, ${grant.recordingId}::uuid, ${recipientId}::uuid,
+            ${grant.grantedBy}::uuid, ${grant.canDownload}, ${now}, ${now})`,
+        );
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO meeting_recording_permissions
+          (id, recording_id, user_id, granted_by, can_download, created_at, updated_at)
+        VALUES ${Prisma.join(values)}
+        ON CONFLICT (recording_id, user_id) DO UPDATE SET
+          can_download = EXCLUDED.can_download,
+          granted_by = EXCLUDED.granted_by, updated_at = EXCLUDED.updated_at`);
+    }
   }
 
   private present(recording: RecordingWithAccess, userId: string) {
     const owner = recording.ownerId === userId;
+
     return {
       id: recording.id,
       meetingId: recording.meetingId,
@@ -616,6 +1141,7 @@ export class MeetingRecordingService {
         'IDEMPOTENCY_KEY_REQUIRED',
         'A valid Idempotency-Key header is required',
       );
+
     return `${userId}:${meetingId}:${kind}:${key}`;
   }
 
@@ -635,6 +1161,7 @@ export class MeetingRecordingService {
     });
     if (recording.startedBy !== userId)
       recordingError(403, 'RECORDING_FORBIDDEN', 'Recording access denied');
+
     return { id: recording.id, status: recording.status };
   }
 }

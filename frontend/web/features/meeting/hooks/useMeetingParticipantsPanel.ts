@@ -1,5 +1,6 @@
 "use client";
 
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback, useMemo, useState } from "react";
 import { useAppSelector } from "@/store/store";
 import {
@@ -10,7 +11,7 @@ import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { recordingApi } from "../api/meeting-recording.api";
-import { recordingErrorMessage } from "./useMeetingRecording";
+import { recordingErrorMessage } from "../utils/recording-errors";
 import { meetingKeys } from "../types/meeting.query-keys";
 import {
   MEETING_ROLE,
@@ -65,7 +66,7 @@ export function useMeetingParticipantsPanel({
   const grant = useMutation({
     mutationFn: (participant: MeetingParticipantResponse) => recordingApi.grant(joinToken, participant.userId, !participant.canRecord),
     onSuccess: () => { void client.invalidateQueries({ queryKey: meetingKeys.participantsRoot(joinToken) }); toast.success("Recording permission updated"); },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
   });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

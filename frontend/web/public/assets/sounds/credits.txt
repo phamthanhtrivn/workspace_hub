@@ -1,0 +1,41 @@
+WorkspaceHub - Music credits
+
+Indigo Dreams by Purrple Cat
+Artist: https://purrplecat.com/
+Source: https://commons.wikimedia.org/wiki/File:Purrple_Cat_-_Indigo_Dreams.ogg
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Bundled file: indigo_dreams.ogg
+Changes: file renamed only; audio is unedited. Playback may repeat the full track.
+
+Cold & Rainy by Purrple Cat
+Artist: https://purrplecat.com/
+Source: https://commons.wikimedia.org/wiki/File:Purrple_Cat_-_Cold_%26_Rainy.ogg
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Bundled file: cold_and_rainy.ogg
+Changes: file renamed only; audio is unedited. Playback may repeat the full track.
+
+Reverie by Scott Buckley
+Artist: https://www.scottbuckley.com.au/
+Source: https://www.scottbuckley.com.au/library/reverie/
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Bundled file: reverie.mp3
+Changes: file renamed only; audio is unedited. Playback may repeat the full track.
+
+Moonlight by Scott Buckley
+Artist: https://www.scottbuckley.com.au/
+Source: https://www.scottbuckley.com.au/library/moonlight/
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Bundled file: moonlight.mp3
+Changes: file renamed only; audio is unedited. Playback may repeat the full track.
+
+Dream Culture by Kevin MacLeod
+Artist: https://incompetech.com/
+Source: https://incompetech.com/music/royalty-free/index.html?Search=Search&isrc=USUAN1300046
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+Bundled file: dream_culture.mp3
+Changes: file renamed only; audio is unedited. Playback may repeat the full track.

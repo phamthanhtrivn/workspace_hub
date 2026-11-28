@@ -1,4 +1,5 @@
 import type { PomodoroConfig } from "../types/pomodoro";
+import { isRecoverableApiError } from "@/lib/api-error-policy";
 
 export type PomodoroConfigSyncStatus = "idle" | "saving" | "error";
 interface QueuedConfig {
@@ -15,6 +16,7 @@ export function createPomodoroConfigSync(
   let inFlight = false;
   let queued: QueuedConfig | null = null;
   let failed: PomodoroConfig | null = null;
+  let retryable = false;
   let controller: AbortController | undefined;
   let revision = 0;
   let status: PomodoroConfigSyncStatus = "idle";
@@ -38,6 +40,7 @@ export function createPomodoroConfigSync(
       failed = null;
       setStatus(queued ? "saving" : "idle");
     } catch (error) {
+      retryable = isRecoverableApiError(error);
       failed = snapshot.config;
       snapshot.reject(error);
       if (active) setStatus("error");
@@ -68,6 +71,6 @@ export function createPomodoroConfigSync(
       queued = null;
     },
     submit,
-    retry() { if (failed && !inFlight && !queued) void submit(failed).catch(() => {}); },
+    retry(force = false) { if ((force || retryable) && failed && !inFlight && !queued) void submit(failed).catch(() => {}); },
   };
 }

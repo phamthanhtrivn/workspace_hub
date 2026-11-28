@@ -61,6 +61,14 @@ export class MeetingService {
     return this.meetingScheduleService.listUpcomingMeetings(params);
   }
 
+  getBadgeSummary(params: {
+    userId: string;
+    dayStartAt?: string;
+    dayEndAt?: string;
+  }) {
+    return this.meetingScheduleService.getBadgeSummary(params);
+  }
+
   cleanupStaleScheduledMeetings() {
     return this.meetingScheduleService.cleanupStaleScheduledMeetings();
   }

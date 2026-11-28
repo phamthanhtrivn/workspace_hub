@@ -1,69 +1,136 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { UploadState } from "../../types/documents.enums";
-import { cn } from "@/lib/utils";
+import { UPLOAD_SUCCESS_DISMISS_DELAY_MS } from "../../types/documents.constants";
+import type { DocumentUploadEntry } from "../../types/upload.types";
+import { isUploadPending } from "../../utils/upload-progress";
+import { UploadFileRow } from "./upload-file-row";
+import { DialogPortal } from "@/components/ui/dialog";
+import { FLOATING_UTILITY_LAYER_CLASS } from "@/components/ui/floating-utility-layer";
+import { VERSION_MESSAGES } from "../../types/document-version.constants";
 
 interface UploadProgressProps {
-  uploadState: UploadState;
-  uploadProgress: number;
-  uploadingFileName: string;
+  uploads: DocumentUploadEntry[];
+  onRetry?: (id: string) => void;
+  onDismiss?: () => void;
+  floating?: boolean;
+  versionUpload?: boolean;
 }
 
-function UploadProgress({
-  uploadState,
-  uploadProgress,
-  uploadingFileName,
+export function UploadProgress({
+  uploads,
+  onRetry,
+  onDismiss,
+  floating = false,
+  versionUpload = false,
 }: UploadProgressProps) {
-  if (uploadState === UploadState.IDLE) {
-    return null;
-  }
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    if (
+      !onDismiss ||
+      !uploads.length ||
+      !uploads.every((upload) => upload.state === UploadState.SUCCESS)
+    )
+      return;
 
-  const getStatusLabel = () => {
-    switch (uploadState) {
-      case UploadState.INITIATING:
-        return "PREPARING...";
-      case UploadState.UPLOADING:
-        return "UPLOADING...";
-      case UploadState.CONFIRMING:
-        return "PROCESSING...";
-      case UploadState.SUCCESS:
-        return "UPLOAD COMPLETE";
-      case UploadState.ERROR:
-        return "UPLOAD FAILED";
-      default:
-        return "UPLOADING...";
-    }
-  };
+    const timeout = setTimeout(onDismiss, UPLOAD_SUCCESS_DISMISS_DELAY_MS);
 
-  return (
-    <div className="absolute bottom-6 right-6 z-50 bg-white/90 backdrop-blur-md border border-slate-200/50 shadow-2xl p-5 rounded-2xl w-80 animate-in slide-in-from-bottom-5 duration-300">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-          {getStatusLabel()}
-        </span>
-        <span className="text-xs font-extrabold text-[#0052CC]">
-          {uploadProgress}%
-        </span>
-      </div>
+    return () => clearTimeout(timeout);
+  }, [uploads, onDismiss]);
 
-      <div className="text-sm font-bold text-slate-700 truncate mb-3">
-        {uploadingFileName}
-      </div>
+  if (!uploads.length) return null;
 
-      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/20">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-300",
-            uploadState === UploadState.ERROR
-              ? "bg-red-500"
-              : uploadState === UploadState.SUCCESS
-                ? "bg-green-500"
-                : "bg-[#0052CC]",
+  const pending = uploads.filter((upload) =>
+    isUploadPending(upload.state),
+  ).length;
+  const succeeded = uploads.filter(
+    (upload) => upload.state === UploadState.SUCCESS,
+  ).length;
+  const failed = uploads.filter(
+    (upload) => upload.state === UploadState.ERROR,
+  ).length;
+  const skipped = uploads.filter(
+    (upload) => upload.state === UploadState.SKIPPED,
+  ).length;
+  const title = pending
+    ? versionUpload
+      ? VERSION_MESSAGES.uploading
+      : "Uploading files"
+    : failed
+      ? "Uploads need attention"
+      : versionUpload
+        ? VERSION_MESSAGES.uploadFinished
+        : "Uploads finished";
+
+  const widget = (
+    <section
+      aria-label={versionUpload ? "Version uploads" : "File uploads"}
+      data-modal-companion={floating ? "floating-utility" : undefined}
+      className={`${floating ? `fixed ${FLOATING_UTILITY_LAYER_CLASS}` : "absolute z-40"} bottom-4 right-4 w-96 max-w-[calc(100%-2rem)] overflow-hidden rounded-panel border border-border bg-card shadow-panel`}
+    >
+      <header className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p role="status" className="mt-1 text-xs text-muted-foreground">
+            {pending
+              ? `${uploads.length - pending} of ${uploads.length} processed`
+              : `${succeeded} uploaded · ${failed} failed · ${skipped} skipped`}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand upload list" : "Collapse upload list"}
+          onClick={() => setCollapsed((current) => !current)}
+          className="relative focus-visible:z-10"
+        >
+          {collapsed ? (
+            <ChevronUp aria-hidden="true" />
+          ) : (
+            <ChevronDown aria-hidden="true" />
           )}
-          style={{ width: `${uploadProgress}%` }}
-        />
-      </div>
-    </div>
+        </Button>
+        {(!pending || floating) && onDismiss && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={
+              floating && pending
+                ? "Hide upload progress"
+                : "Dismiss upload list"
+            }
+            onClick={onDismiss}
+            className="relative focus-visible:z-10"
+          >
+            <X aria-hidden="true" />
+          </Button>
+        )}
+      </header>
+      {!collapsed && (
+        <ol
+          aria-label="Files in upload order"
+          className="max-h-[min(24rem,50dvh)] divide-y divide-border overflow-y-auto overscroll-contain"
+        >
+          {uploads.map((upload) => (
+            <UploadFileRow
+              key={upload.id}
+              upload={upload}
+              onRetry={onRetry}
+              retryDisabled={pending > 0}
+            />
+          ))}
+        </ol>
+      )}
+    </section>
   );
+
+  return floating ? <DialogPortal>{widget}</DialogPortal> : widget;
 }
 
 export default React.memo(UploadProgress);

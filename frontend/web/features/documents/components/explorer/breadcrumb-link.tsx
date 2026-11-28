@@ -1,44 +1,63 @@
 "use client";
 
 import React from "react";
-import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
-import { DND_ROOT_ID } from "../../types/documents.constants";
+import { useDocumentBreadcrumbDrop } from "../../hooks/useDocumentBreadcrumbDrop";
 import { NavigationLabel } from "../../types/documents.enums";
+import { Button } from "@/components/ui/button";
 
 export interface BreadcrumbLinkProps {
   name: string;
   folderId: string | null;
   isActive: boolean;
   onClick: () => void;
+  allowRootDrop?: boolean;
+  isStarred?: boolean;
 }
 
-export function BreadcrumbLink({ name, folderId, isActive, onClick }: BreadcrumbLinkProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: folderId === null ? DND_ROOT_ID : folderId,
-  });
-  const navigationLabels: Partial<Record<NavigationLabel | "Folder", string>> = {
-    [NavigationLabel.ROOT]: "My files",
-    [NavigationLabel.CURRENT_FOLDER]: "Current folder",
-    [NavigationLabel.STARRED]: "Starred",
-    [NavigationLabel.SHARED]: "Shared",
-    [NavigationLabel.TRASH]: "Trash",
-    Folder: "Folder",
-  };
-  const displayName = navigationLabels[name as NavigationLabel | "Folder"] || name;
+export function BreadcrumbLink({
+  name,
+  folderId,
+  isActive,
+  onClick,
+  allowRootDrop = true,
+  isStarred = false,
+}: BreadcrumbLinkProps) {
+  const navigationLabels: Partial<Record<NavigationLabel | "Folder", string>> =
+    {
+      [NavigationLabel.ROOT]: "My files",
+      [NavigationLabel.CURRENT_FOLDER]: "Current folder",
+      [NavigationLabel.STARRED]: "Starred",
+      [NavigationLabel.SHARED]: "Shared",
+      [NavigationLabel.TRASH]: "Trash",
+      Folder: "Folder",
+    };
+  const displayName =
+    navigationLabels[name as NavigationLabel | "Folder"] || name;
+  const { setNodeRef, isOver, blockedReason } = useDocumentBreadcrumbDrop(
+    folderId,
+    displayName,
+    allowRootDrop,
+    isStarred,
+  );
 
   return (
-    <button
+    <Button
+      variant="unstyled"
       ref={setNodeRef}
       onClick={onClick}
+      title={blockedReason}
       className={cn(
-        "font-bold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
-        isActive ? "text-[#172B4D]" : "text-slate-400 hover:text-[#0052CC] hover:bg-slate-100",
-        isOver && "bg-blue-50 text-[#0052CC] ring-2 ring-dashed ring-blue-400 scale-105 shadow-xs"
+        "relative focus-visible:z-10 font-semibold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
+        isActive
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-info-content hover:bg-muted",
+        isOver &&
+          "z-10 bg-info-soft text-info-content ring-2 ring-dashed ring-ring scale-105",
       )}
     >
       {displayName}
-    </button>
+    </Button>
   );
 }
 

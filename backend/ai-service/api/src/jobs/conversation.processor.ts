@@ -1,0 +1,142 @@
+import { BadRequestException } from "@nestjs/common";
+import { summarizeAttachment } from "../modules/conversation-ai/attachment-summary";
+import { config } from "../config/env.config";
+import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
+import { setTimeout as pause } from "node:timers/promises";
+import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
+import { CONVERSATION_AI_MESSAGES } from "../modules/conversation-ai/conversation-ai.messages";
+import {
+  internalPost,
+  serviceUrl,
+} from "../infrastructure/integrations/internal-http";
+
+type SavedAnswer = { token: string; content: string; failed: boolean };
+type ConversationCheckpoint = {
+  answer?: SavedAnswer;
+  claimToken?: string;
+  saveClaim?: (token: string) => Promise<void>;
+  save: (answer: SavedAnswer) => Promise<void>;
+};
+class CommunicationError extends Error {
+  constructor(readonly status: number) {
+    super(`Communication AI failed (${status})`);
+  }
+}
+async function communication<T>(
+  id: string,
+  action: string,
+  body: object = {},
+  signal?: AbortSignal,
+): Promise<T> {
+  const res = await internalPost(
+    serviceUrl(
+      config.COMMUNICATION_SERVICE_URL,
+      `/internal/conversation-ai/${id}/${action}`,
+    ),
+    { key: config.AI_TO_COMMUNICATION_KEY, body, signal, timeoutMs: 15000 },
+  );
+  if (!res.ok) {
+    await res.body?.cancel();
+    throw new CommunicationError(res.status);
+  }
+
+  return ((await res.json()) as { data: T }).data;
+}
+export async function processConversation(
+  id: string,
+  checkpoint?: ConversationCheckpoint,
+) {
+  if (config.CONVERSATION_AI_ENABLED !== "true") return;
+  let answer = checkpoint?.answer;
+  if (!answer && checkpoint?.claimToken) {
+    answer = {
+      token: checkpoint.claimToken,
+      content: CONVERSATION_AI_MESSAGES.interrupted,
+      failed: true,
+    };
+    await checkpoint.save(answer);
+  }
+  if (!answer) {
+    const claim = await communication<{
+      question: string;
+      token: string;
+      attachmentSummary?: boolean;
+    } | null>(id, "claim");
+    if (!claim) return;
+    await checkpoint?.saveClaim?.(claim.token);
+    const guard = createAbortGuard(180000);
+    const { signal } = guard;
+    const authorize = singleFlight(() =>
+      communication(id, "validate", { token: claim.token }, signal),
+    );
+    let authorizeSource: (() => Promise<void>) | undefined;
+    guard.poll(5000, async () => {
+      await authorize();
+      await authorizeSource?.();
+    });
+    try {
+      const content = claim.attachmentSummary
+        ? await summarizeAttachment(
+            id,
+            () =>
+              communication(id, "attachment", { token: claim.token }, signal),
+            authorize,
+            signal,
+            (check) => {
+              authorizeSource = check;
+            },
+            claim.question,
+          )
+        : await conversationAnswer(
+            claim.question,
+            () => communication(id, "history", { token: claim.token }, signal),
+            signal,
+            authorize,
+          );
+      signal.throwIfAborted();
+      answer = { token: claim.token, content, failed: false };
+    } catch (error) {
+      // Never log prompts, attachment contents, tokens or provider error messages.
+      console.error(
+        JSON.stringify({
+          event: "conversation_generation_failed",
+          request_id: id,
+          attachment: !!claim.attachmentSummary,
+          error_type:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+          aborted: signal.aborted,
+        }),
+      );
+      answer = {
+        token: claim.token,
+        content:
+          claim.attachmentSummary && error instanceof BadRequestException
+            ? error.message === CONVERSATION_AI_MESSAGES.noReadableText
+              ? CONVERSATION_AI_MESSAGES.noReadableText
+              : CONVERSATION_AI_MESSAGES.attachmentFailed
+            : CONVERSATION_AI_MESSAGES.failed,
+        failed: true,
+      };
+    } finally {
+      guard.stop();
+    }
+    // Save before delivery. A BullMQ retry can resend this result without another model call.
+    if (checkpoint) await checkpoint.save(answer);
+  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await communication(id, "complete", answer);
+
+      return;
+    } catch (error) {
+      if (
+        error instanceof CommunicationError &&
+        [403, 404, 409].includes(error.status)
+      )
+        return;
+      if (attempt === 2) throw error;
+      await pause(250 * 2 ** attempt);
+    }
+  }
+}

@@ -1,118 +1,110 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
+import { cn } from "@/lib/utils";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
 import {
-  getAuthErrorMessage,
-  getAuthValidationErrors,
-} from "../utils/auth-error";
+  loginFormSchema,
+  type LoginFormValues,
+} from "../schemas/auth-form.schemas";
+import { AUTH_VALIDATION_MESSAGES } from "../types/auth-validation.constants";
+import { useAuthFormSubmit } from "../hooks/use-auth-form-submit";
+import { AuthFormError } from "./auth-form-error";
 import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
+import { Button } from "@/components/ui/button";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
+import { isEmailVerificationRequired } from "../utils/auth-error";
+import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
+import { EmailVerificationNotice } from "./email-verification-notice";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const loginMutation = useLoginMutation();
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const form = useForm<LoginFormValues>({
+    shouldFocusError: false,
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [id]: "",
-    }));
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
-
-    loginMutation.mutate(
-      {
-        email: formData.email,
-        password: formData.password,
-      },
-      {
-        onSuccess: (response) => {
-          const data = response.data;
-
-          dispatch(
-            setCredentials({
-              accessToken: data.accessToken,
-              userId: data.userId,
-              email: data.email,
-              role: data.role,
-              fullName: data.fullName,
-              avatarUrl: data.avatarUrl,
-            }),
-          );
-
-          toast.success(response.message);
-          router.replace(
-            getReturnToFromSearch(window.location.search) ??
-              getAuthenticatedHomePath(data.role),
-          );
-        },
-        onError: (error) => {
-          const validationErrors = getAuthValidationErrors(error);
-          if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            return;
-          }
-
-          toast.error(
-            getAuthErrorMessage(
-              error,
-              "Login failed",
-            ),
-          );
-        },
-      },
-    );
-  };
+  const { errors } = form.formState;
+  const { busy, activity, redirect } = useAuthInteraction();
+  const loginBusy = busy && activity?.action === AUTH_ACTION.LOGIN;
+  const verificationRequired = verificationEmail !== null && activity?.action !== AUTH_ACTION.GOOGLE;
+  const serverError = activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message;
+  const onSubmit = useAuthFormSubmit(
+    form,
+    ["email", "password"],
+    AUTH_VALIDATION_MESSAGES.loginFailed,
+    async (values) => {
+      setVerificationEmail(null);
+      const response = await loginMutation.mutateAsync(values).catch((error: unknown) => {
+        if (isEmailVerificationRequired(error)) setVerificationEmail(values.email);
+        throw error;
+      });
+      const data = response.data;
+      dispatch(
+        setCredentials({
+          accessToken: data.accessToken,
+          userId: data.userId,
+          email: data.email,
+          role: data.role,
+          fullName: data.fullName,
+          avatarUrl: data.avatarUrl,
+        }),
+      );
+      redirect(AUTH_ACTION.LOGIN, AUTH_REDIRECT_COPY.workspace);
+      toast.success(response.message);
+      router.replace(
+        getReturnToFromSearch(window.location.search) ??
+          getAuthenticatedHomePath(data.role),
+      );
+    },
+    AUTH_ACTION.LOGIN,
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form noValidate onSubmit={onSubmit} aria-busy={busy} className="space-y-5">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
             htmlFor="email"
-            className="text-sm font-semibold text-slate-700"
+            className="text-sm font-semibold text-foreground"
           >
-            Email <span className="text-red-500">*</span>
+            Email <span className="text-destructive-content">*</span>
           </label>
         </div>
 
         <InputField
+          autoComplete="email"
+          required
+          variant="auth"
+          className="text-base sm:text-sm"
           id="email"
           type="email"
           icon={Mail}
           placeholder="you@workspacehub.vn"
-          value={formData.email}
-          error={errors.email}
-          onChange={handleChange}
+          {...form.register("email", { onChange: () => setVerificationEmail(null) })}
+          disabled={busy}
+          error={errors.email?.message}
         />
       </div>
 
@@ -120,14 +112,14 @@ const LoginForm = React.memo(function LoginForm() {
         <div className="flex items-center justify-between gap-4">
           <label
             htmlFor="password"
-            className="text-sm font-semibold text-slate-700"
+            className="text-sm font-semibold text-foreground"
           >
-            Password <span className="text-red-500">*</span>
+            Password <span className="text-destructive-content">*</span>
           </label>
           <div>
             <Link
               href="/forgot-password"
-              className="text-sm font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition"
+              className="text-sm font-semibold text-link hover:text-foreground transition"
             >
               Forgot password?
             </Link>
@@ -135,13 +127,17 @@ const LoginForm = React.memo(function LoginForm() {
         </div>
 
         <InputField
+          autoComplete="current-password"
+          required
+          variant="auth"
+          className="text-base sm:text-sm"
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
           placeholder="••••••••"
-          value={formData.password}
-          error={errors.password}
-          onChange={handleChange}
+          {...form.register("password")}
+          disabled={busy}
+          error={errors.password?.message}
           rightIcon={
             showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -153,14 +149,24 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <button
+      <AuthFormError message={verificationRequired && serverError === EMAIL_VERIFICATION.requiredMessage ? undefined : serverError} />
+      {verificationRequired && !busy && verificationEmail && (
+        <EmailVerificationNotice email={verificationEmail} />
+      )}
+      <AuthFormStatus excludeAction={AUTH_ACTION.GOOGLE} />
+      <Button
+        loading={loginBusy}
+        variant={verificationRequired ? "outline" : "unstyled"}
         type="submit"
-        disabled={loginMutation.isPending}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/25 cursor-pointer disabled:opacity-70"
+        disabled={busy}
+        className={cn(
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70",
+          !verificationRequired && "bg-primary text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] hover:-translate-y-0.5 hover:bg-primary active:translate-y-0",
+        )}
       >
         <LogIn className="h-4 w-4" />
-        {loginMutation.isPending ? "Logging in..." : "Login"}
-      </button>
+        {loginBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY.login.button : "Login"}
+      </Button>
     </form>
   );
 });

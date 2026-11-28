@@ -1,10 +1,16 @@
+import { logActionError } from "@/lib/permission-feedback";
+import { StorageVideo } from "@/components/common/storage-media";
+import { fetchStorageAsset } from "@/features/storage/api/storage.api";
 import { Download, FileText, Play } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
 import { formatFileSize } from "@/lib/file";
 import { isAudioFile, renderAudioPlayer } from "../../utils/media-utils";
 import { MessageMedia } from "./chat-message.types";
+import { Button } from "@/components/ui/button";
+import type { VoiceChatType } from "../../types/voice.types";
+
 
 interface MessageVisualMediasProps {
   medias: MessageMedia[];
@@ -14,6 +20,7 @@ interface MessageVisualMediasProps {
 interface MessageFileMediasProps {
   medias: MessageMedia[];
   isMe: boolean;
+  chatType?: VoiceChatType;
 }
 
 async function handleDownload(
@@ -25,11 +32,11 @@ async function handleDownload(
   event.stopPropagation();
 
   try {
-    const response = await fetch(url);
+    const response = await fetchStorageAsset(url);
     const blob = await response.blob();
     saveAs(blob, name);
   } catch (error) {
-    console.error("Download error:", error);
+    logActionError("Download error:", error);
   }
 }
 
@@ -42,7 +49,7 @@ export function MessageVisualMedias({
   return (
     <div
       className={cn(
-        "grid gap-1.5 w-full max-w-full rounded-2xl overflow-hidden",
+        "grid gap-1.5 w-full max-w-full rounded-panel overflow-hidden",
         medias.length === 1 && "grid-cols-1 sm:max-w-sm",
         medias.length === 2 && "grid-cols-2 sm:max-w-xs sm:max-w-sm md:max-w-md",
         medias.length >= 3 && "grid-cols-3 sm:max-w-xs sm:max-w-sm md:max-w-md",
@@ -50,10 +57,10 @@ export function MessageVisualMedias({
     >
       {medias.map((media, mediaIndex) =>
         media.type === "IMAGE" ? (
-          <button
+          <Button variant="unstyled"
             type="button"
             key={media.id}
-            className="cursor-pointer overflow-hidden bg-black/5 hover:opacity-95 transition-opacity"
+            className="cursor-pointer overflow-hidden bg-overlay/5 hover:opacity-95 transition-opacity"
             onClick={() => onPreview(mediaIndex)}
           >
             <Image
@@ -63,83 +70,83 @@ export function MessageVisualMedias({
               height={400}
               unoptimized
               className={cn(
-                "w-full transition duration-200 hover:scale-102",
+                "w-full transition duration-200",
                 medias.length === 1
                   ? "max-h-[300px] object-contain"
                   : "aspect-square object-cover",
               )}
             />
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button variant="unstyled"
             type="button"
             key={media.id}
             className={cn(
-              "relative w-full overflow-hidden bg-black/5 cursor-pointer group",
+              "relative w-full overflow-hidden bg-overlay/5 cursor-pointer group",
               medias.length !== 1 && "aspect-square",
             )}
             onClick={() => onPreview(mediaIndex)}
           >
-            <video
+            <StorageVideo
               src={media.fileUrl}
               className={cn(
                 "w-full",
                 medias.length === 1
-                  ? "max-h-[300px] object-contain bg-black"
+                  ? "max-h-[300px] object-contain bg-overlay"
                   : "h-full object-cover",
               )}
             />
-            <span className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition">
-              <span className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg">
+            <span className="absolute inset-0 flex items-center justify-center bg-overlay/20 group-hover:bg-overlay/40 transition">
+              <span className="w-10 h-10 bg-media-surface rounded-full flex items-center justify-center text-media-foreground">
                 <Play size={20} className="ml-1" fill="currentColor" />
               </span>
             </span>
-          </button>
+          </Button>
         ),
       )}
     </div>
   );
 }
 
-export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
+export function MessageFileMedias({ medias, isMe, chatType }: MessageFileMediasProps) {
   if (medias.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 max-w-full">
+    <div className="flex min-w-0 max-w-full flex-col gap-2">
       {medias.map((media) => {
         if (isAudioFile(media)) {
-          return renderAudioPlayer(media, isMe);
+          return renderAudioPlayer(media, isMe, chatType);
         }
 
         return (
           <div
             key={media.id}
             className={cn(
-              "flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl border transition shadow-sm",
+              "flex min-w-0 max-w-full items-center justify-between gap-3 py-2.5 px-4 rounded-panel border transition",
               isMe
-                ? "bg-[#DBEAFE]/80 border-blue-400/40 text-blue-900"
-                : "bg-white border-slate-200/60 hover:bg-slate-50 text-slate-800",
+                ? "bg-primary-soft/80 border-info-outline/40 text-info-content"
+                : "bg-card border-border hover:bg-background text-foreground",
             )}
           >
-            <div className="flex gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <div
                 className={cn(
-                  "p-2 rounded-lg",
+                  "shrink-0 p-2 rounded-lg",
                   isMe
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-blue-600 shadow-sm",
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-info-content",
                 )}
               >
                 <FileText size={20} />
               </div>
-              <div className="flex flex-col min-w-0 max-w-[180px]">
+              <div className="flex min-w-0 max-w-[180px] flex-1 flex-col">
                 <span className="text-sm font-semibold truncate">
                   {media.name}
                 </span>
                 <span
                   className={cn(
-                    "text-[10px] font-medium",
-                    isMe ? "text-blue-700/80" : "text-slate-400",
+                    "text-xs font-medium",
+                    isMe ? "text-info-content" : "text-muted-foreground",
                   )}
                 >
                   {formatFileSize(media.sizeBytes)}
@@ -152,10 +159,10 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
               }
               size={16}
               className={cn(
-                "ml-1 cursor-pointer transition p-1 rounded-lg",
+                "ml-1 shrink-0 cursor-pointer transition p-1 rounded-lg",
                 isMe
-                  ? "text-blue-800 hover:bg-blue-200"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+                  ? "text-info-content hover:bg-info-soft"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             />
           </div>

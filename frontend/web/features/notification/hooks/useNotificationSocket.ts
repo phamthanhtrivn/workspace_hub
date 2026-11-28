@@ -1,4 +1,6 @@
+import { invalidateDocumentPermissions } from "@/features/documents/utils/document-cache";
 import { toast } from "sonner";
+import { WORK_ASSISTANT_QUERY_ROOT } from "@/features/work-assistant/constants/work-assistant-query";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
@@ -9,18 +11,23 @@ import {
 import { notificationSocketService } from "../api/notification-socket.service";
 import {
   addNotification,
+  setUnreadCount,
   deleteNotificationSuccess,
   deleteNotificationsSuccess,
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
+import { startNotificationReconciliation } from "../utils/notification-reconciliation";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   getNotificationCategory,
   NOTIFICATION_CHANGED_EVENT,
+  NOTIFICATION_READ_COMMITTED_EVENT,
+  NOTIFICATION_RECEIVED_EVENT,
 } from "../utils/notification-category.utils";
 import {
   NotificationType,
+  NOTIFICATION_SOCKET_EVENT,
   Notification as AppNotification,
 } from "../types/notification.types";
 
@@ -70,7 +77,9 @@ function dispatchNotificationCollectionChanged(
  * Mount this once at the WorkspaceShell / WorkspaceHeader level.
  */
 export function useNotificationSocket() {
-  const { accessToken } = useAppSelector((state: RootState) => state.auth);
+  const { accessToken, userId: currentUserId } = useAppSelector(
+    (state: RootState) => state.auth,
+  );
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
@@ -89,6 +98,65 @@ export function useNotificationSocket() {
 
     const handleNewNotification = (noti: AppNotification) => {
       dispatch(addNotification(noti));
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: noti }),
+      );
+      if (noti.type.startsWith("DOCUMENT_")) {
+        const documentId =
+          typeof noti.metadata?.documentId === "string"
+            ? noti.metadata.documentId
+            : undefined;
+        if (currentUserId)
+          void invalidateDocumentPermissions(
+            queryClient,
+            currentUserId,
+            documentId,
+          );
+      }
+      if (noti.type.startsWith("PROJECT_")) {
+        if (
+          noti.type === NotificationType.PROJECT_PERMISSIONS_UPDATED ||
+          noti.type === NotificationType.PROJECT_MEMBER_REMOVED ||
+          noti.type === NotificationType.PROJECT_INVITATION_ACCEPTED
+        ) {
+          void queryClient.resetQueries({
+            queryKey: WORK_ASSISTANT_QUERY_ROOT,
+          });
+        }
+        void queryClient.invalidateQueries({ queryKey: ["projects"] });
+      }
+
+      if (
+        noti.type === NotificationType.CHANNEL_MEMBER_ADDED ||
+        noti.type === NotificationType.CHANNEL_MEMBER_REMOVED ||
+        noti.type === NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED
+      ) {
+        const spaceId =
+          typeof noti.metadata?.spaceId === "string"
+            ? noti.metadata.spaceId
+            : undefined;
+        const channelId =
+          typeof noti.metadata?.channelId === "string"
+            ? noti.metadata.channelId
+            : undefined;
+        queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.unreadSummary(currentUserId),
+        });
+        if (spaceId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceDetails(spaceId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceMemberCandidatesForSpace(spaceId),
+          });
+        }
+        if (channelId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.channelMembers(channelId).slice(0, 2),
+          });
+        }
+      }
 
       if (
         noti.type === NotificationType.SPACE_INVITATION_ACCEPTED ||
@@ -126,27 +194,58 @@ export function useNotificationSocket() {
           queryKey: ["calendar"],
         });
       }
+      if (noti.type === NotificationType.CALENDAR_REMINDER)
+        void queryClient.invalidateQueries({
+          queryKey: ["projects", "dashboard-completed-tasks"],
+        });
       dispatchNotificationChanged(noti);
+      void reconcileNotifications();
     };
 
     const handleUpdatedNotification = (notification: AppNotification) => {
       dispatch(updateNotificationSuccess(notification));
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: notification }),
+      );
       if (MEETING_NOTIFICATION_TYPES.has(notification.type)) {
         queryClient.invalidateQueries({
           queryKey: meetingKeys.upcomingRoot,
         });
       }
       dispatchNotificationChanged(notification);
+      void reconcileNotifications();
     };
 
     const handleDeletedNotification = ({ id }: { id: string }) => {
       dispatch(deleteNotificationSuccess(id));
       dispatchNotificationCollectionChanged();
+      void reconcileNotifications();
     };
 
-    const handleDeletedNotifications = (payload: NotificationsDeletedPayload) => {
+    const handleDeletedNotifications = (
+      payload: NotificationsDeletedPayload,
+    ) => {
       dispatch(deleteNotificationsSuccess(payload));
       dispatchNotificationCollectionChanged(payload.category);
+      void reconcileNotifications();
+    };
+
+    let reconciliationRevision = 0;
+    const reconcileNotifications = async () => {
+      const revision = ++reconciliationRevision;
+      const { getUnreadCount } = await import("../api/notification.api");
+      try {
+        const response = await getUnreadCount();
+        if (isCancelled || revision !== reconciliationRevision) return;
+        dispatch(setUnreadCount(response.data.unreadCount));
+        dispatchNotificationCollectionChanged();
+        void queryClient.invalidateQueries(
+          { queryKey: ["notifications"] },
+          { cancelRefetch: false },
+        );
+      } catch {
+        /* Reconcile again after the next connection/event. */
+      }
     };
 
     const connectWhenReady = async () => {
@@ -159,15 +258,21 @@ export function useNotificationSocket() {
 
       if (!isReady) {
         retryTimer = window.setTimeout(connectWhenReady, 3_000);
+
         return;
       }
 
       const socket = notificationSocketService.connect(accessToken);
+      socket.on("connect", reconcileNotifications);
+      socket.on(NOTIFICATION_SOCKET_EVENT.CHANGED, reconcileNotifications);
+      void reconcileNotifications();
       socket.on("new_notification", handleNewNotification);
       socket.on("notification_updated", handleUpdatedNotification);
       socket.on("notification_deleted", handleDeletedNotification);
       socket.on("notifications_deleted", handleDeletedNotifications);
       cleanupSocketListeners = () => {
+        socket.off("connect", reconcileNotifications);
+        socket.off(NOTIFICATION_SOCKET_EVENT.CHANGED, reconcileNotifications);
         socket.off("new_notification", handleNewNotification);
         socket.off("notification_updated", handleUpdatedNotification);
         socket.off("notification_deleted", handleDeletedNotification);
@@ -175,14 +280,34 @@ export function useNotificationSocket() {
       };
     };
 
+    window.addEventListener(
+      NOTIFICATION_READ_COMMITTED_EVENT,
+      reconcileNotifications,
+    );
+    const stopReconciliation = startNotificationReconciliation({
+      events: window,
+      visibilityEvents: document,
+      isVisible: () => document.visibilityState === "visible",
+      refresh: reconcileNotifications,
+      schedule: (callback, interval) => {
+        const timer = window.setInterval(callback, interval);
+
+        return () => window.clearInterval(timer);
+      },
+    });
     void connectWhenReady();
 
     return () => {
       isCancelled = true;
+      stopReconciliation();
+      window.removeEventListener(
+        NOTIFICATION_READ_COMMITTED_EVENT,
+        reconcileNotifications,
+      );
       if (retryTimer) {
         window.clearTimeout(retryTimer);
       }
       cleanupSocketListeners?.();
     };
-  }, [accessToken, dispatch, queryClient]);
+  }, [accessToken, currentUserId, dispatch, queryClient]);
 }

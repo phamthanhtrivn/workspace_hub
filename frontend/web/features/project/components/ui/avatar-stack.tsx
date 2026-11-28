@@ -1,73 +1,39 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
+import { cn } from "@/lib/utils";
+import { useProjectAvatar } from "../../hooks/use-project-avatar";
+
 interface AvatarItem {
   userId: string;
   displayName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 }
 
-const PALETTE = [
-  "bg-indigo-500",
-  "bg-rose-500",
-  "bg-amber-500",
-  "bg-emerald-500",
-  "bg-sky-500",
-  "bg-purple-500",
-  "bg-pink-500",
-  "bg-teal-500",
-];
-
-function colorForUser(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return PALETTE[Math.abs(hash) % PALETTE.length];
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+const AVATAR_SIZES = { xs: "h-6 w-6 text-xs", sm: "h-8 w-8 text-xs", md: "h-10 w-10 text-xs" } as const;
+const AVATAR_ICON_SIZES = { xs: "size-3.5", sm: "size-4", md: "size-5" } as const;
+type AvatarSize = keyof typeof AVATAR_SIZES;
 
 export function Avatar({
   user,
   size = "sm",
+  className,
 }: {
   user: AvatarItem;
-  size?: "xs" | "sm" | "md";
+  size?: AvatarSize;
+  className?: string;
 }) {
-  const sizeClasses = {
-    xs: "h-6 w-6 text-[9px]",
-    sm: "h-8 w-8 text-[10px]",
-    md: "h-10 w-10 text-xs",
-  };
-
-  if (user.avatarUrl) {
-    return (
-      <Image
-        src={user.avatarUrl}
-        alt={user.displayName}
-        title={user.displayName}
-        width={40}
-        height={40}
-        unoptimized
-        className={`${sizeClasses[size]} shrink-0 rounded-full object-cover ring-2 ring-white`}
-      />
-    );
-  }
+  const source = useProjectAvatar(user.userId, user.avatarUrl);
+  const label = user.displayName.trim() || "User";
 
   return (
-    <span
-      title={user.displayName}
-      className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-white`}
-    >
-      {getInitials(user.displayName)}
-    </span>
+    <UserAvatar
+      src={source}
+      alt={label}
+      title={label}
+      iconClassName={AVATAR_ICON_SIZES[size]}
+      className={cn(AVATAR_SIZES[size], "inline-grid shrink-0 place-items-center rounded-full bg-muted text-muted-foreground ring-2 ring-border", className)}
+    />
   );
 }
 
@@ -83,12 +49,6 @@ export function AvatarStack({
   const visible = users.slice(0, max);
   const remaining = users.length - max;
 
-  const sizeClasses = {
-    xs: "h-6 w-6 text-[9px]",
-    sm: "h-8 w-8 text-[10px]",
-    md: "h-10 w-10 text-xs",
-  };
-
   return (
     <div className="flex items-center -space-x-2">
       {visible.map((user) => (
@@ -96,7 +56,7 @@ export function AvatarStack({
       ))}
       {remaining > 0 && (
         <span
-          className={`${sizeClasses[size]} inline-grid shrink-0 place-items-center rounded-full bg-slate-200 font-bold text-slate-600 ring-2 ring-white`}
+          className={`${AVATAR_SIZES[size]} inline-grid shrink-0 place-items-center rounded-full bg-accent font-semibold text-muted-foreground ring-2 ring-border`}
         >
           +{remaining}
         </span>
@@ -104,4 +64,3 @@ export function AvatarStack({
     </div>
   );
 }
-import Image from "next/image";

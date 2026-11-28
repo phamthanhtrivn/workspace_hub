@@ -64,8 +64,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
               ? exceptionResponse.message
               : exception.message;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
     }
 
     if (!(exception instanceof HttpException)) {
@@ -73,6 +71,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         message,
         exception instanceof Error ? exception.stack : undefined,
       );
+    }
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      message = 'Internal server error';
+      errors = null;
+      code = undefined;
     }
 
     response.status(status).json({

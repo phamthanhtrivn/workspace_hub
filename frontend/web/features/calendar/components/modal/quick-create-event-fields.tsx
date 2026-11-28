@@ -14,6 +14,7 @@ interface QuickCreateEventFieldsProps {
   attendees: CalendarEventAttendeePayload[];
   onAttendeesChange: (attendees: CalendarEventAttendeePayload[]) => void;
   locationValue?: string;
+  conferenceUrl?: string;
   onLocationChange?: (val: string) => void;
   hasConference?: boolean;
   onToggleConference?: (enabled: boolean) => void;
@@ -25,6 +26,7 @@ export function QuickCreateEventFields({
   attendees,
   onAttendeesChange,
   locationValue = "",
+  conferenceUrl = "",
   onLocationChange,
   hasConference = false,
   onToggleConference,
@@ -41,10 +43,10 @@ export function QuickCreateEventFields({
         />
       </QuickRow>
 
-      <QuickRow icon={<Video className="h-5 w-5" />}>
+      <QuickRow icon={<Video className="h-5 w-5" />} iconAlignment="center">
         <CalendarConferenceCard
           hasConference={hasConference}
-          locationValue={locationValue}
+          locationValue={conferenceUrl}
           onToggleConference={(enabled) => onToggleConference?.(enabled)}
           isPastEvent={isPastEvent}
         />

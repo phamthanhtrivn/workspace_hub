@@ -1,3 +1,4 @@
+import { useProjectAccessState } from "../../hooks/use-project-access-state";
 import BoardView from "../views/board-view";
 import { useAppSelector } from "@/store/store";
 import CalendarView from "../views/calendar-view";
@@ -18,6 +19,7 @@ import {
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export type OpenProjectTaskForm = (
   status?: TaskStatus,
@@ -31,6 +33,7 @@ interface ProjectDetailContentProps {
   projectId: string;
   viewMode: ProjectViewMode;
   tasks: Task[];
+  allTasks: Task[];
   members: ProjectMember[];
   dependencies: TaskDependency[];
   isLoading: boolean;
@@ -48,6 +51,7 @@ interface ProjectDetailContentProps {
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
+  const accessState = useProjectAccessState(props.projectId);
   const { userId } = useAppSelector((state) => state.auth);
   const { permissions } = props;
   const memberPanel = (
@@ -65,6 +69,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
   const renderView = () => {
     if (props.viewMode === "documents") {
+      if (accessState.data?.documents !== "READY") return <p role="status" className="p-4 text-sm text-muted-foreground">Documents are being prepared. This panel will open automatically.</p>;
       return (
         <ProjectDocumentsView
           projectId={props.projectId}
@@ -76,13 +81,11 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
     if (props.isLoading)
       return (
-        <div className="rounded-xl border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400 shadow-2xs">
-          Loading tasks...
-        </div>
+        <LoadingState label="Loading tasks..." layout="centered" className="rounded-panel border border-border bg-card py-24 text-center text-sm font-semibold text-muted-foreground" />
       );
     if (props.isError)
       return (
-        <div className="rounded-xl border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500 shadow-2xs">
+        <div className="rounded-panel border border-border bg-destructive-soft py-24 text-center text-sm font-semibold text-destructive-content">
           Failed to load tasks. Please try refreshing the page.
         </div>
       );
@@ -96,6 +99,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       return (
         <BoardView
           tasks={props.tasks}
+          allTasks={props.allTasks}
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
           onTaskMove={props.onTaskMove}
@@ -172,7 +176,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
   };
 
   return (
-    <div className="relative mt-5 flex min-h-0 flex-1 gap-5 overflow-hidden">
+    <div className="relative mt-4 flex min-h-60 min-w-0 flex-1 shrink-0 gap-4">
       <div
         className={
           props.viewMode === "board" ||
@@ -180,14 +184,14 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           props.viewMode === "calendar" ||
           props.viewMode === "gantt" ||
           props.viewMode === "documents"
-            ? "min-w-0 flex-1 overflow-hidden pr-1"
-            : "min-w-0 flex-1 overflow-y-auto pr-1"
+            ? "min-h-0 min-w-0 flex-1 overflow-hidden"
+            : "min-h-0 min-w-0 flex-1 overflow-y-auto"
         }
       >
         {renderView()}
       </div>
       {props.showMembers && props.viewMode !== "members" && (
-        <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 pl-4 lg:block">
+        <div className="hidden min-h-0 w-60 shrink-0 overflow-y-auto border-l border-border pl-4 @min-[1200px]/project-detail:block">
           {memberPanel}
         </div>
       )}

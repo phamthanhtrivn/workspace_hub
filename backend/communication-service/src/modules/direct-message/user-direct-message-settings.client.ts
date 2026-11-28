@@ -25,7 +25,7 @@ export class UserDirectMessageSettingsClient {
       const response = await this.http.request<DirectMessageSettingsResponse>({
         service: 'user-service',
         url: `${this.config.userServiceUrl}/api/users/internal/${userId}/direct-message-settings`,
-        headers: { 'x-internal-service-key': this.config.internalServiceKey },
+        headers: { 'x-internal-service-key': this.config.userServiceKey },
       });
       const allowed = response?.data?.allowNewDirectMessages;
       if (typeof allowed !== 'boolean') {

@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  Min,
+  Max,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
+import { UPLOAD_POLICY } from '../../../infrastructure/s3/upload-policy';
 
 export class ConfirmUploadDto {
   @IsString()
@@ -9,7 +18,9 @@ export class ConfirmUploadDto {
   @IsNotEmpty({ message: 'Mime type cannot be empty' })
   mimeType: string;
 
-  @IsNumber()
+  @IsInt()
+  @Min(0)
+  @Max(UPLOAD_POLICY.MAX_SIZE_BYTES)
   @IsNotEmpty({ message: 'File size cannot be empty' })
   sizeBytes: number;
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   AccessToken,
   RoomServiceClient,
@@ -7,8 +7,10 @@ import {
   StartEgressRequest,
   EncodingOptionsPreset,
   EncodedFileType,
+  TrackSource,
 } from 'livekit-server-sdk';
 import { getLiveKitConfig, LiveKitConfig } from './livekit.config';
+import { RecordingReadinessProbe } from './recording-readiness';
 import {
   LiveKitParticipantTokenParams,
   LiveKitRoomMetadata,
@@ -23,6 +25,7 @@ import {
 @Injectable()
 export class LiveKitService {
   private readonly config: LiveKitConfig;
+  private readonly recordingProbe = new RecordingReadinessProbe();
 
   constructor() {
     this.config = getLiveKitConfig();
@@ -47,12 +50,22 @@ export class LiveKitService {
   }
 
   async createRoom(roomName: string, metadata?: LiveKitRoomMetadata) {
-    return this.createRoomServiceClient().createRoom({
-      name: roomName,
-      emptyTimeout: LIVEKIT_ROOM_EMPTY_TIMEOUT_SECONDS,
-      departureTimeout: LIVEKIT_ROOM_DEPARTURE_TIMEOUT_SECONDS,
-      metadata: metadata ? JSON.stringify(metadata) : undefined,
-    });
+    try {
+      return await this.createRoomServiceClient().createRoom({
+        name: roomName,
+        emptyTimeout: LIVEKIT_ROOM_EMPTY_TIMEOUT_SECONDS,
+        departureTimeout: LIVEKIT_ROOM_DEPARTURE_TIMEOUT_SECONDS,
+        metadata: metadata ? JSON.stringify(metadata) : undefined,
+      });
+    } catch (error) {
+      if (error instanceof TypeError && error.message === 'fetch failed') {
+        throw new ServiceUnavailableException(
+          'Meeting media server is unavailable. Check the LiveKit connection and try again.',
+          { cause: error },
+        );
+      }
+      throw error;
+    }
   }
 
   async receiveWebhook(body: string, authorization?: string) {
@@ -64,16 +77,30 @@ export class LiveKitService {
     return receiver.receive(body, authorization);
   }
 
+  async isParticipantConnected(roomName: string, userId: string) {
+    const participants =
+      await this.createRoomServiceClient().listParticipants(roomName);
+
+    return participants.some((participant) => participant.identity === userId);
+  }
+
+  private hasS3Credentials(): boolean {
+    return (
+      process.env.AWS_S3_USE_IAM_ROLE === 'true' ||
+      Boolean(process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY)
+    );
+  }
+
   isRecordingConfigured(): boolean {
     return (
       process.env.MEETING_RECORDING_ENABLED === 'true' &&
       this.isConfigured() &&
+      this.hasS3Credentials() &&
       Boolean(
         process.env.AWS_S3_BUCKET_NAME &&
         process.env.JWT_SECRET_KEY &&
         process.env.AWS_REGION &&
-        process.env.AWS_ACCESS_KEY &&
-        process.env.AWS_SECRET_KEY &&
+        process.env.LIVEKIT_RECORDING_TEMPLATE_URL &&
         process.env.LIVEKIT_EGRESS_WEBHOOK_URL,
       )
     );
@@ -88,15 +115,32 @@ export class LiveKitService {
     );
   }
 
+  recordingReadiness() {
+    return this.recordingProbe.check(
+      this.isRecordingConfigured(),
+      process.env.LIVEKIT_EGRESS_HEALTH_URL || '',
+    );
+  }
+
   startRecording(roomName: string, s3Key: string, layout: string) {
+    const templateUrl = process.env.LIVEKIT_RECORDING_TEMPLATE_URL;
+    if (!templateUrl)
+      throw new ServiceUnavailableException(
+        'The meeting recording template is not configured',
+      );
+
     return this.createEgressClient().startEgress(
       new StartEgressRequest({
         roomName,
         source: {
           case: 'template',
           value: {
-            layout: layout === 'grid' ? 'grid' : 'speaker',
-            customBaseUrl: process.env.LIVEKIT_RECORDING_TEMPLATE_URL || '',
+            layout:
+              ['speaker', 'grid', 'screen'].includes(layout) ||
+              /^app:TR_[A-Za-z0-9]+$/.test(layout)
+                ? layout
+                : 'speaker',
+            customBaseUrl: templateUrl,
           },
         },
         encoding: { case: 'preset', value: EncodingOptionsPreset.H264_720P_30 },
@@ -118,8 +162,12 @@ export class LiveKitService {
             value: {
               bucket: process.env.AWS_S3_BUCKET_NAME!,
               region: process.env.AWS_REGION!,
-              accessKey: process.env.AWS_ACCESS_KEY!,
-              secret: process.env.AWS_SECRET_KEY!,
+              ...(process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY
+                ? {
+                    accessKey: process.env.AWS_ACCESS_KEY,
+                    secret: process.env.AWS_SECRET_KEY,
+                  }
+                : {}),
               endpoint: process.env.AWS_S3_ENDPOINT || '',
               forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
             },
@@ -182,14 +230,44 @@ export class LiveKitService {
     userId: string;
     canShareScreen: boolean;
   }): Promise<void> {
-    await this.createRoomServiceClient().updateParticipant(roomName, userId, {
+    const client = this.createRoomServiceClient();
+    const participant = await client.getParticipant(roomName, userId);
+    const capturing =
+      participant.permission?.canPublishSources.includes(TrackSource.UNKNOWN) &&
+      participant.tracks.some(
+        (track) => track.name === 'meeting-tab-recording',
+      );
+    await client.updateParticipant(roomName, userId, {
       permission: {
         canPublish: true,
         canSubscribe: true,
         canPublishData: true,
-        canPublishSources: canShareScreen
-          ? [...SCREEN_SHARE_PUBLISH_SOURCES]
-          : [...BASE_PUBLISH_SOURCES],
+        canPublishSources: [
+          ...(canShareScreen
+            ? [...SCREEN_SHARE_PUBLISH_SOURCES]
+            : [...BASE_PUBLISH_SOURCES]),
+          ...(capturing ? [TrackSource.UNKNOWN] : []),
+        ],
+      },
+    });
+  }
+
+  async setRecordingCapturePermission(
+    roomName: string,
+    userId: string,
+    enabled: boolean,
+  ) {
+    const client = this.createRoomServiceClient();
+    const participant = await client.getParticipant(roomName, userId);
+    const sources = participant.permission?.canPublishSources ?? [
+      ...BASE_PUBLISH_SOURCES,
+    ];
+    await client.updateParticipant(roomName, userId, {
+      permission: {
+        ...participant.permission,
+        canPublishSources: enabled
+          ? [...new Set([...sources, TrackSource.UNKNOWN])]
+          : sources.filter((source) => source !== TrackSource.UNKNOWN),
       },
     });
   }

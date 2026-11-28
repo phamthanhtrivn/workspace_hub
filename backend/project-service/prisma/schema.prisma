@@ -2,12 +2,29 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model TaskSyncOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  taskId        String    @map("task_id") @db.Uuid
+  version       BigInt
+  payload       Json
+  deliveredAt   DateTime? @map("delivered_at")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  leaseToken    String?   @map("lease_token") @db.Uuid
+  leaseUntil    DateTime? @map("lease_until") @db.Timestamptz
+
+  @@unique([taskId, version])
+  @@index([deliveredAt, nextAttemptAt])
+  @@map("task_sync_outbox")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Project {
+  accessSyncJob ProjectAccessSyncJob?
   id          String             @id @default(uuid()) @db.Uuid
   name        String             @db.VarChar(100)
   description String?
@@ -90,7 +107,6 @@ model Task {
   completedBy        String?      @map("completed_by") @db.Uuid
   deletedAt          DateTime?    @map("deleted_at")
   rank               String?      @db.VarChar(100)
-  archived           Boolean      @default(false)
   createdAt          DateTime     @map("created_at")
   updatedAt          DateTime?    @map("updated_at")
   version            BigInt       @default(0)
@@ -107,7 +123,7 @@ model Task {
   dependenciesFrom TaskDependency[] @relation("DependencyPredecessor")
   dependenciesTo TaskDependency[] @relation("DependencySuccessor")
 
-  @@index([projectId, archived, rank, createdAt], map: "idx_tasks_project_active_rank")
+  @@index([projectId, rank, createdAt], map: "idx_tasks_project_rank")
   @@index([projectId, dueDate], map: "idx_tasks_project_due")
   @@index([parentTaskId], map: "idx_tasks_parent")
   @@unique([id, projectId], map: "uk_tasks_id_project")
@@ -139,7 +155,9 @@ model TaskAssignee {
 
   task Task @relation(fields: [taskId, projectId], references: [id, projectId], onDelete: Cascade)
 
+  @@unique([taskId, userId], map: "uk_task_assignee_task_user")
   @@index([projectId, userId], map: "idx_task_assignees_project_user")
+  @@index([userId], map: "idx_task_assignees_user")
   @@map("task_assignees")
 }
 
@@ -266,6 +284,7 @@ model NotificationOutbox {
   attemptCount  Int       @default(0) @map("attempt_count")
   nextAttemptAt DateTime? @map("next_attempt_at")
   lockedAt      DateTime? @map("locked_at")
+  leaseToken    String?   @map("lease_token") @db.Uuid
   lastError     String?   @map("last_error")
   createdAt     DateTime  @map("created_at")
   processedAt   DateTime? @map("processed_at")
@@ -281,4 +300,39 @@ model UserProfileSnapshot {
   syncedAt  DateTime @default(now()) @updatedAt @map("synced_at")
 
   @@map("user_profile_snapshots")
+}
+
+model ProjectAccessSyncJob {
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String   @id @map("project_id") @db.Uuid
+  revision       BigInt   @default(1)
+  documentStatus String   @default("PENDING") @map("document_status")
+  chatStatus     String   @default("PENDING") @map("chat_status")
+  attemptCount   Int      @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime @default(now()) @map("next_attempt_at")
+  lastError      String?  @map("last_error")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  @@index([nextAttemptAt])
+  @@map("project_access_sync_jobs")
+}
+
+model UserEventCursor {
+  topic String
+  userId String @map("user_id") @db.Uuid
+  revision BigInt
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz
+  @@id([topic, userId])
+  @@map("user_event_cursors")
+}
+
+model RejectedKafkaEvent {
+  id String @id @default(uuid()) @db.Uuid
+  topic String
+  partition Int
+  offset String
+  payloadDigest String @map("payload_digest")
+  reason String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
 }

@@ -147,7 +147,13 @@ export interface CalendarEventReminder {
   method: ReminderMethod;
 }
 
+export interface CalendarConference {
+  enabled: boolean; status: "NONE" | "PENDING" | "READY" | "FAILED";
+  meetingId: string | null; joinToken: string | null; message: string | null;
+}
+
 export interface CalendarEvent {
+  conference?: CalendarConference;
   id: string;
   calendarId: string;
   createdBy: string;
@@ -263,12 +269,6 @@ export interface CalendarEventDraft {
   attendees?: CalendarEventAttendeePayload[];
 }
 
-export interface CalendarTaskDeadline {
-  enabled: boolean;
-  date: string;
-  time: string;
-}
-
 export type CalendarTaskGroup = "overdue" | "today" | "upcoming" | "completed";
 
 export interface CalendarGroupedTasks {
@@ -279,6 +279,8 @@ export interface CalendarGroupedTasks {
 }
 
 export interface CalendarEventFormValues {
+  timeZone?: string;
+  conference?: { enabled: boolean };
   calendarId: string;
   title: string;
   description?: string | null;
@@ -298,6 +300,8 @@ export interface CalendarEventFormValues {
 }
 
 export interface CreateCalendarEventPayload {
+  timeZone?: string;
+  conference?: { enabled: boolean };
   calendarId: string;
   title: string;
   description?: string | null;

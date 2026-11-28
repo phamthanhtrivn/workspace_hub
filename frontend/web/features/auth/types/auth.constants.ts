@@ -7,6 +7,21 @@ export enum AuthProvider {
   GOOGLE = "GOOGLE",
 }
 
+export const AUTH_API_ROUTES = {
+  LOGIN: "/api/auth/login",
+  REFRESH: "/api/auth/refresh",
+  LOGOUT: "/api/auth/logout",
+} as const;
+
+export const SESSION_REQUEST_TIMEOUT_MS = 5_000;
+
+export const SIGN_OUT_COPY = {
+  label: "Sign out",
+  pending: "Signing out...",
+  success: "Signed out successfully",
+  failed: "Sign out failed",
+} as const;
+
 export enum AuthRouteTarget {
   ADMIN_HOME = "/",
   USER_DASHBOARD = "/dashboard",

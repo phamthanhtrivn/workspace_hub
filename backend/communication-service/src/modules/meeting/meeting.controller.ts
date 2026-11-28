@@ -93,6 +93,28 @@ export class MeetingController {
     };
   }
 
+  @Get('badge-summary')
+  async getBadgeSummary(
+    @Headers('x-user-id') userId: string,
+    @Query('dayStartAt') dayStartAt?: string,
+    @Query('dayEndAt') dayEndAt?: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const summary = await this.meetingService.getBadgeSummary({
+      userId,
+      dayStartAt,
+      dayEndAt,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.HISTORY_LISTED,
+      data: summary,
+    };
+  }
+
   @Get('history')
   async listMeetingHistory(
     @Headers('x-user-id') userId: string,

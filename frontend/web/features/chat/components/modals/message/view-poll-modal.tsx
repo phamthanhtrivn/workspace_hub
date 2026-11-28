@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
+import React from "react";
+
 import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
@@ -10,6 +11,9 @@ import {
   editChannelPoll,
   voteChannelPoll,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ViewPollModalProps {
   isOpen: boolean;
@@ -25,29 +29,23 @@ export default function ViewPollModal({
   conversationId,
 }: ViewPollModalProps) {
   const dispatch = useAppDispatch();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen || !poll || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[60] flex items-center justify-center bg-overlay/50 p-4">
       <div className="relative w-full max-w-md">
-        <button
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
-          className="absolute -top-10 right-0 text-white hover:text-gray-300 p-2 transition cursor-pointer"
+          className="absolute -top-10 right-0 rounded-control bg-media-surface text-media-foreground hover:bg-media-background focus-visible:outline-media-foreground p-2 transition cursor-pointer"
         >
           <X size={24} />
-        </button>
-        <div className="max-h-[85vh] overflow-y-auto no-scrollbar rounded-2xl">
+        </Button>
+        <div className="max-h-[85vh] overflow-y-auto rounded-panel">
           <PollMessage
             poll={poll}
-            onVote={(pollOptionId) => {
-              void voteChannelPoll(conversationId, poll.messageId, pollOptionId);
-            }}
+            onVote={(pollOptionId, selected) => voteChannelPoll(conversationId, poll.messageId, pollOptionId, selected)}
             onAddOption={(text) => {
               void addChannelPollOption(conversationId, poll.messageId, text);
             }}
@@ -58,7 +56,7 @@ export default function ViewPollModal({
               anonymous,
               isLocked,
             ) => {
-              void editChannelPoll(conversationId, poll.messageId, {
+              return editChannelPoll(conversationId, poll.messageId, {
                   title,
                   multipleChoice,
                   allowAddOptions,
@@ -70,7 +68,5 @@ export default function ViewPollModal({
           />
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }

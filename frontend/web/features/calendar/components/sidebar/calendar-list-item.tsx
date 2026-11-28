@@ -1,12 +1,12 @@
 "use client";
 
-import { MoreVertical } from "lucide-react";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 import {
   useDeleteCalendar,
   useUpdateCalendar,
@@ -29,10 +29,11 @@ function CalendarSelectionCheckbox({
     <Checkbox
       checked={selected}
       onCheckedChange={onToggle}
-      className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500/40"
+      className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border transition-all focus-visible:ring-2 focus-visible:ring-ring"
       style={{
-        borderColor: calendar.color,
-        backgroundColor: selected ? calendar.color : "#ffffff",
+        borderColor: "var(--input)",
+        backgroundColor: selected ? calendar.color : "var(--card)",
+        color: readableTextOnColor(calendar.color),
       }}
       aria-label={calendar.name}
     />
@@ -55,6 +56,16 @@ export function CalendarListItem({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const calendarMutationPending =
     updateCalendar.isPending || deleteCalendar.isPending;
+  const calendarIdentity = (
+    <>
+      {calendar.icon && (
+        <span className="shrink-0 text-sm leading-none">{calendar.icon}</span>
+      )}
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+        {calendar.name}
+      </span>
+    </>
+  );
 
   const changeColor = async (color: string) => {
     if (color === calendar.color) return;
@@ -64,8 +75,8 @@ export function CalendarListItem({
         calendarId: calendar.id,
         payload: { color },
       });
-    } catch {
-      toast.error("Failed to update calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to update calendar"));
     }
   };
 
@@ -74,8 +85,8 @@ export function CalendarListItem({
       await deleteCalendar.mutateAsync(calendar.id);
       toast.success("Calendar deleted");
       setDeleteModalOpen(false);
-    } catch {
-      toast.error("Failed to delete calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to delete calendar"));
     }
   };
 
@@ -108,54 +119,47 @@ export function CalendarListItem({
       });
       toast.success("Calendar updated");
       return true;
-    } catch {
-      toast.error("Failed to update calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to update calendar"));
       return false;
     }
   };
 
   return (
     <>
-      <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
+      <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted">
         <CalendarSelectionCheckbox
           calendar={calendar}
           selected={selected}
           onToggle={onToggle}
         />
 
-        {calendar.icon && (
-          <span className="shrink-0 text-sm leading-none">{calendar.icon}</span>
+        {calendar.projectId ? (
+          <span className="flex min-w-0 flex-1 items-center gap-2.5">{calendarIdentity}</span>
+        ) : (
+          <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setEditModalOpen(true)}
+          disabled={calendarMutationPending}
+          aria-label={`Edit calendar ${calendar.name}`}
+          aria-expanded={editModalOpen}
+          aria-haspopup="dialog"
+          className="-my-1 flex h-auto min-w-0 flex-1 justify-start gap-2.5 rounded-control px-0 py-1 text-left hover:bg-transparent focus-visible:ring-inset disabled:opacity-100"
+        >
+          {calendarIdentity}
+          </Button>
         )}
-
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
-          {calendar.name}
-        </span>
 
         {calendar.projectId ? (
           <CalendarColorPopover
             value={calendar.color}
             label="Color"
             pending={updateCalendar.isPending}
-            triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+            triggerClassName="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 focus-visible:opacity-100 transition-opacity"
             onChange={changeColor}
           />
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setEditModalOpen(true)}
-            className={cn(
-              "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
-              editModalOpen && "bg-slate-100 text-slate-700",
-            )}
-            aria-expanded={editModalOpen}
-            aria-haspopup="dialog"
-            aria-label="Edit calendar"
-          >
-            <MoreVertical className="h-3.5 w-3.5" />
-          </Button>
-        )}
+        ) : null}
       </div>
 
       {!calendar.projectId && editModalOpen && (

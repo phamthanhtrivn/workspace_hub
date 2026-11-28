@@ -1,3 +1,4 @@
+import { SessionRedisIoAdapter } from './common/auth/session-redis.adapter';
 import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -11,6 +12,9 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get(RuntimeConfigService);
 
+  const socketAdapter = new SessionRedisIoAdapter(app);
+  await socketAdapter.connect();
+  app.useWebSocketAdapter(socketAdapter);
   app.enableCors({
     origin: config.corsAllowedOrigins,
     credentials: true,
@@ -24,6 +28,7 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  app.enableShutdownHooks();
   await setupMicroservices(app);
 
   const port = Number(process.env.PORT ?? 8082);

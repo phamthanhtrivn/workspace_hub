@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
@@ -11,14 +13,27 @@ import {
   useSendResetOtpMutation,
   useVerifyResetOtpMutation,
 } from "../hooks/useForgotPasswordMutations";
+import { AuthRouteTarget, ForgotPasswordStep } from "../types/auth.constants";
 import {
-  AuthRouteTarget,
-  ForgotPasswordStep,
-} from "../types/auth.constants";
+  forgotEmailFormSchema,
+  verifyOtpFormSchema,
+  resetPasswordFormSchema,
+  type ForgotEmailFormValues,
+  type VerifyOtpFormValues,
+  type ResetPasswordFormValues,
+} from "../schemas/auth-form.schemas";
 import {
-  getAuthErrorMessage,
-  getAuthValidationErrors,
-} from "../utils/auth-error";
+  AUTH_VALIDATION_LIMITS,
+  AUTH_VALIDATION_MESSAGES as messages,
+} from "../types/auth-validation.constants";
+import { useAuthFormSubmit } from "../hooks/use-auth-form-submit";
+import { handleAuthFormError } from "../utils/auth-form-error";
+import { AuthFormError } from "./auth-form-error";
+import { ForgotPasswordProgress } from "./forgot-password-progress";
+import { Button } from "@/components/ui/button";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const sendResetOtpMutation = useSendResetOtpMutation();
@@ -29,244 +44,284 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     ForgotPasswordStep.EMAIL,
   );
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { busy: isLoading, activity, isLocked, begin, complete, fail, redirect, clear } = useAuthInteraction();
+  const sendingCode = isLoading && activity?.action === AUTH_ACTION.SEND_RESET_CODE;
+  const verifyingCode = isLoading && activity?.action === AUTH_ACTION.VERIFY_RESET_CODE;
+  const resettingPassword = isLoading && activity?.action === AUTH_ACTION.RESET_PASSWORD;
+  const emailForm = useForm<ForgotEmailFormValues>({
+    shouldFocusError: false,
+    resolver: zodResolver(forgotEmailFormSchema),
+    defaultValues: { email: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const otpForm = useForm<VerifyOtpFormValues>({
+    shouldFocusError: false,
+    resolver: zodResolver(verifyOtpFormSchema),
+    defaultValues: { otp: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const passwordForm = useForm<ResetPasswordFormValues>({
+    shouldFocusError: false,
+    resolver: zodResolver(resetPasswordFormSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const emailErrors = emailForm.formState.errors;
+  const otpErrors = otpForm.formState.errors;
+  const passwordErrors = passwordForm.formState.errors;
 
-  const isLoading =
-    sendResetOtpMutation.isPending ||
-    verifyResetOtpMutation.isPending ||
-    resetPasswordMutation.isPending;
+  const onEmailSubmit = useAuthFormSubmit(
+    emailForm,
+    ["email"],
+    messages.sendCodeFailed,
+    async (values) => {
+      await sendResetOtpMutation.mutateAsync(values);
+      setEmail(values.email);
+      otpForm.reset();
+      passwordForm.reset();
+      setResetToken("");
+      toast.success("Verification code sent to your email");
+      setStep(ForgotPasswordStep.OTP);
+    },
+    AUTH_ACTION.SEND_RESET_CODE,
+  );
 
-  const handleApiError = (error: unknown) => {
-    const validationErrors = getAuthValidationErrors(error);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    toast.error(
-      getAuthErrorMessage(
-        error,
-        "An error occurred",
-      ),
-    );
-  };
-
-  const handleSendEmail = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setErrors({});
-
-    sendResetOtpMutation.mutate(
-      { email },
-      {
-        onSuccess: () => {
-          toast.success("Verification code sent to your email");
-          setStep(ForgotPasswordStep.OTP);
-        },
-        onError: handleApiError,
-      },
-    );
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    verifyResetOtpMutation.mutate(
-      { email, otp },
-      {
-        onSuccess: (response) => {
-          setResetToken(response.data.resetToken);
-          toast.success("Verification code verified successfully");
-          setStep(ForgotPasswordStep.PASSWORD);
-        },
-        onError: handleApiError,
-      },
-    );
-  };
-
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    if (newPassword !== confirmPassword) {
-      setErrors({
-        confirmPassword: "Passwords do not match",
+  const onOtpSubmit = useAuthFormSubmit(
+    otpForm,
+    ["otp"],
+    messages.verifyCodeFailed,
+    async (values) => {
+      const response = await verifyResetOtpMutation.mutateAsync({
+        email,
+        otp: values.otp,
       });
-      return;
+      const token = response.data?.resetToken;
+      if (typeof token !== "string" || !token)
+        throw new Error(messages.verifyCodeFailed);
+      setResetToken(token);
+      passwordForm.reset();
+      toast.success("Verification code verified successfully");
+      setStep(ForgotPasswordStep.PASSWORD);
+    },
+    AUTH_ACTION.VERIFY_RESET_CODE,
+  );
+
+  const onPasswordSubmit = useAuthFormSubmit(
+    passwordForm,
+    ["newPassword", "confirmPassword"],
+    messages.resetFailed,
+    async (values) => {
+      if (!resetToken) {
+        fail(AUTH_ACTION.RESET_PASSWORD);
+        passwordForm.setError("root.server", {
+          message: messages.resetExpired,
+        });
+        return;
+      }
+      await resetPasswordMutation.mutateAsync({
+        email,
+        resetToken,
+        newPassword: values.newPassword,
+      });
+      toast.success("Password updated successfully");
+      redirect(AUTH_ACTION.RESET_PASSWORD, AUTH_REDIRECT_COPY.passwordReset);
+      window.location.href = AuthRouteTarget.LOGIN;
+    },
+    AUTH_ACTION.RESET_PASSWORD,
+  );
+
+  const handleResendCode = async () => {
+    if (!email || !begin(AUTH_ACTION.SEND_RESET_CODE)) return;
+    otpForm.clearErrors("root");
+    try {
+      await sendResetOtpMutation.mutateAsync({ email });
+      otpForm.reset();
+      passwordForm.reset();
+      setResetToken("");
+      toast.success("Verification code sent to your email");
+      complete(AUTH_ACTION.SEND_RESET_CODE);
+    } catch (error) {
+      fail(AUTH_ACTION.SEND_RESET_CODE);
+      handleAuthFormError(error, otpForm, [], messages.sendCodeFailed);
     }
-
-    resetPasswordMutation.mutate(
-      { email, resetToken, newPassword },
-      {
-        onSuccess: () => {
-          toast.success("Password updated successfully");
-          window.location.href = AuthRouteTarget.LOGIN;
-        },
-        onError: handleApiError,
-      },
-    );
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-  };
-
-  const handleNewPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setNewPassword(e.target.value);
-    if (errors.newPassword) {
-      setErrors((prev) => ({ ...prev, newPassword: "" }));
-    }
-  };
-
-  const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setConfirmPassword(e.target.value);
-    if (errors.confirmPassword) {
-      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+  const handleBack = () => {
+    if (isLocked()) return;
+    clear();
+    setResetToken("");
+    passwordForm.reset();
+    if (step === ForgotPasswordStep.PASSWORD) {
+      otpForm.clearErrors();
+      setStep(ForgotPasswordStep.OTP);
+    } else {
+      otpForm.reset();
+      emailForm.clearErrors();
+      setStep(ForgotPasswordStep.EMAIL);
     }
   };
 
   return (
     <div className="space-y-6">
+      <ForgotPasswordProgress step={step} />
+      <AuthFormStatus />
       {step !== ForgotPasswordStep.EMAIL && (
-        <button
+        <Button
+          variant="unstyled"
           type="button"
-          onClick={() => {
-            if (step === ForgotPasswordStep.OTP) {
-              setStep(ForgotPasswordStep.EMAIL);
-            }
-            if (step === ForgotPasswordStep.PASSWORD) {
-              setStep(ForgotPasswordStep.OTP);
-            }
-          }}
-          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
+          onClick={handleBack}
+          disabled={isLoading}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
-        </button>
+        </Button>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
         <form
-          onSubmit={handleSendEmail}
+          noValidate
+          onSubmit={onEmailSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              Email <span className="text-red-500">*</span>
+              Email <span className="text-destructive-content">*</span>
             </label>
             <InputField
+              autoComplete="email"
+              required
+              variant="auth"
+              className="text-base sm:text-sm"
               id="email"
               type="email"
               icon={Mail}
               placeholder="you@workspacehub.vn"
-              value={email}
-              error={errors.email}
-              onChange={handleEmailChange}
+              {...emailForm.register("email")}
+              disabled={isLoading}
+              error={emailErrors.email?.message}
             />
           </div>
-          <button
+          <AuthFormError message={emailErrors.root?.server?.message} />
+          <Button
+            loading={sendingCode}
+            variant="unstyled"
             type="submit"
             disabled={isLoading}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
-          </button>
+            {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_RESET_CODE].button : "Send reset code"}
+          </Button>
         </form>
       )}
 
       {step === ForgotPasswordStep.OTP && (
         <form
-          onSubmit={handleVerifyOtp}
+          noValidate
+          onSubmit={onOtpSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-4">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-link mb-4">
                 <KeyRound className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
+              <h3 className="text-lg font-bold text-foreground">
                 Enter verification code
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 We sent a verification code to:
                 <br />
-                <span className="font-semibold text-slate-800">{email}</span>
+                <span className="font-semibold text-foreground">{email}</span>
               </p>
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <OtpInput
-                length={6}
-                value={otp}
-                onChange={(value) => {
-                  setOtp(value);
-                  if (errors.otp) setErrors((prev) => ({ ...prev, otp: "" }));
-                }}
+              <Controller
+                control={otpForm.control}
+                name="otp"
+                render={({ field, fieldState }) => (
+                  <OtpInput
+                    length={AUTH_VALIDATION_LIMITS.otpLength}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
+                    disabled={isLoading}
+                    error={fieldState.error?.message}
+                  />
+                )}
               />
-              {errors.otp && (
-                <p className="text-xs text-red-500 mt-2">{errors.otp}</p>
-              )}
             </div>
 
             <div className="text-center text-sm">
-              <span className="text-slate-500">
-                Didn't receive code?{" "}
+              <span className="text-muted-foreground">
+                Didn&apos;t receive code?{" "}
               </span>
-              <button
+              <Button
+                variant="unstyled"
                 type="button"
-                onClick={() => handleSendEmail()}
-                className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] cursor-pointer"
+                onClick={handleResendCode}
+                loading={sendingCode}
+                className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
-                Resend code
-              </button>
+                {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_RESET_CODE].button : "Resend code"}
+              </Button>
             </div>
           </div>
-          <button
+          <AuthFormError message={otpErrors.root?.server?.message} />
+          <Button
+            loading={verifyingCode}
+            variant="unstyled"
             type="submit"
-            disabled={isLoading || otp.length < 6}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            disabled={isLoading}
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify code"}
-          </button>
+            {verifyingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.VERIFY_RESET_CODE].button : "Verify code"}
+          </Button>
         </form>
       )}
 
       {step === ForgotPasswordStep.PASSWORD && (
         <form
-          onSubmit={handleResetPassword}
+          noValidate
+          onSubmit={onPasswordSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
             <label
               htmlFor="newPassword"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              New Password <span className="text-red-500">*</span>
+              New Password <span className="text-destructive-content">*</span>
             </label>
             <InputField
+              autoComplete="new-password"
+              required
+              variant="auth"
+              className="text-base sm:text-sm"
               id="newPassword"
               type={showPassword ? "text" : "password"}
               icon={Lock}
               placeholder="••••••••"
-              value={newPassword}
-              error={errors.newPassword}
-              onChange={handleNewPasswordChange}
+              {...passwordForm.register("newPassword", {
+                deps: ["confirmPassword"],
+              })}
+              disabled={isLoading}
+              error={passwordErrors.newPassword?.message}
               rightIcon={
                 showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -281,18 +336,23 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           <div className="space-y-2">
             <label
               htmlFor="confirmPassword"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              Confirm Password <span className="text-red-500">*</span>
+              Confirm Password{" "}
+              <span className="text-destructive-content">*</span>
             </label>
             <InputField
+              autoComplete="new-password"
+              required
+              variant="auth"
+              className="text-base sm:text-sm"
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               icon={Lock}
               placeholder="••••••••"
-              value={confirmPassword}
-              error={errors.confirmPassword}
-              onChange={handleConfirmPasswordChange}
+              {...passwordForm.register("confirmPassword")}
+              disabled={isLoading}
+              error={passwordErrors.confirmPassword?.message}
               rightIcon={
                 showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -303,22 +363,27 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
-          <button
+          <AuthFormError message={passwordErrors.root?.server?.message} />
+          <Button
+            loading={resettingPassword}
+            variant="unstyled"
             type="submit"
             disabled={isLoading}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
-          </button>
+            {resettingPassword
+              ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY[AUTH_ACTION.RESET_PASSWORD].button
+              : "Update password"}
+          </Button>
         </form>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
-        <p className="mt-8 text-center text-sm text-slate-500">
+        <p className="mt-8 text-center text-sm text-muted-foreground">
           Remembered your password?{" "}
           <Link
             href={AuthRouteTarget.LOGIN}
-            className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] underline"
+            className="font-bold text-link transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
           >
             Back to Sign In
           </Link>

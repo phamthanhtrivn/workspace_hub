@@ -1,11 +1,11 @@
-import { Temporal } from "temporal-polyfill";
+import { zonedDateKey } from "@/lib/timezone";
 import {
   getAllCalendarTasks,
   getCalendars,
   listCalendarPomodoroSessions,
 } from "@/features/calendar/api/calendar.api";
 import type { CalendarPomodoroSession } from "@/features/calendar/types/calendar.types";
-import { readTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
+import { getTaskDueDate } from "@/features/calendar/utils/calendar-tasks.utils";
 import { fetchAllPages } from "@/features/project/api/pagination";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks } from "@/features/project/api/task.api";
@@ -14,10 +14,12 @@ import {
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import type { DashboardTask } from "../types/dashboard.types";
+import type { DashboardCompletedTask } from "../types/dashboard-analytics.types";
 import { getUpcomingMeetings } from "@/features/meeting/api/meeting.api";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
+import { isCalendarFocusEligible, isProjectFocusEligible, toCalendarFocusTask, toProjectFocusTask } from "@/features/pomodoro/utils/focus-task";
 
-export async function getDashboardCompletedTasks(userId: string) {
+export async function getDashboardCompletedTasks(userId: string): Promise<DashboardCompletedTask[]> {
   const [events, calendars, projects] = await Promise.all([
     getAllCalendarTasks(),
     getCalendars(),
@@ -33,7 +35,7 @@ export async function getDashboardCompletedTasks(userId: string) {
       )
       .map((calendar) => calendar.id),
   );
-  const completed = new Map<string, { key: string; completedAt: string }>();
+  const completed = new Map<string, DashboardCompletedTask>();
   for (const event of events) {
     if (
       personalCalendars.has(event.calendarId) &&
@@ -93,14 +95,12 @@ export async function getPersonalDashboardTasks(
       event.status === "CANCELLED"
     )
       return [];
-    const deadline = readTaskDeadline(event.description);
-    let dueAt: string | null = deadline.date || null;
-    if (deadline.date && deadline.time) {
-      dueAt = Temporal.PlainDateTime.from(`${deadline.date}T${deadline.time}`)
-        .toZonedDateTime(event.timeZone || "UTC")
-        .toInstant()
-        .toString();
-    }
+    const dueDate = getTaskDueDate(event);
+    const dueAt = Number.isNaN(dueDate.getTime())
+      ? null
+      : event.allDay
+        ? zonedDateKey(dueDate, event.timeZone || event.calendar?.timeZone) || null
+        : dueDate.toISOString();
     return [
       {
         key: `calendar:${event.id}`,
@@ -110,8 +110,9 @@ export async function getPersonalDashboardTasks(
         href: `/calendar?event=${encodeURIComponent(event.id)}`,
         projectName: "Personal task",
         dueAt,
-        dateOnly: !deadline.time,
+        dateOnly: Boolean(event.allDay),
         priority: "MEDIUM",
+        focusTask: isCalendarFocusEligible(event, userId) ? toCalendarFocusTask(event) : undefined,
       },
     ];
   });
@@ -142,7 +143,6 @@ export async function getProjectDashboardTasks(
             return tasks
               .filter(
                 (task) =>
-                  !task.archived &&
                   !task.deletedAt &&
                   !task.completedAt &&
                   !isTerminalTaskStatus(task.status) &&
@@ -152,6 +152,7 @@ export async function getProjectDashboardTasks(
                 key: `project:${task.id}`,
                 source: "project" as const,
                 sourceId: task.id,
+                projectId: project.id,
                 title: task.title,
                 href: `/projects/${encodeURIComponent(project.id)}?taskId=${encodeURIComponent(task.id)}`,
                 projectName: project.name,
@@ -159,6 +160,7 @@ export async function getProjectDashboardTasks(
                 dateOnly:
                   task.allDay || /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate || ""),
                 priority: task.priority,
+                focusTask: isProjectFocusEligible(task, userId) ? toProjectFocusTask(task, project) : undefined,
               }));
           }),
       )),

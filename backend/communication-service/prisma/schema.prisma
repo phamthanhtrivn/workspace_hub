@@ -2,6 +2,32 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model NotificationDeliveryOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  topic         String
+  messageKey    String    @map("message_key")
+  payload       Json
+  status        String    @default("PENDING")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  leaseToken    String?   @map("lease_token") @db.Uuid
+  leaseUntil    DateTime? @map("lease_until") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+
+  @@index([status, nextAttemptAt], map: "notification_delivery_outbox_pending_idx")
+  @@map("notification_delivery_outbox")
+}
+
+model ProjectTaskSnapshot {
+  taskId    String @id @map("task_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  version   BigInt
+  payload   Json
+
+  @@map("project_task_snapshots")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -78,6 +104,8 @@ enum MeetingParticipantStatus {
 enum MeetingRecordingStatus {
   STARTING
   RECORDING
+  PAUSING
+  PAUSED
   PROCESSING
   COMPLETED
   FAILED
@@ -125,6 +153,7 @@ model UserProfileSnapshot {
  * ========================================================= */
 
 model Space {
+  accessSyncRevision BigInt @default(0) @map("access_sync_revision")
   id          String            @id @default(uuid()) @db.Uuid
   name        String
   createdBy   String            @map("created_by") @db.Uuid
@@ -198,6 +227,8 @@ model Channel {
   name        String
   createdBy   String          @map("created_by") @db.Uuid
   isDefault   Boolean         @default(false) @map("is_default")
+  visibility  ChannelVisibility @default(PUBLIC)
+  ownerId     String?         @map("owner_id") @db.Uuid
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -209,6 +240,11 @@ model Channel {
 
   @@index([spaceId])
   @@map("channels")
+}
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 /* =========================================================
@@ -253,6 +289,42 @@ model ChannelSetting {
 /* =========================================================
  * MESSAGE (GROUP CHANNEL MESSAGE)
  * ========================================================= */
+
+// Kept independently of message rows so deleted messages cannot be recreated by retry.
+model MediaCopyCleanup {
+  s3Key String @id @map("s3_key")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("media_copy_cleanup")
+}
+
+model DocumentAttachmentImport {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  operationId String   @map("operation_id") @db.Uuid
+  fingerprint String
+  chatId      String   @map("chat_id") @db.Uuid
+  chatType    String   @map("chat_type")
+  status      String   @default("PREPARING")
+  result      Json?
+  leaseToken  String?  @map("lease_token") @db.Uuid
+  leaseUntil  DateTime? @map("lease_until")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  @@unique([actorId, operationId])
+  @@index([status, createdAt])
+  @@map("document_attachment_imports")
+}
+
+model MessageDeliveryReceipt {
+  senderId    String   @map("sender_id")
+  requestId   String   @db.Uuid @map("request_id")
+  fingerprint String
+  messageId   String   @map("message_id")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@id([senderId, requestId])
+  @@map("message_delivery_receipts")
+}
 
 model Message {
   id                String           @id @default(uuid()) @db.Uuid
@@ -542,7 +614,16 @@ model DirectThreadFollower {
  * MEETING
  * ========================================================= */
 
+model CalendarMeetingSyncState {
+  eventId String @id @map("event_id") @db.Uuid
+  revision BigInt
+  @@map("calendar_meeting_sync_states")
+}
+
 model Meeting {
+  calendarCancelled Boolean @default(false) @map("calendar_cancelled")
+  calendarEventId String? @unique @map("calendar_event_id") @db.Uuid
+  calendarSyncRevision BigInt @default(0) @map("calendar_sync_revision")
   id                       String                  @id @default(uuid()) @db.Uuid
   roomName                 String                  @unique @map("room_name")
   joinToken                String                  @unique @map("join_token")
@@ -563,6 +644,8 @@ model Meeting {
   autoAdmit                Boolean                 @default(false) @map("auto_admit")
   chatEnabled              Boolean                 @default(true) @map("chat_enabled")
   screenShareEnabled       Boolean                 @default(true) @map("screen_share_enabled")
+  autoRecord               Boolean                 @default(false) @map("auto_record")
+  recordingLayout          String                  @default("speaker") @map("recording_layout")
   activeScreenShareUserId  String?                 @map("active_screen_share_user_id") @db.Uuid
   screenShareStartedAt     DateTime?               @map("screen_share_started_at")
   createdAt                DateTime                @default(now()) @map("created_at")
@@ -572,6 +655,7 @@ model Meeting {
   conversation             DirectConversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   participants             MeetingParticipant[]
   participantViewPreferences MeetingParticipantViewPreference[]
+  historyPreferences       MeetingHistoryPreference[]
   messages                 MeetingMessage[]
   recordings               MeetingRecording[]
   events                   MeetingEvent[]
@@ -592,6 +676,20 @@ model Meeting {
  * MEETING PARTICIPANT
  * ========================================================= */
 
+model MeetingHistoryPreference {
+  meetingId String    @map("meeting_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  hiddenAt  DateTime? @map("hidden_at")
+  hiddenBatchId String? @map("hidden_batch_id") @db.Uuid
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, userId])
+  @@index([userId, hiddenAt])
+  @@index([userId, hiddenBatchId])
+  @@map("meeting_history_preferences")
+}
+
 model MeetingParticipant {
   id                String                   @id @default(uuid()) @db.Uuid
   meetingId         String                   @map("meeting_id") @db.Uuid
@@ -604,10 +702,14 @@ model MeetingParticipant {
   lastSeenAt        DateTime?                @map("last_seen_at")
   lastReadMessageId String?                  @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?                @map("last_read_at")
+  requiresReadmission Boolean @default(false) @map("requires_readmission")
   chatMuted         Boolean                  @default(false) @map("chat_muted")
   handRaisedAt      DateTime?                @map("hand_raised_at")
   canRecord         Boolean                  @default(false) @map("can_record")
   recordGrantedBy   String?                   @map("record_granted_by") @db.Uuid
+  recordingRequestId String?                  @unique @map("recording_request_id") @db.Uuid
+  recordingRequestedAt DateTime?              @map("recording_requested_at")
+  recordingRequestState String?               @map("recording_request_state")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
@@ -616,6 +718,7 @@ model MeetingParticipant {
   @@unique([meetingId, userId])
   @@index([userId])
   @@index([meetingId, status])
+  @@index([meetingId, recordingRequestState, recordingRequestedAt], map: "meeting_participants_recording_requests_idx")
   @@map("meeting_participants")
 }
 
@@ -710,6 +813,12 @@ model MeetingRecording {
   ownerId         String                 @map("owner_id") @db.Uuid
   title           String                 @default("Meeting recording")
   layout          String                 @default("speaker")
+  segmentKey      String?                @map("segment_key")
+  segmentIndex    Int                    @default(0) @map("segment_index")
+  segmentStartedAt DateTime?             @map("segment_started_at")
+  segmentDurationSeconds Float?            @map("segment_duration_seconds")
+  pauseRequestedAt DateTime?             @map("pause_requested_at")
+  controlRequestedBy String?             @map("control_requested_by") @db.Uuid
   status          MeetingRecordingStatus
   livekitEgressId String?                @unique @map("livekit_egress_id")
   s3Key           String?                @map("s3_key")
@@ -723,7 +832,7 @@ model MeetingRecording {
   stoppedAt       DateTime?              @map("stopped_at")
   completedAt     DateTime?              @map("completed_at")
   deletedAt       DateTime?              @map("deleted_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at")
   failureCode     String?                @map("failure_code")
   version         Int                    @default(0)
   egressUpdatedAt BigInt                 @default(0) @map("egress_updated_at")
@@ -731,11 +840,28 @@ model MeetingRecording {
   meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   permissions     MeetingRecordingPermission[]
   jobs            MeetingRecordingJob[]
+  segments        MeetingRecordingSegment[]
 
   @@index([meetingId, startedAt])
   @@index([status])
   @@index([ownerId, requestedAt])
   @@map("meeting_recordings")
+}
+
+model MeetingRecordingSegment {
+  id              String @id @default(uuid()) @db.Uuid
+  recordingId     String @map("recording_id") @db.Uuid
+  index           Int
+  s3Key           String @unique @map("s3_key")
+  livekitEgressId  String @unique @map("livekit_egress_id")
+  sizeBytes       BigInt @map("size_bytes")
+  durationSeconds Float @map("duration_seconds")
+  startedAt       DateTime? @map("started_at")
+  stoppedAt       DateTime @map("stopped_at")
+  recording       MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, index])
+  @@map("meeting_recording_segments")
 }
 
 model MeetingRecordingPermission {
@@ -745,7 +871,7 @@ model MeetingRecordingPermission {
   grantedBy   String @map("granted_by") @db.Uuid
   canDownload Boolean @default(false) @map("can_download")
   createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   recording   MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 
   @@unique([recordingId, userId])
@@ -767,7 +893,7 @@ model MeetingRecordingJob {
   requestKey     String? @unique @map("request_key")
   requestHash    String? @map("request_hash")
   createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
   recording      MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 
   @@unique([recordingId, kind])
@@ -792,5 +918,80 @@ model MeetingEvent {
   meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, createdAt])
+  @@index([meetingId, actorId, type, createdAt], map: "meeting_events_recording_attendees_idx")
   @@map("meeting_events")
+}
+
+model ConversationAiRequest {
+  id String @id @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  chatId String @map("chat_id") @db.Uuid
+  chatType String @map("chat_type")
+  status String @default("QUEUED")
+  token String? @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  attachmentMediaId String? @map("attachment_media_id") @db.Uuid
+  attachmentHash String? @map("attachment_hash")
+  summaryKey String? @map("summary_key")
+  summaryActionId String? @unique(map:"conversation_ai_summary_action") @map("summary_action_id") @db.Uuid
+  questionHash String? @map("question_hash")
+  dispatchAfter DateTime @default(now()) @map("dispatch_after") @db.Timestamptz
+  dispatchAttempts Int @default(0) @map("dispatch_attempts")
+  outbox ConversationAiOutbox?
+  @@index([status,dispatchAfter,createdAt],map:"conversation_ai_dispatch_due")
+  @@index([actorId,createdAt],map:"conversation_ai_actor_created")
+  @@index([status,createdAt],map:"conversation_ai_pending")
+  @@map("conversation_ai_requests")
+}
+
+model ConversationAiOutbox {
+ requestId String @id @map("request_id") @db.Uuid
+ replyId String @map("reply_id") @db.Uuid
+ status String @default("PENDING")
+ leaseToken String? @map("lease_token") @db.Uuid
+ leaseUntil DateTime? @map("lease_until") @db.Timestamptz
+ nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+ attempts Int @default(0)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ request ConversationAiRequest @relation(fields:[requestId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@index([status,nextAttemptAt],map:"conversation_ai_outbox_pending")
+ @@map("conversation_ai_outbox")
+}
+
+model VoiceTranscriptRequest {
+  mediaId String @map("media_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  chatType String @map("chat_type")
+  status String @default("PENDING")
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+  attempts Int @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([mediaId,chatType])
+  @@index([status,nextAttemptAt],map:"voice_transcript_requests_pending")
+  @@map("voice_transcript_requests")
+}
+
+model UserEventCursor {
+  topic String
+  userId String @map("user_id") @db.Uuid
+  revision BigInt
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz
+  @@id([topic, userId])
+  @@map("user_event_cursors")
+}
+
+model RejectedKafkaEvent {
+  id String @id @default(uuid()) @db.Uuid
+  topic String
+  partition Int
+  offset String
+  payloadDigest String @map("payload_digest")
+  reason String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
 }

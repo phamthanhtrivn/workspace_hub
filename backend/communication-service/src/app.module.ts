@@ -1,4 +1,9 @@
+import { APP_GUARD } from '@nestjs/core';
+import { JwtIdentityGuard } from './common/guards/jwt-identity.guard';
 import { Module } from '@nestjs/common';
+import { TaskSyncModule } from './modules/task-sync/task-sync.module';
+import { ChannelAccessModule } from './modules/channel/access/channel-access.module';
+import { PrivateChannelModule } from './modules/channel/private-channel.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ChannelModule } from './modules/channel/channel.module';
@@ -17,11 +22,15 @@ import { MeetingModule } from './modules/meeting/meeting.module';
 import { LiveKitModule } from './infrastructure/livekit/livekit.module';
 import { HealthController } from './common/health.controller';
 import { RuntimeConfigModule } from './common/config/runtime-config.module';
+import { DocumentAccessRealtimeModule } from './modules/document-access-realtime/document-access-realtime.module';
 
 @Module({
   imports: [
+    TaskSyncModule,
     RuntimeConfigModule,
     PrismaModule,
+    ChannelAccessModule,
+    PrivateChannelModule,
     ChannelModule,
     SpaceModule,
     InvitationModule,
@@ -35,8 +44,9 @@ import { RuntimeConfigModule } from './common/config/runtime-config.module';
     DirectConversationModule,
     DirectMessageModule,
     UserProfileSnapshotModule,
+    DocumentAccessRealtimeModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: JwtIdentityGuard }],
 })
 export class AppModule {}

@@ -84,7 +84,7 @@ function FloatingMeetingReaction({
   return (
     <span
       aria-hidden="true"
-      className="meeting-room-floating-reaction absolute z-30 grid h-12 w-12 select-none place-items-center rounded-full bg-black/24 text-3xl shadow-[0_16px_38px_rgba(0,0,0,0.28)] ring-1 ring-white/20 backdrop-blur"
+      className="meeting-room-floating-reaction absolute z-30 grid h-12 w-12 select-none place-items-center rounded-full bg-overlay/24 text-3xl ring-1 ring-border/20 shadow-panel"
       style={style}
     >
       {reaction.emoji}

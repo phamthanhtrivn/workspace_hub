@@ -132,7 +132,6 @@ export function toTaskResponse(
     completedBy: task.completedBy,
     deletedAt: task.deletedAt,
     rank: task.rank,
-    archived: task.archived,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     checklists:

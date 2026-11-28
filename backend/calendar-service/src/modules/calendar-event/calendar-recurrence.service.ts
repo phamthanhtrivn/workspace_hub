@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { reminderSchedule } from './reminder-schedule';
 import {
   AttendeeResponseStatus,
   EventStatus,
   Prisma,
-  ReminderDeliveryStatus,
 } from '@prisma/client';
 import { RRuleSet, rrulestr } from 'rrule';
 import {
@@ -224,6 +224,20 @@ export class CalendarRecurrenceService {
       .join(';')}`;
   }
 
+  includesOccurrence(
+    rule: string,
+    seriesStart: Date,
+    timeZone: string,
+    occurrenceStart: Date,
+  ): boolean {
+    const target = this.toFloatingDate(occurrenceStart, timeZone);
+    const candidate = this.createRuleSet(rule, seriesStart, timeZone).after(
+      target,
+      true,
+    );
+    return candidate?.getTime() === target.getTime();
+  }
+
   private getOccurrenceStarts(
     root: RecurrenceTemplate,
     through: Date,
@@ -300,6 +314,7 @@ export class CalendarRecurrenceService {
             title: root.title,
             description: root.description,
             location: root.location,
+            conferenceEnabled: root.conferenceEnabled,
             startAt: occurrenceStart,
             endAt: occurrenceEnd,
             allDay: root.allDay,
@@ -341,10 +356,7 @@ export class CalendarRecurrenceService {
               eventId: occurrence.id,
               minutesBefore: reminder.minutesBefore,
               method: reminder.method,
-              scheduledAt: new Date(
-                occurrenceStart.getTime() - reminder.minutesBefore * 60_000,
-              ),
-              deliveryStatus: ReminderDeliveryStatus.PENDING,
+              ...reminderSchedule(occurrenceStart, reminder.minutesBefore),
             })),
           });
         }

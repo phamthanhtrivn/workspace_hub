@@ -1,3 +1,5 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
+import { CreateChannelDto } from '../channel/dto/create-channel.dto';
 import {
   Controller,
   Delete,
@@ -10,10 +12,13 @@ import {
   Patch,
   ParseUUIDPipe,
   Query,
-  Put,
   UnauthorizedException,
+  ValidationPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import { SpaceService } from './space.service';
+import { SpaceMemberCandidatesService } from './space-member-candidates.service';
+import { SpaceMemberCandidatesQueryDto } from './dto/space-member-candidates-query.dto';
 import {
   SPACE_ERROR_MESSAGES,
   SPACE_SUCCESS_MESSAGES_LABEL,
@@ -31,6 +36,7 @@ export class SpaceController {
   constructor(
     private readonly spaceService: SpaceService,
     private readonly config: RuntimeConfigService,
+    private readonly memberCandidates: SpaceMemberCandidatesService,
   ) {}
   @Post()
   async createSpace(
@@ -59,8 +65,25 @@ export class SpaceController {
     };
   }
 
-  @Post('project')
-  async ensureProjectSpace(@Body() body: EnsureProjectSpaceDto) {
+  @Get('unread-summary')
+  async getUnreadSummary(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+    const summary = await this.spaceService.getUnreadSummary(userId);
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.LISTED,
+      data: summary,
+    };
+  }
+
+  @IndependentAuthentication()
+  @Post('internal/project')
+  async ensureProjectSpace(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() body: EnsureProjectSpaceDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
     const result = await this.spaceService.ensureProjectSpace(body);
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CREATED,
@@ -68,6 +91,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Get('internal/project/:projectId')
   async getProjectSpaceStatus(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -81,6 +105,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/project/:projectId/task-channel')
   async ensureTaskChannel(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -100,6 +125,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/project/:projectId/task-thread')
   async ensureTaskThread(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -113,6 +139,7 @@ export class SpaceController {
       status?: string;
       priority?: string;
       dueDate?: string;
+      version?: string;
     },
   ) {
     this.assertInternalServiceKey(serviceKey);
@@ -125,6 +152,7 @@ export class SpaceController {
       body.status,
       body.priority,
       body.dueDate,
+      body.version,
     );
     return {
       message: 'Task thread retrieved successfully',
@@ -132,6 +160,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Patch('internal/project/:projectId/name')
   async renameProjectSpaceFromProject(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -227,6 +256,22 @@ export class SpaceController {
     };
   }
 
+  @Get(':spaceId/member-candidates')
+  async getMemberCandidates(
+    @Headers('x-user-id') userId: string,
+    @Param('spaceId', ParseUUIDPipe) spaceId: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: SpaceMemberCandidatesQueryDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.MEMBERS_LISTED,
+      data: await this.memberCandidates.getCandidates(userId, spaceId, query),
+    };
+  }
+
   @Patch(':spaceId/transfer-ownership')
   async transferSpaceOwnership(
     @Headers('x-user-id') userId: string,
@@ -316,7 +361,7 @@ export class SpaceController {
   async createChannel(
     @Headers('x-user-id') userId: string,
     @Param('spaceId') spaceId: string,
-    @Body() body: { name: string },
+    @Body() body: CreateChannelDto,
   ) {
     if (!userId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_USER_ID);
@@ -328,6 +373,7 @@ export class SpaceController {
       userId,
       spaceId,
       body.name,
+      body,
     );
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CHANNEL_CREATED,
@@ -446,7 +492,7 @@ export class SpaceController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+    if (!isServiceKeyValid(serviceKey, this.config.projectCallerKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }

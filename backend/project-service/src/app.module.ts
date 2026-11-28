@@ -1,3 +1,4 @@
+import { WorkAssistantModule } from './modules/work-assistant/work-assistant.controller';
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtIdentityGuard } from "./common/guards/jwt-identity.guard";
@@ -21,6 +22,7 @@ import { UserProfileSnapshotModule } from "./modules/user-profile-snapshot/user-
 
 @Module({
   imports: [
+    WorkAssistantModule,
     RuntimeConfigModule,
     PrismaModule,
     ProjectKafkaModule,

@@ -33,6 +33,7 @@ export class CalendarNotificationService {
   }
 
   async notifyAttendeeResponse(params: {
+    deliveryId?: string;
     eventTitle: string;
     eventId: string;
     recipientId: string;
@@ -64,6 +65,7 @@ export class CalendarNotificationService {
       content: `${displayName} has ${actionText} the event: ${params.eventTitle}`,
       link: `/calendar?event=${params.eventId}`,
       metadata: {
+        ...(params.deliveryId ? { deliveryId: params.deliveryId } : {}),
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         responseStatus: params.status,
@@ -72,6 +74,7 @@ export class CalendarNotificationService {
   }
 
   async notifyEventInvitation(params: {
+    deliveryId?: string;
     eventTitle: string;
     eventId: string;
     recipientId: string;
@@ -95,6 +98,7 @@ export class CalendarNotificationService {
       content: `${displayName} invited you to the event: ${params.eventTitle}`,
       link: `/calendar?event=${params.eventId}`,
       metadata: {
+        ...(params.deliveryId ? { deliveryId: params.deliveryId } : {}),
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         type: 'INVITATION',
@@ -103,6 +107,7 @@ export class CalendarNotificationService {
   }
 
   async notifyEventCancellation(params: {
+    deliveryId?: string;
     eventTitle: string;
     eventId: string;
     recipientId: string;
@@ -126,6 +131,7 @@ export class CalendarNotificationService {
       content: `${displayName} cancelled the event: ${params.eventTitle}`,
       link: '/calendar',
       metadata: {
+        ...(params.deliveryId ? { deliveryId: params.deliveryId } : {}),
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         type: 'CANCELLATION',
@@ -134,6 +140,7 @@ export class CalendarNotificationService {
   }
 
   async notifyAttendeeRemoval(params: {
+    deliveryId?: string;
     eventTitle: string;
     eventId: string;
     recipientId: string;
@@ -157,6 +164,7 @@ export class CalendarNotificationService {
       content: `${displayName} removed you from the event: ${params.eventTitle}`,
       link: '/calendar',
       metadata: {
+        ...(params.deliveryId ? { deliveryId: params.deliveryId } : {}),
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         type: 'ATTENDEE_REMOVED',
@@ -165,6 +173,7 @@ export class CalendarNotificationService {
   }
 
   async notifyEventUpdate(params: {
+    deliveryId?: string;
     eventTitle: string;
     eventId: string;
     recipientId: string;
@@ -188,6 +197,7 @@ export class CalendarNotificationService {
       content: `${displayName} updated the event: ${params.eventTitle}`,
       link: `/calendar?event=${params.eventId}`,
       metadata: {
+        ...(params.deliveryId ? { deliveryId: params.deliveryId } : {}),
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         type: 'EVENT_UPDATED',

@@ -46,5 +46,6 @@ export enum UserDeviceKeyword {
 }
 
 export const USER_SETTING_STALE_TIME_MS = 1000 * 60 * 5;
+export const USER_SETTING_SAVE_ERROR = "Failed to save settings";
 
 export const OTP_RESEND_COOLDOWN_SEC = 60;

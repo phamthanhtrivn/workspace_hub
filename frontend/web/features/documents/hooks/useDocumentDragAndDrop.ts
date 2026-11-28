@@ -1,40 +1,61 @@
 "use client";
 
-import { useSensors, useSensor, PointerSensor, DragEndEvent } from "@dnd-kit/core";
-import { DND_ROOT_ID } from "../types/documents.constants";
+import {
+  useSensors,
+  useSensor,
+  PointerSensor,
+  KeyboardSensor,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import type { DocumentItem } from "../types/documents.types";
+import type {
+  DocumentDragData,
+  DocumentDropData,
+  DocumentDropDestination,
+} from "../types/document-bulk.types";
+import { getDocumentDropBlockReason } from "../utils/document-bulk";
 import { toast } from "sonner";
+import { DOCUMENT_BULK_MESSAGES as M } from "../types/document-bulk.types";
 
 export interface UseDocumentDragAndDropOptions {
-  onMoveItem: (itemId: string, targetFolderId: string | null) => Promise<any>;
+  onDropItems: (
+    items: DocumentItem[],
+    destination: DocumentDropDestination,
+  ) => void;
 }
 
-export function useDocumentDragAndDrop({ onMoveItem }: UseDocumentDragAndDropOptions) {
+export function useDocumentDragAndDrop({
+  onDropItems,
+}: UseDocumentDragAndDropOptions) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
       },
-    })
+    }),
+    useSensor(KeyboardSensor),
   );
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = String(active.id);
-    const overId = String(over.id);
+    const source = active.data.current as DocumentDragData | undefined;
+    const destination = over.data.current as DocumentDropData | undefined;
+    if (!source?.items?.length || !destination?.document) return;
+    const reason =
+      destination.blockedReason ??
+      getDocumentDropBlockReason(
+        source.items,
+        destination.document,
+        destination.ancestorIds,
+      );
+    if (reason || !destination.canDrop) {
+      toast.info(reason ?? M.DROP_UNAVAILABLE);
 
-    if (activeId === overId) return;
-
-    try {
-      if (overId === DND_ROOT_ID) {
-        await onMoveItem(activeId, null);
-      } else {
-        await onMoveItem(activeId, overId);
-      }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to move item via drag and drop");
+      return;
     }
+    onDropItems(source.items, destination.document);
   };
 
   return {

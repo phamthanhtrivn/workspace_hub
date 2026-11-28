@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { featureSyncRequest } from "@/lib/api-error-policy";
 import {
   ApiResponse,
   ApiPagination,
@@ -17,81 +18,137 @@ import {
   RecurrenceScope,
 } from "../types/calendar.types";
 
-export async function getCalendarPomodoroTimerState() {
-  const response = await api.get<ApiResponse<CalendarPomodoroTimerState | null>>(
-    "/api/calendar/pomodoro/state",
-  );
+export async function getCalendarPomodoroTimerState(signal?: AbortSignal) {
+  const response = await api.get<
+    ApiResponse<CalendarPomodoroTimerState | null>
+  >("/api/calendar/pomodoro/state", featureSyncRequest(signal));
+
   return unwrap(response);
 }
 
 export async function saveCalendarPomodoroTimerState(
-  state: Omit<CalendarPomodoroTimerState, "version" | "updatedAt" | "status"> & {
+  state: Omit<
+    CalendarPomodoroTimerState,
+    "version" | "updatedAt" | "status"
+  > & {
     status: "IDLE" | "RUNNING" | "PAUSED";
     expectedVersion: number;
   },
+  signal?: AbortSignal,
 ) {
   const response = await api.put<ApiResponse<CalendarPomodoroTimerState>>(
-    "/api/calendar/pomodoro/state", state,
+    "/api/calendar/pomodoro/state",
+    state,
+    featureSyncRequest(signal),
   );
+
   return unwrap(response);
 }
 
 export async function clearCalendarPomodoroTimerState(expectedVersion: number) {
   const response = await api.delete<ApiResponse<CalendarPomodoroTimerState>>(
-    "/api/calendar/pomodoro/state", { data: { expectedVersion } },
+    "/api/calendar/pomodoro/state",
+    { ...featureSyncRequest(), data: { expectedVersion } },
   );
+
+  return unwrap(response);
+}
+
+export interface CalendarTodaySummary {
+  eventsTodayCount: number;
+  tasksDueTodayCount: number;
+  totalTodayCount: number;
+}
+
+export async function getCalendarTodaySummary(
+  startAt: string,
+  endAt: string,
+  signal?: AbortSignal,
+): Promise<CalendarTodaySummary> {
+  const response = await api.get<ApiResponse<CalendarTodaySummary>>(
+    "/api/calendar/events/today-summary",
+    { params: { startAt, endAt }, signal },
+  );
+
   return unwrap(response);
 }
 
 export async function getCalendarPomodoroConfig(signal?: AbortSignal) {
   const response = await api.get<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config", { signal },
+    "/api/calendar/pomodoro/config",
+    featureSyncRequest(signal),
   );
+
   return unwrap(response);
 }
 
-export async function saveCalendarPomodoroConfig(config: CalendarPomodoroConfig, signal?: AbortSignal) {
+export async function saveCalendarPomodoroConfig(
+  config: CalendarPomodoroConfig,
+  signal?: AbortSignal,
+) {
   const response = await api.put<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config", config, { signal },
+    "/api/calendar/pomodoro/config",
+    config,
+    featureSyncRequest(signal),
   );
+
   return unwrap(response);
 }
 
-export async function getCalendarPomodoroDailyStats(date?: string, timeZone?: string) {
+export async function getCalendarPomodoroDailyStats(
+  date?: string,
+  timeZone?: string,
+) {
   const response = await api.get<ApiResponse<CalendarPomodoroDailyStats>>(
-    "/api/calendar/pomodoro/stats/daily", { params: { date, timeZone } },
+    "/api/calendar/pomodoro/stats/daily",
+    { ...featureSyncRequest(), params: { date, timeZone } },
   );
+
   return unwrap(response);
 }
 
-export async function listCalendarPomodoroSessions(params: {
-  startAt: string;
-  endAt: string;
-  eventId?: string;
-  taskId?: string;
-  page?: number;
-  limit?: number;
-}, signal?: AbortSignal) {
-  const response = await api.get<ApiResponse<{
-    sessions: CalendarPomodoroSession[];
-    summary: { focusSeconds: number; completedFocusSessions: number };
-    pagination: ApiPagination;
-  }>>("/api/calendar/pomodoro/sessions", { params, signal });
+export async function listCalendarPomodoroSessions(
+  params: {
+    startAt: string;
+    endAt: string;
+    eventId?: string;
+    taskId?: string;
+    page?: number;
+    limit?: number;
+  },
+  signal?: AbortSignal,
+) {
+  const response = await api.get<
+    ApiResponse<{
+      sessions: CalendarPomodoroSession[];
+      summary: { focusSeconds: number; completedFocusSessions: number };
+      pagination: ApiPagination;
+    }>
+  >("/api/calendar/pomodoro/sessions", {
+    ...featureSyncRequest(signal),
+    params,
+  });
+
   return unwrap(response);
 }
 
 export async function getTodayCalendarPomodoroSessions(timeZone?: string) {
   const response = await api.get<ApiResponse<CalendarPomodoroSession[]>>(
-    "/api/calendar/pomodoro/sessions/today", { params: { timeZone } },
+    "/api/calendar/pomodoro/sessions/today",
+    { ...featureSyncRequest(), params: { timeZone } },
   );
+
   return unwrap(response);
 }
 
 export async function getCalendarPomodoroSessions(eventId: string) {
   const startAt = new Date();
   startAt.setDate(startAt.getDate() - 90);
+
   return listCalendarPomodoroSessions({
-    eventId, startAt: startAt.toISOString(), endAt: new Date().toISOString(),
+    eventId,
+    startAt: startAt.toISOString(),
+    endAt: new Date().toISOString(),
   });
 }
 
@@ -112,8 +169,11 @@ export async function createCalendarPomodoroSession(payload: {
   interruptionReason?: string;
 }) {
   const response = await api.post<ApiResponse<CalendarPomodoroSession>>(
-    "/api/calendar/pomodoro/sessions", payload,
+    "/api/calendar/pomodoro/sessions",
+    payload,
+    featureSyncRequest(),
   );
+
   return unwrap(response);
 }
 
@@ -129,6 +189,7 @@ export async function getCalendars(): Promise<WorkspaceCalendar[]> {
   const response = await api.get<ApiResponse<WorkspaceCalendar[]>>(
     "/api/calendar/calendars",
   );
+
   return unwrap(response) || [];
 }
 
@@ -139,6 +200,7 @@ export async function createCalendar(
     "/api/calendar/calendars",
     payload,
   );
+
   return unwrap(response);
 }
 
@@ -150,6 +212,7 @@ export async function updateCalendar(
     `/api/calendar/calendars/${calendarId}`,
     payload,
   );
+
   return unwrap(response);
 }
 
@@ -181,13 +244,15 @@ export async function getCalendarEvents(
   return events;
 }
 
-export async function getCalendarTasks(
-  params?: { page?: number; limit?: number },
-): Promise<{ items: CalendarEvent[]; pagination?: ApiPagination }> {
+export async function getCalendarTasks(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<{ items: CalendarEvent[]; pagination?: ApiPagination }> {
   const response = await api.get<ApiResponse<CalendarEvent[]>>(
     "/api/calendar/events/tasks",
     { params },
   );
+
   return {
     items: unwrap(response) || [],
     pagination: response.data?.pagination,
@@ -219,6 +284,7 @@ export async function getCalendarEvent(
   const response = await api.get<ApiResponse<CalendarEvent>>(
     `/api/calendar/events/${eventId}`,
   );
+
   return unwrap(response);
 }
 
@@ -229,6 +295,7 @@ export async function createCalendarEvent(
     "/api/calendar/events",
     payload,
   );
+
   return unwrap(response);
 }
 
@@ -240,6 +307,7 @@ export async function updateCalendarEvent(
     `/api/calendar/events/${eventId}`,
     payload,
   );
+
   return unwrap(response);
 }
 
@@ -251,6 +319,7 @@ export async function updateCalendarTaskCompletion(
     `/api/calendar/events/${eventId}/completion`,
     { completed },
   );
+
   return unwrap(response);
 }
 
@@ -261,6 +330,7 @@ export async function updateCalendarTaskOrder(
     "/api/calendar/events/task-order",
     { eventIds },
   );
+
   return unwrap(response);
 }
 
@@ -283,5 +353,9 @@ export async function updateCalendarEventResponse(
     `/api/calendar/events/${eventId}/response`,
     { responseStatus },
   );
+
   return unwrap(response);
 }
+
+export const retryCalendarConference = async (eventId: string) =>
+  api.post(`/api/calendar/events/${eventId}/conference/retry`);

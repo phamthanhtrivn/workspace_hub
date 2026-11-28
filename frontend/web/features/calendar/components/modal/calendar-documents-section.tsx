@@ -1,20 +1,15 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useQueries } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Download,
-  FileText,
-  Loader2,
-  Paperclip,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { Download, FileText, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
 import { CalendarDocumentPickerDialog } from "./calendar-document-picker-dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 interface CalendarDocumentsSectionProps {
   documentIds: string[];
@@ -68,8 +63,8 @@ export function CalendarDocumentsSection({
           ? "File attached"
           : `${uploadedIds.length} files attached`,
       );
-    } catch {
-      toast.error("Failed to upload and attach files");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to upload and attach files"));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -93,8 +88,8 @@ export function CalendarDocumentsSection({
     try {
       const url = await documentsApi.getDownloadUrl(documentId);
       window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Failed to open document");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open document"));
     }
   };
 
@@ -110,11 +105,11 @@ export function CalendarDocumentsSection({
   return (
     <div className="space-y-2">
       {!hideHeader && (
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-1.5 text-xs font-bold tracking-wide text-slate-500">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
             <FileText className="h-3.5 w-3.5" />
             Attachments
-            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
               {documentIds.length}
             </span>
           </h3>
@@ -127,16 +122,16 @@ export function CalendarDocumentsSection({
                 className="hidden"
                 onChange={(event) => void handleUploadFiles(event.target.files)}
               />
-              <Button
+              <Button aria-busy={isUploading || undefined}
                 type="button"
                 size="sm"
                 variant="outline"
                 disabled={isBusy}
                 onClick={() => fileInputRef.current?.click()}
-                className="h-7 rounded-lg px-2 text-xs"
+                className="h-7 rounded-control px-2 text-xs"
               >
                 {isUploading ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  <Spinner size={14} className="mr-1" />
                 ) : (
                   <Upload className="mr-1 h-3.5 w-3.5" />
                 )}
@@ -148,7 +143,7 @@ export function CalendarDocumentsSection({
                 variant="outline"
                 disabled={isBusy}
                 onClick={() => setShowPickerModal(true)}
-                className="h-7 rounded-lg px-2 text-xs"
+                className="h-7 rounded-control px-2 text-xs"
               >
                 My Files
               </Button>
@@ -159,7 +154,7 @@ export function CalendarDocumentsSection({
 
       {documentIds.length === 0 ? (
         !isReadOnly && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-center text-xs text-slate-400">
+          <div className="rounded-panel border border-dashed border-border bg-background px-3 py-3 text-center text-xs text-muted-foreground">
             No files attached.
           </div>
         )
@@ -176,22 +171,22 @@ export function CalendarDocumentsSection({
             return (
               <div
                 key={id}
-                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs"
+                className="flex items-center gap-2 rounded-panel border border-border bg-card px-3 py-2"
               >
-                <FileText className="h-4 w-4 shrink-0 text-[#0052CC]" />
+                <FileText className="h-4 w-4 shrink-0 text-info-content" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold text-slate-800">
+                  <p className="truncate text-xs font-semibold text-foreground">
                     {fileName}
                   </p>
                   {fileSize && (
-                    <p className="text-[11px] text-slate-400">{fileSize}</p>
+                    <p className="text-xs text-muted-foreground">{fileSize}</p>
                   )}
                 </div>
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                  className="h-7 w-7 rounded-control text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => void handleDownload(id)}
                   title="Download / View"
                   aria-label="Download"
@@ -204,7 +199,7 @@ export function CalendarDocumentsSection({
                     size="icon"
                     variant="ghost"
                     disabled={isBusy}
-                    className="h-7 w-7 rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    className="h-7 w-7 rounded-control text-destructive-content hover:bg-destructive-soft hover:text-destructive-content"
                     onClick={() => handleRemove(id)}
                     title="Remove"
                     aria-label="Remove"

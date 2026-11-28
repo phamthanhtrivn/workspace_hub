@@ -1,18 +1,21 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { MeetingUserAvatar } from "../common/meeting-user-avatar";
+import { IconButton } from "@/components/ui/icon-button";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
+import { useScheduleToday } from "@/hooks/use-schedule-today";
+import { Temporal } from "temporal-polyfill";
+import { fromZonedDateTimeInput, toZonedDateTimeInput } from "@/lib/timezone";
+import { MIN_SCHEDULED_MEETING_DURATION_MS } from "../../types/meeting.constants";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ChevronDown,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Search,
-  User,
-  X,
-} from "lucide-react";
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, Eye, EyeOff, Lock, Search, X } from "lucide-react";
+
+import { useEffect, useId, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -42,13 +45,16 @@ import {
   useUpdateScheduledMeeting,
 } from "../../hooks/useScheduledMeetings";
 import {
-  scheduleMeetingSchema,
+  createScheduleMeetingSchema,
   type ScheduleMeetingValues,
 } from "../../schemas/schedule-meeting.schema";
 import type {
   MeetingParticipantResponse,
   UpcomingMeetingItem,
 } from "../../types/meeting.types";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface MeetingTimeOption {
   value: string;
@@ -99,15 +105,11 @@ function useMeetingInviteeSearch(query: string) {
 }
 
 function toDateTimeLocal(value: Date | string): string {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "";
-
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return toZonedDateTimeInput(value);
 }
 
-function fromDateTimeLocal(value: string): string {
-  return new Date(value).toISOString();
+function fromDateTimeLocal(value: string, originalInstant?: string | null): string {
+  return fromZonedDateTimeInput(value, undefined, originalInstant);
 }
 
 function getDateInputValue(value: string): string {
@@ -123,18 +125,16 @@ function composeDateTimeLocal(date: string, time: string): string {
 }
 
 function addMinutesToDateTimeLocal(value: string, minutes: number): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  date.setMinutes(date.getMinutes() + minutes);
-  return toDateTimeLocal(date);
+  try { return Temporal.PlainDateTime.from(value).add({ minutes }).toString({ smallestUnit: "minute" }); }
+  catch { return value; }
 }
 
-function formatTime(date: Date): string {
+function formatTime(clock: string): string {
   return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  }).format(new Date(`2000-01-01T${clock}:00Z`));
 }
 
 function formatDuration(minutes: number): string {
@@ -163,12 +163,10 @@ function createStartTimeOptions(currentTime?: string): MeetingTimeOption[] {
   }
 
   return values.map((minutes) => {
-    const date = new Date(2000, 0, 1, 0, minutes);
+    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     return {
-      value: `${String(date.getHours()).padStart(2, "0")}:${String(
-        date.getMinutes(),
-      ).padStart(2, "0")}`,
-      label: formatTime(date),
+      value: clock,
+      label: formatTime(clock),
     };
   });
 }
@@ -177,8 +175,8 @@ function createEndTimeOptions(
   startAt: string,
   currentEndAt: string,
 ): MeetingTimeOption[] {
-  const start = new Date(startAt);
-  const currentEnd = new Date(currentEndAt);
+  const start = new Date(`${startAt}Z`);
+  const currentEnd = new Date(`${currentEndAt}Z`);
   if (Number.isNaN(start.getTime())) return [];
 
   const durations = [...MEETING_DURATION_OPTIONS];
@@ -191,24 +189,23 @@ function createEndTimeOptions(
   }
 
   return durations.map((minutes) => {
-    const end = new Date(start.getTime() + minutes * 60_000);
+    const endValue = addMinutesToDateTimeLocal(startAt, minutes);
     return {
-      value: toDateTimeLocal(end),
-      label: `${formatTime(end)} (${formatDuration(minutes)})`,
+      value: endValue,
+      label: `${formatTime(getTimeInputValue(endValue))} (${formatDuration(minutes)})`,
     };
   });
 }
 
 function createDefaultScheduleValues(): ScheduleMeetingValues {
-  const start = new Date();
-  start.setDate(start.getDate() + 1);
-  start.setMinutes(0, 0, 0);
-  start.setHours(Math.max(9, start.getHours() + 1));
+  const localNow = toDateTimeLocal(new Date());
+  const hour = Math.min(23, Math.max(9, Number(localNow.slice(11, 13)) + 1));
+  const start = `${localNow.slice(0, 10)}T${String(hour).padStart(2, "0")}:00`;
 
   return {
     title: DEFAULT_SCHEDULED_MEETING_TITLE,
-    scheduledStartAt: toDateTimeLocal(start),
-    scheduledEndAt: addMinutesToDateTimeLocal(toDateTimeLocal(start), 60),
+    scheduledStartAt: start,
+    scheduledEndAt: addMinutesToDateTimeLocal(start, 60),
     recurrenceRule: null,
     description: "",
     inviteeIds: [],
@@ -217,6 +214,8 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
     hasExistingPassword: false,
     autoAdmit: false,
     chatEnabled: true,
+    autoRecord: false,
+    recordingLayout: "grid",
     screenShareEnabled: true,
   };
 }
@@ -246,6 +245,8 @@ function createScheduleValuesFromMeeting(
     hasExistingPassword: meeting.requiresPassword,
     autoAdmit: meeting.autoAdmit,
     chatEnabled: meeting.chatEnabled,
+    autoRecord: meeting.autoRecord ?? false,
+    recordingLayout: "grid",
     screenShareEnabled: meeting.screenShareEnabled,
   };
 }
@@ -266,6 +267,7 @@ export function ScheduleMeetingModal({
   meeting,
   onClose,
 }: ScheduleMeetingModalProps) {
+  useAccountTimezone();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const createMeeting = useCreateScheduledMeeting();
   const updateMeeting = useUpdateScheduledMeeting(meeting?.joinToken ?? "");
@@ -274,10 +276,12 @@ export function ScheduleMeetingModal({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const isEditing = Boolean(meeting);
+  const id = useId();
+  const { today, refreshToday } = useScheduleToday();
   const { data: inviteeResults = [], isFetching } =
     useMeetingInviteeSearch(inviteeQuery);
   const form = useForm<ScheduleMeetingValues>({
-    resolver: zodResolver(scheduleMeetingSchema),
+    resolver: zodResolver(createScheduleMeetingSchema(isEditing ? "edit" : "create")),
     defaultValues: createDefaultScheduleValues(),
   });
   const values = useWatch({ control: form.control }) as ScheduleMeetingValues;
@@ -285,21 +289,20 @@ export function ScheduleMeetingModal({
     () => new Set(values.inviteeIds),
     [values.inviteeIds],
   );
-  const startTimeOptions = useMemo(
-    () =>
-      createStartTimeOptions(
-        getTimeInputValue(values.scheduledStartAt),
-      ),
-    [values.scheduledStartAt],
-  );
-  const endTimeOptions = useMemo(
-    () =>
-      createEndTimeOptions(
-        values.scheduledStartAt,
-        values.scheduledEndAt,
-      ),
-    [values.scheduledEndAt, values.scheduledStartAt],
-  );
+  const bounds = getDateRangeBounds({ start: values.scheduledStartAt, end: values.scheduledEndAt,
+    mode: isEditing ? "edit" : "create", today, minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS });
+  const startTimeOptions = useMemo(() => createStartTimeOptions(getTimeInputValue(values.scheduledStartAt))
+    .map(option => ({ ...option, disabled: hasDateRangeErrors(getDateRangeErrors({
+      start: composeDateTimeLocal(getDateInputValue(values.scheduledStartAt), option.value),
+      end: values.scheduledEndAt, mode: isEditing ? "edit" : "create", today,
+      minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS,
+    })) })), [values.scheduledStartAt, values.scheduledEndAt, isEditing, today]);
+  const endTimeOptions = useMemo(() => createEndTimeOptions(values.scheduledStartAt, values.scheduledEndAt)
+    .filter(option => !hasDateRangeErrors(getDateRangeErrors({ start: values.scheduledStartAt, end: option.value,
+      mode: "edit", minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS }))),
+    [values.scheduledStartAt, values.scheduledEndAt]);
+  const startError = form.formState.errors.scheduledStartAt?.message;
+  const endError = form.formState.errors.scheduledEndAt?.message;
   const isSubmitting = isEditing ? updateMeeting.isPending : createMeeting.isPending;
 
   useEffect(() => {
@@ -338,29 +341,26 @@ export function ScheduleMeetingModal({
   const removeInvitee = (userId: string) => {
     updateInvitees(selectedUsers.filter((user) => user.id !== userId));
   };
+  const updateRange = (start: string, end: string, field: "scheduledStartAt" | "scheduledEndAt") => {
+    const errors = getDateRangeErrors({ start, end, mode: isEditing ? "edit" : "create", today: refreshToday(),
+      minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS });
+    if (hasDateRangeErrors(errors)) {
+      const message = errors.start || errors.end!;
+      form.setError(field, { type: "validate", message });
+      toast.error(message);
+      return;
+    }
+    form.clearErrors(["scheduledStartAt", "scheduledEndAt"]);
+    form.setValue("scheduledStartAt", start, { shouldDirty: true });
+    form.setValue("scheduledEndAt", end, { shouldDirty: true });
+    void form.trigger(["scheduledStartAt", "scheduledEndAt"]);
+  };
   const updateStartDate = (date: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      date,
-      getTimeInputValue(values.scheduledStartAt),
-    );
-    form.setValue("scheduledStartAt", nextStartAt, { shouldDirty: true });
-    form.setValue(
-      "scheduledEndAt",
-      addMinutesToDateTimeLocal(nextStartAt, 60),
-      { shouldDirty: true, shouldValidate: true },
-    );
+    updateRange(date ? composeDateTimeLocal(date, getTimeInputValue(values.scheduledStartAt)) : "",
+      date ? values.scheduledEndAt : "", "scheduledStartAt");
   };
   const updateStartTime = (time: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      getDateInputValue(values.scheduledStartAt),
-      time,
-    );
-    form.setValue("scheduledStartAt", nextStartAt, { shouldDirty: true });
-    form.setValue(
-      "scheduledEndAt",
-      addMinutesToDateTimeLocal(nextStartAt, 60),
-      { shouldDirty: true, shouldValidate: true },
-    );
+    updateRange(composeDateTimeLocal(getDateInputValue(values.scheduledStartAt), time), values.scheduledEndAt, "scheduledStartAt");
   };
   const onSubmit = form.handleSubmit(
     async (formValues) => {
@@ -372,14 +372,16 @@ export function ScheduleMeetingModal({
           : undefined;
       const payload = {
         title: formValues.title.trim(),
-        scheduledStartAt: fromDateTimeLocal(formValues.scheduledStartAt),
-        scheduledEndAt: fromDateTimeLocal(formValues.scheduledEndAt),
+        scheduledStartAt: fromDateTimeLocal(formValues.scheduledStartAt, meeting?.scheduledStartAt),
+        scheduledEndAt: fromDateTimeLocal(formValues.scheduledEndAt, meeting?.scheduledEndAt),
         recurrenceRule: null,
         description: formValues.description.trim() || null,
         inviteeIds: formValues.inviteeIds,
         password,
         autoAdmit: formValues.autoAdmit,
         chatEnabled: formValues.chatEnabled,
+        autoRecord: formValues.autoRecord,
+        recordingLayout: "grid" as const,
         screenShareEnabled: formValues.screenShareEnabled,
       };
 
@@ -409,15 +411,16 @@ export function ScheduleMeetingModal({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
-        className="max-w-2xl overflow-y-auto p-0 text-[#172B4D]"
+        className={`${dialogLayout.surface} max-w-2xl overflow-y-auto p-0 text-foreground`}
         showCloseButton={false}
       >
       <form
         onSubmit={onSubmit}
-        className="max-h-[92dvh] overflow-y-auto"
+        onFocusCapture={refreshToday}
+        className="flex min-h-0 max-h-[inherit] flex-col"
       >
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-200 px-5 py-4">
-          <DialogTitle className="text-lg font-black">
+        <DialogHeader className="flex shrink-0 flex-row flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
+          <DialogTitle className="text-section-title font-semibold">
             {isEditing ? "Edit meeting" : "Schedule a meeting"}
           </DialogTitle>
           <MeetingIconButton
@@ -427,108 +430,119 @@ export function ScheduleMeetingModal({
           />
         </DialogHeader>
 
-        <div className="space-y-5 px-5 py-5">
+        <div className={`${dialogLayout.body} space-y-5 px-5 py-5`}>
           <MeetingInput
             {...form.register("title")}
             autoFocus
             placeholder="Meeting title"
-            className="h-12 w-full border-0 border-b border-slate-200 px-0 text-xl font-black outline-none placeholder:text-slate-400 focus:border-[#0052CC]"
+            className="h-12 w-full border-0 border-b border-border px-0 text-xl font-semibold outline-none placeholder:text-muted-foreground"
           />
 
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
             <label className="space-y-1.5">
-              <span className="text-xs font-black uppercase text-slate-400">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Date
               </span>
-              <MeetingInput
-                type="date"
+              <CustomDatePicker
+                disabled={isSubmitting}
+                ariaLabel="Meeting date"
+                required
+                allowClear
+                min={bounds.startMin?.slice(0, 10)}
+                max={bounds.startMax?.slice(0, 10)}
+                invalid={Boolean(startError)}
+                descriptionId={startError ? id + "-start-error" : undefined}
                 value={getDateInputValue(values.scheduledStartAt)}
-                onChange={(event) => updateStartDate(event.target.value)}
-                className="h-10 w-full cursor-pointer rounded-lg border border-slate-200 px-3 text-sm font-bold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+                onChange={updateStartDate}
+                triggerClassName="h-10"
               />
+              {startError && <p id={id + "-start-error"} role="alert" className="text-xs text-destructive-content">{startError}</p>}
             </label>
             <label className="space-y-1.5">
-              <span className="text-xs font-black uppercase text-slate-400">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Start time
               </span>
               <MeetingSelect
+                disabled={isSubmitting || !values.scheduledStartAt}
+                invalid={Boolean(startError)}
+                descriptionId={startError ? id + "-start-error" : undefined}
                 value={getTimeInputValue(values.scheduledStartAt)}
                 ariaLabel="Start time"
                 onChange={updateStartTime}
                 options={startTimeOptions}
-                triggerClassName="h-10 rounded-lg border-slate-200"
+                triggerClassName="h-10 rounded-lg border-input"
               />
             </label>
             <label className="space-y-1.5">
-              <span className="text-xs font-black uppercase text-slate-400">
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
                 End time
               </span>
               <MeetingSelect
+                disabled={isSubmitting || !values.scheduledStartAt}
+                invalid={Boolean(endError)}
+                descriptionId={endError || !values.scheduledStartAt ? id + "-end-description" : undefined}
                 value={values.scheduledEndAt}
                 ariaLabel="End time"
                 onChange={(nextValue) =>
-                  form.setValue("scheduledEndAt", nextValue, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
+                  updateRange(values.scheduledStartAt, nextValue, "scheduledEndAt")
                 }
                 options={endTimeOptions}
-                triggerClassName="h-10 rounded-lg border-slate-200"
+                triggerClassName="h-10 rounded-lg border-input"
               />
+              {(endError || !values.scheduledStartAt) && <p id={id + "-end-description"} role={endError ? "alert" : undefined}
+                className="text-xs text-muted-foreground">{endError || DATE_RANGE_MESSAGES.startRequired}</p>}
             </label>
           </div>
 
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-black uppercase text-slate-400">
+              <label className="text-xs font-semibold uppercase text-muted-foreground">
                 Invite people
               </label>
               {isEditing ? (
-                <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
                   Calendar events auto-sync guests
                 </span>
               ) : null}
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 z-10 h-4 w-4 text-muted-foreground" />
               <MeetingInput
                 value={inviteeQuery}
                 onChange={(event) => setInviteeQuery(event.target.value)}
                 placeholder="Search people..."
-                className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm font-semibold outline-none placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+                className="h-10 w-full rounded-control border border-border pl-9 pr-3 text-sm font-semibold outline-none placeholder:text-muted-foreground"
               />
             </div>
             {inviteeQuery.trim() ? (
-              <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200">
+              <div className="max-h-44 overflow-y-auto rounded-lg border border-border">
                 {isFetching ? (
-                  <div className="px-3 py-3 text-sm font-semibold text-slate-400">
-                    Searching...
-                  </div>
+                  <LoadingState label="Searching..." className="px-3 py-3 text-sm font-semibold text-muted-foreground" />
                 ) : inviteeResults.length === 0 ? (
-                  <div className="px-3 py-3 text-sm font-semibold text-slate-400">
+                  <div className="px-3 py-3 text-sm font-semibold text-muted-foreground">
                     No results
                   </div>
                 ) : (
                   inviteeResults
                     .filter((user) => user.id !== currentUserId)
                     .map((user) => (
-                      <button
+                      <Button variant="unstyled"
                         key={user.id}
                         type="button"
                         disabled={selectedUserIds.has(user.id)}
                         onClick={() => addInvitee(user)}
-                        className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Avatar user={user} />
                         <span className="min-w-0">
-                          <span className="block truncate text-sm font-bold">
+                          <span className="block truncate text-sm font-semibold">
                             {user.fullName || user.email}
                           </span>
-                          <span className="block truncate text-xs font-semibold text-slate-400">
+                          <span className="block truncate text-xs font-semibold text-muted-foreground">
                             {user.email}
                           </span>
                         </span>
-                      </button>
+                      </Button>
                     ))
                 )}
               </div>
@@ -538,20 +552,20 @@ export function ScheduleMeetingModal({
                 {selectedUsers.map((user) => (
                   <span
                     key={user.id}
-                    className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1 pr-2 text-xs font-bold"
+                    className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background py-1 pl-1 pr-2 text-xs font-semibold"
                   >
                     <Avatar user={user} size={24} />
                     <span className="max-w-36 truncate">
                       {user.fullName || user.email}
                     </span>
-                    <button
+                    <IconButton label="Delete" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => removeInvitee(user.id)}
-                      className="cursor-pointer text-slate-400 hover:text-slate-700"
+                      className="cursor-pointer text-muted-foreground hover:text-foreground"
                       aria-label="Delete"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </IconButton>
                   </span>
                 ))}
               </div>
@@ -562,23 +576,23 @@ export function ScheduleMeetingModal({
             {...form.register("description")}
             rows={3}
             placeholder="Description"
-            className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold outline-none placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+            className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm font-semibold outline-none placeholder:text-muted-foreground"
           />
 
           <section className="space-y-3">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setOptionsOpen((current) => !current)}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg px-1 py-2 text-sm font-black text-slate-600"
+              className="flex w-full cursor-pointer items-center justify-between rounded-control px-1 py-2 text-sm font-semibold text-muted-foreground"
             >
               Meeting options
               <ChevronDown
                 className={`h-4 w-4 transition ${optionsOpen ? "rotate-180" : ""}`}
               />
-            </button>
+            </Button>
             {optionsOpen ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">
                   <Checkbox
                     checked={values.requirePassword}
                     onCheckedChange={(checked) =>
@@ -588,8 +602,8 @@ export function ScheduleMeetingModal({
                       })
                     }
                   />
-                  <Lock className="h-4 w-4 text-[#0052CC]" />
-                  <span className="text-sm font-black">
+                  <Lock className="h-4 w-4 text-info-content" />
+                  <span className="text-sm font-semibold">
                     Require password
                   </span>
                 </div>
@@ -600,23 +614,23 @@ export function ScheduleMeetingModal({
                         type={showPassword ? "text" : "password"}
                         {...form.register("password")}
                         placeholder="Meeting password"
-                        className="h-10 w-full rounded-lg border border-slate-200 px-3 pr-11 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+                        className="h-10 w-full rounded-control border border-border px-3 pr-11 text-sm font-semibold outline-none"
                       />
                       <MeetingIconButton
                         label={showPassword ? "Hide meeting password" : "Show meeting password"}
                         icon={showPassword ? EyeOff : Eye}
                         onClick={() => setShowPassword((current) => !current)}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                        className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2"
                       />
                     </div>
                     {isEditing && values.hasExistingPassword ? (
-                      <p className="text-xs font-semibold leading-5 text-slate-500">
+                      <p className="text-xs font-semibold leading-5 text-muted-foreground">
                         Leave this blank to keep the current meeting password.
                       </p>
                     ) : null}
                   </div>
                 ) : isEditing && values.hasExistingPassword ? (
-                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-700 ring-1 ring-amber-100">
+                  <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs font-semibold leading-5 text-warning-content ring-1 ring-warning-outline">
                     The current password will be removed when you save.
                   </p>
                 ) : null}
@@ -640,12 +654,17 @@ export function ScheduleMeetingModal({
                     })
                   }
                 />
+                <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                  <Checkbox checked={values.autoRecord}
+                    onCheckedChange={(checked) => form.setValue("autoRecord", checked, { shouldDirty: true })} />
+                  Automatically record when the host joins
+                </label>
               </div>
             ) : null}
           </section>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 flex-wrap">
           <MeetingButton
             type="button"
             tone="ghost"
@@ -654,12 +673,12 @@ export function ScheduleMeetingModal({
           >
             Cancel
           </MeetingButton>
-          <MeetingButton
+          <MeetingButton aria-busy={isSubmitting || undefined}
             type="submit"
             disabled={isSubmitting}
             className="cursor-pointer"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isSubmitting ? <Spinner tone="inherit" /> : null}
             {isEditing ? "Update" : "Schedule"}
           </MeetingButton>
         </DialogFooter>
@@ -678,23 +697,18 @@ function Avatar({
 }) {
   return (
     <span
-      className="grid shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100"
+      className="grid shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
       style={{ width: size, height: size }}
     >
-      {user.avatarUrl ? (
-        <Image
-          src={user.avatarUrl}
-          alt={user.fullName || user.email}
-          width={size}
-          height={size}
-          unoptimized
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <User className="h-4 w-4 text-slate-400" />
-      )}
+      <MeetingUserAvatar
+        userId={user.id}
+        src={user?.avatarUrl}
+        alt={user?.fullName || user?.email}
+        width={size}
+        height={size}
+        className="h-full w-full object-cover"
+      />
     </span>
   );
 }
-
 

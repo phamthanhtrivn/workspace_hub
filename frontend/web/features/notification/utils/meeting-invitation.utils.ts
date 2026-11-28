@@ -1,3 +1,4 @@
+import { formatInTimezone } from "@/lib/timezone";
 import {
   NotificationType,
   type MeetingInvitationMetadata,
@@ -45,12 +46,12 @@ export function formatMeetingRange(
     return "Time not set";
   }
 
-  return `${start.toLocaleDateString(undefined, {
+  return `${formatInTimezone(start, "en-US", {
     dateStyle: "medium",
-  })}, ${start.toLocaleTimeString(undefined, {
+  })}, ${formatInTimezone(start, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })} - ${end.toLocaleTimeString(undefined, {
+  })} - ${formatInTimezone(end, "en-US", {
     hour: "2-digit",
     minute: "2-digit",
   })}`;

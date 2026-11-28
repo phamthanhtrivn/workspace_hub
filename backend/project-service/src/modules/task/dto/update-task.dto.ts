@@ -45,10 +45,6 @@ export class UpdateTaskDto {
   rank?: string;
 
   @OptionalField()
-  @IsBoolean()
-  archived?: boolean;
-
-  @OptionalField()
   @IsUUID()
   parentTaskId?: string;
 

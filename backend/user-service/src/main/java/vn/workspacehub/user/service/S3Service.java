@@ -8,6 +8,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 
 import java.time.Duration;
@@ -22,17 +24,12 @@ public class S3Service {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
-    @Value("${aws.s3.region}")
-    private String region;
-
-    @Value("${aws.s3.cloudfront-url:}")
-    private String cloudfrontUrl;
-
-    public PresignedUrlResponse generatePresignedUrl(String objectKey, String contentType) {
+    public PresignedUrlResponse generatePresignedUrl(String objectKey, String contentType, long sizeBytes, String uploadId) {
         PutObjectRequest objectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectKey)
                 .contentType(contentType)
+                .contentLength(sizeBytes)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -46,15 +43,20 @@ public class S3Service {
         String fileUrl = generateFileUrl(objectKey);
 
         return PresignedUrlResponse.builder()
+                .uploadId(uploadId)
                 .presignedUrl(presignedUrl)
                 .fileUrl(fileUrl)
                 .build();
     }
 
-    private String generateFileUrl(String objectKey) {
-        if (cloudfrontUrl != null && !cloudfrontUrl.isEmpty()) {
-            return cloudfrontUrl.endsWith("/") ? cloudfrontUrl + objectKey : cloudfrontUrl + "/" + objectKey;
-        }
-        return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + objectKey;
+    public String generateFileUrl(String objectKey) {
+        return AvatarStorageKeys.reference(objectKey);
+    }
+
+    public String generateAvatarReadUrl(String key) {
+        return s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofSeconds(AvatarStorageKeys.READ_TTL_SECONDS))
+                .getObjectRequest(GetObjectRequest.builder().bucket(bucketName).key(key).build()).build())
+                .url().toString();
     }
 }

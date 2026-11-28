@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ForbiddenException,
+  NotFoundException,
   Inject,
   Injectable,
   forwardRef,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
@@ -65,7 +67,7 @@ export class NoteService {
     });
 
     if (!note) {
-      throw new Error(NOTE_ERROR_MESSAGES.NOT_FOUND);
+      throw new NotFoundException(NOTE_ERROR_MESSAGES.NOT_FOUND);
     }
     await this.assertNoteChannelMember(
       note.message.channelId,
@@ -74,7 +76,7 @@ export class NoteService {
     );
 
     if (note.createdBy !== userId) {
-      throw new Error(NOTE_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
+      throw new ForbiddenException(NOTE_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
     }
 
     await this.prisma.note.update({

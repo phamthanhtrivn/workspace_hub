@@ -15,6 +15,17 @@ public class EmailService {
     private final JavaMailSender javaMailSender;
 
     @Async
+    public void sendVerificationEmail(String recipient, String code) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(recipient);
+            message.setSubject("Verify your email - Workspace Hub");
+            message.setText("Your email verification code is: " + code + "\nThis code expires in 10 minutes. If you did not request it, ignore this email.");
+            javaMailSender.send(message);
+        } catch (Exception failure) { log.warn("Email verification delivery failed"); }
+    }
+
+    @Async
     public void sendOtpEmail(String toEmail, String otpCode) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

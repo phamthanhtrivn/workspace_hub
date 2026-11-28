@@ -32,6 +32,13 @@ export enum MESSAGE_SUCCESS_MESSAGES {
 }
 
 export enum MESSAGE_ERROR_MESSAGES {
+  EDIT_OWNER_REQUIRED = 'You can only edit your own messages',
+  RECALL_OWNER_REQUIRED = 'You can only recall your own messages',
+  MODIFY_OWNER_REQUIRED = 'You can only modify your own messages',
+  TEXT_EDIT_REQUIRED = 'Only text messages can be edited',
+  CONTENT_REQUIRED = 'Message content cannot be empty',
+  EDIT_WINDOW_EXPIRED = 'Messages can only be edited within 24 hours',
+  RECALL_WINDOW_EXPIRED = 'Messages can only be recalled within 24 hours',
   NOT_MEMBER_OF_CONVERSATION = 'You are not a member of this conversation',
   NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
   NOT_MEMBER_OF_SPACE = 'You are not a member of this space',
@@ -45,7 +52,6 @@ export enum MESSAGE_ERROR_MESSAGES {
   PIN_DISABLED = 'Message pinning is disabled in this channel',
   ALREADY_PINNED = 'Message is already pinned',
   NOT_PINNED = 'Message is not pinned',
-  NOT_FOUND_SIMPLE = 'Message not found',
   MISSING_CHANNEL_ID = 'Missing channelId',
   MISSING_MESSAGE_ID = 'Missing messageId',
   MISSING_USER_ID = 'Missing userId',

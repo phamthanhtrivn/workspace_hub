@@ -1,19 +1,20 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, UseInterceptors } from '@nestjs/common';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { isUUID } from 'class-validator';
 import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { SocketEventEmitter } from '../socket/services/socket-event-emitter';
+import { claimUserEvent, InvalidUserEvent, type UserEventEnvelope } from '../../infrastructure/kafka/user-event-policy';
+import { UserEventInterceptor } from '../../infrastructure/kafka/user-event.interceptor';
 
-interface DirectMessagePrivacyEvent {
-  userId: string;
+interface DirectMessagePrivacyEvent extends UserEventEnvelope {
   allowNewDirectMessages: boolean;
 }
 
 @Controller()
+@UseInterceptors(UserEventInterceptor)
 export class DirectMessagePrivacyConsumer {
-  private readonly logger = new Logger(DirectMessagePrivacyConsumer.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -29,11 +30,12 @@ export class DirectMessagePrivacyConsumer {
       !isUUID(event.userId) ||
       typeof event.allowNewDirectMessages !== 'boolean'
     ) {
-      this.logger.warn('Ignoring invalid direct message privacy event');
-      return;
+      throw new InvalidUserEvent('Invalid direct message privacy event');
     }
 
-    const conversations = await this.prisma.directConversation.findMany({
+    const conversations = await this.prisma.$transaction(async (tx) => {
+      if (!(await claimUserEvent(tx, KAFKA_CONFIG.DIRECT_MESSAGE_PRIVACY_TOPIC, event))) return [];
+      return tx.directConversation.findMany({
       where: {
         participants: { some: { userId: event.userId } },
         messages: { none: {} },
@@ -42,6 +44,7 @@ export class DirectMessagePrivacyConsumer {
         id: true,
         participants: { select: { userId: true } },
       },
+      });
     });
 
     for (const conversation of conversations) {

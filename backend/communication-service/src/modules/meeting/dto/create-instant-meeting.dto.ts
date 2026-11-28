@@ -6,6 +6,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import { MeetingRecordingOptionsDto } from './meeting-recording-options.dto';
 
 export class MeetingDeviceSettingsDto {
   @IsBoolean()
@@ -23,7 +24,7 @@ export class MeetingDeviceSettingsDto {
   microphoneDeviceId?: string;
 }
 
-export class CreateInstantMeetingDto {
+export class CreateInstantMeetingDto extends MeetingRecordingOptionsDto {
   @IsOptional()
   @IsString()
   @MaxLength(128)

@@ -38,11 +38,13 @@ export function useRecordingEvents(
     if (!token || !enabled) return;
     const socket = socketService.connect(token) as unknown as Socket;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let stopped = false;
     const refresh = () => {
+      if (stopped) return;
       if (!timer)
         timer = setTimeout(() => {
           timer = undefined;
-          onChange();
+          if (!stopped) onChange();
         }, 100);
     };
     const handleRoom = (payload: { meetingId: string }) => {
@@ -58,7 +60,18 @@ export function useRecordingEvents(
     const roomEvents = [
       "meeting:recording_updated",
       "meeting:host_transferred",
+      "meeting:recording_request_updated",
+      "meeting:participant_left",
+      "meeting:participant_removed",
     ];
+    const handleEnded = (payload: { meetingId: string }) => {
+      if (payload.meetingId !== meetingId) return;
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+    const handleExit = (payload: { meetingId: string; userId: string }) => {
+      if (payload.userId === userId) handleEnded(payload);
+    };
     const userEvents = [
       "meeting:recording_ready",
       "meeting:recording_failed",
@@ -70,12 +83,18 @@ export function useRecordingEvents(
     socket.on("meeting:recording_permission_updated", handlePermission);
     socket.on("meeting:participant_updated", handlePermission);
     socket.on("connect", refresh);
+    socket.on("meeting:ended", handleEnded);
+    socket.on("meeting:participant_left", handleExit);
+    socket.on("meeting:participant_removed", handleExit);
     return () => {
       roomEvents.forEach((event) => socket.off(event, handleRoom));
       userEvents.forEach((event) => socket.off(event, refresh));
       socket.off("meeting:recording_permission_updated", handlePermission);
       socket.off("meeting:participant_updated", handlePermission);
       socket.off("connect", refresh);
+      socket.off("meeting:ended", handleEnded);
+      socket.off("meeting:participant_left", handleExit);
+      socket.off("meeting:participant_removed", handleExit);
       if (timer) clearTimeout(timer);
     };
   }, [token, meetingId, onChange, userId, enabled]);

@@ -1,0 +1,388 @@
+import base64
+from collections import OrderedDict
+from concurrent.futures import Future
+import hashlib
+import math
+import os
+import threading
+import time
+from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5, uuid4
+
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.utils import get_tokenizer
+from qdrant_client import QdrantClient, models
+
+from .policy import MAX_SOURCE_TOKENS, bounded_text, query_terms, reciprocal_rank
+from .rerank import bm25_order, rerank_candidates
+from .errors import InvalidSource, ValidationBusy
+from .prepared import PreparedCache
+from .source_parser import SourceParser
+from .profiling import profile, Profile
+from .visual import IMAGE_TYPES, VisualExtractor, enabled as visual_enabled, open_image
+from .api_embeddings import ApiEmbeddings, GeminiEmbeddings
+from .vector_cache import VectorCache
+from .manifests import ManifestStore, document_filter
+from .document_locks import document_lock, scope_lock
+
+
+class Engine:
+    def __init__(self, model_name: str | None = None, provider: str | None = None):
+        self.client = QdrantClient(url=os.environ.get("QDRANT_URL", "http://localhost:6333"),
+                                   api_key=os.environ.get("QDRANT_API_KEY") or None, timeout=20)
+        self.provider = provider or os.environ.get("EMBEDDING_PROVIDER", "local")
+        self.model_name = model_name or os.environ.get("EMBEDDING_MODEL", "intfloat/multilingual-e5-small")
+        self.local_files_only = provider == "local"
+        self.model = None
+        self.model_lock = threading.Lock()
+        self.index_lock = threading.Lock()
+        self.collection_lock = threading.Lock()
+        self.api_embeddings = GeminiEmbeddings(
+            os.environ.get("EMBEDDING_API_KEY", ""), self.model_name,
+            int(os.environ.get("EMBEDDING_MAX_CONCURRENCY", "5")),
+            int(os.environ.get("EMBEDDING_DIMENSIONS", "768")),
+        ) if self.provider == "gemini" else ApiEmbeddings(
+            os.environ.get("EMBEDDING_BASE_URL", ""), os.environ.get("EMBEDDING_API_KEY", ""), self.model_name,
+            int(os.environ.get("EMBEDDING_MAX_CONCURRENCY", "5")),
+        ) if self.provider == "api" else None
+        self.prepared_cache = PreparedCache()
+        self.readiness_lock = threading.Lock()
+        self.embedding_verified = False
+        self.query_lock = threading.Lock()
+        self.query_vectors = OrderedDict()
+        self.query_flights = {}
+        self.tokenizer = get_tokenizer()
+        self.parser = SourceParser(self.tokenizer)
+        self.splitter = SentenceSplitter(chunk_size=384, chunk_overlap=48, tokenizer=self.tokenizer)
+        signature = f"text-pdf-v2:{self.provider}:{self.model_name}:384:48:{os.environ.get('INDEX_PIPELINE_VERSION', 'notebook-v1')}"
+        if self.api_embeddings:
+            signature += ":api-v2:" + self.api_embeddings.endpoint
+            if self.provider == "gemini":
+                signature += f":retrieval-v1:{self.api_embeddings.dimensions}"
+                if self.model_name == "gemini-embedding-2":
+                    signature += ":search-result-prefix-v1"
+        self.collection = "wh_notebook_" + hashlib.sha256(signature.encode()).hexdigest()[:16]
+        self.vector_cache = VectorCache(os.environ.get('EMBEDDING_CACHE_PATH', '/models/embedding-cache.sqlite3'))
+        self.manifests = ManifestStore(self.client)
+
+    def embed(self, texts: list[str], query=False) -> list[list[float]]:
+        if self.api_embeddings:
+            return self.api_embeddings.embed(texts, query=query)
+        if self.provider != "local":
+            raise ValueError("Unsupported embedding provider")
+        with self.model_lock:
+            if self.model is None:
+                from sentence_transformers import SentenceTransformer
+                self.model = SentenceTransformer(self.model_name, device=os.environ.get("EMBEDDING_DEVICE", "cpu"),
+                                                 trust_remote_code=False, local_files_only=self.local_files_only)
+            prefix = ("query: " if query else "passage: ") if "e5" in self.model_name else ""
+            return self.model.encode([prefix + text for text in texts], batch_size=16,
+                                     normalize_embeddings=True, show_progress_bar=False).tolist()
+
+    def parse(self, name: str, content: str | bytes) -> list[tuple[str, int | None]]:
+        return self.parser.parse(name, content)
+
+    def ready(self):
+        self.client.get_collections()
+        if visual_enabled() and not getattr(self, "ocr_verified", False):
+            import subprocess
+            languages = subprocess.run(["tesseract", "--list-langs"], capture_output=True, timeout=5, check=True).stdout.decode()
+            if not {"vie", "eng"}.issubset(set(languages.split())):
+                raise RuntimeError("Vietnamese/English OCR language packs unavailable")
+            self.ocr_verified = True
+        if self.embedding_verified:
+            return [self.model_name]
+        if not self.readiness_lock.acquire(blocking=False):
+            raise RuntimeError("Embedding warm-up in progress")
+        try:
+            if not self.embedding_verified:
+                with profile("embedding_warmup") as timing, timing.measure("embedding_ms"):
+                    vectors = self.embed(["Service readiness probe."], query=True)
+                    if len(vectors) != 1 or not vectors[0] or not all(math.isfinite(v) for v in vectors[0]):
+                        raise RuntimeError("Invalid embedding probe")
+                self.embedding_verified = True
+        finally:
+            self.readiness_lock.release()
+        return [self.model_name]
+
+    def prepare(self, scope_id: str, name: str, content: str, timing: Profile):
+        with timing.measure("decode_hash_ms"):
+            try:
+                data = base64.b64decode(content, validate=True)
+            except ValueError as error:
+                raise InvalidSource("Invalid file encoding") from error
+            if not data or len(data) > 20 * 1024 * 1024:
+                raise InvalidSource("File exceeds 20 MiB or is empty")
+            key = (scope_id, self.collection, Path(name).suffix.lower(), hashlib.sha256(data).digest())
+        cached = self.prepared_cache.get(key)
+        timing.metrics["prepare_cache_hit"] = int(cached is not None)
+        timing.metrics["input_bytes"] = len(data)
+        if cached is not None:
+            return cached
+        with timing.measure("parse_ms"):
+            pages = self.parse(name, data)
+        with timing.measure("chunk_ms"):
+            chunks = [(part, page) for text, page in pages for part in self.splitter.split_text(text) if part.strip()]
+        if not chunks or len(chunks) > 2000:
+            raise InvalidSource("Empty or oversized index")
+        self.prepared_cache.put(key, chunks)
+        return tuple(chunks)
+
+    def validate(self, name: str, content: str, scope_id: str):
+        if not self.index_lock.acquire(blocking=False):
+            raise ValidationBusy()
+        try:
+            if visual_enabled() and Path(name).suffix.lower() in (*IMAGE_TYPES, ".pdf"):
+                return self.validate_visual(name, content)
+            # Identical parser/chunk limits to indexing, but never embed or write vectors.
+            with profile("validate") as timing:
+                chunks = self.prepare(scope_id, name, content, timing)
+                timing.metrics["chunk_count"] = len(chunks)
+                return {"chunkCount": len(chunks)}
+        finally:
+            self.index_lock.release()
+
+    def validate_visual(self, name, content):
+        import io
+        from pypdf import PdfReader
+        from pypdf.errors import PdfReadError
+        try:
+            data = base64.b64decode(content, validate=True)
+            if not data or len(data) > 20 * 1024 * 1024:
+                raise InvalidSource("Empty or oversized source")
+            suffix = Path(name).suffix.lower()
+            if suffix in IMAGE_TYPES:
+                with open_image(data, suffix):
+                    pass
+                return {"chunkCount": 0, "deferred": True}
+            pdf = PdfReader(io.BytesIO(data))
+            if pdf.is_encrypted:
+                raise InvalidSource("Encrypted PDF", "PDF_ENCRYPTED")
+            if not pdf.pages or len(pdf.pages) > 100:
+                raise InvalidSource("Invalid page count", "PDF_PAGE_LIMIT")
+            tokens = 0
+            for page in pdf.pages:
+                text = page.extract_text() or ""
+                if text.strip():
+                    bounded_text(text)
+                tokens += len(self.tokenizer(text))
+                if tokens > MAX_SOURCE_TOKENS:
+                    raise InvalidSource("Source token limit", "SOURCE_TOKEN_LIMIT")
+            return {"chunkCount": 0, "deferred": True}
+        except InvalidSource:
+            raise
+        except (ValueError, PdfReadError, OSError) as error:
+            raise InvalidSource("Invalid visual source") from error
+
+    def extract(self, name, content):
+        acquired = self.index_lock.acquire(timeout=180) if self.api_embeddings else self.index_lock.acquire(blocking=False)
+        if not acquired:
+            raise ValidationBusy()
+        try:
+            data = base64.b64decode(content, validate=True)
+            if not data or len(data) > 20 * 1024 * 1024:
+                raise InvalidSource("Empty or oversized source")
+            result = (VisualExtractor(self.parse).extract(name, data) if visual_enabled() else
+                      {'pages': [{'text': text, 'page': page} for text, page in self.parse(name, data)], 'images': []})
+            texts = "\n".join(page["text"] for page in result["pages"])
+            if texts.strip():
+                bounded_text(texts)
+            if sum(len(self.tokenizer(page["text"])) for page in result["pages"]) > MAX_SOURCE_TOKENS:
+                raise InvalidSource("Source token limit", "SOURCE_TOKEN_LIMIT")
+            if not texts.strip() and not result["images"]:
+                raise InvalidSource("Source has no readable content")
+            return result
+        finally:
+            self.index_lock.release()
+
+    def scope_filter(self, scope_id: str, source_ids: list[str] | None = None, active=True, collection=None):
+        return document_filter(getattr(self, 'manifests', None), collection or self.collection,
+                               scope_id, source_ids, active)
+
+    def index(self, scope_id: str, source_id: str, revision: str, name: str, content: str, pages=None, visuals=None):
+        # CPU parsers stay serialized. API embedding waits must not hold this lock.
+        with profile("index") as timing:
+            started = time.perf_counter()
+            with self.index_lock:
+                timing.metrics["index_lock_ms"] = (time.perf_counter() - started) * 1000
+                if not self.api_embeddings:
+                    return self._index(scope_id, source_id, revision, name, content, timing, pages, visuals)
+                chunks = self._index_chunks(scope_id, name, content, timing, pages, visuals)
+            return self._index(scope_id, source_id, revision, name, content, timing, pages, visuals, chunks)
+
+    def _index_chunks(self, scope_id, name, content, timing, pages=None, visuals=None):
+        if pages is None:
+            chunks = [(text, page, None) for text, page in self.prepare(scope_id, name, content, timing)]
+        else:
+            records = sorted([*pages, *(visuals or [])], key=lambda item: item.get("page") or 0)
+            text = bounded_text("\n".join(item["text"] for item in records))
+            if len(self.tokenizer(text)) > MAX_SOURCE_TOKENS:
+                raise InvalidSource("Enriched source token limit", "SOURCE_TOKEN_LIMIT")
+            chunks = [(part, item.get("page"), item.get("imageId")) for item in records
+                      for part in self.splitter.split_text(item["text"]) if part.strip()]
+            if not chunks or len(chunks) > 2000:
+                raise InvalidSource("Empty or oversized index")
+        return chunks
+
+    def _index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
+        with scope_lock(scope_id, self.collection), document_lock(scope_id, source_id, self.collection):
+            return self._stage_index(scope_id, source_id, revision, name, content, timing, pages, visuals, chunks)
+
+    def _stage_index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
+        if chunks is None:
+            chunks = self._index_chunks(scope_id, name, content, timing, pages, visuals)
+        timing.metrics["chunk_count"] = len(chunks)
+        if getattr(self, 'vector_cache', None) and self.client.collection_exists(self.collection):
+            offset = None
+            while True:
+                previous, offset = self.client.scroll(
+                    self.collection, scroll_filter=self.scope_filter(scope_id, [source_id]),
+                    with_vectors=True, limit=128, offset=offset,
+                )
+                self.vector_cache.put(scope_id, self.collection, [(point.payload['text'], point.vector) for point in previous])
+                if offset is None:
+                    break
+        with timing.measure("embedding_ms"):
+            first = self.embed_documents(scope_id, [text for text, _, _ in chunks[:16]], timing)
+        with timing.measure("qdrant_ms"):
+            with self.collection_lock:
+                self._ensure_collection(len(first[0]))
+        generation = str(uuid4())
+        for start in range(0, len(chunks), 16):
+            batch = chunks[start:start + 16]
+            with timing.measure("embedding_ms"):
+                vectors = first if start == 0 else self.embed_documents(scope_id, [text for text, _, _ in batch], timing)
+            points = [models.PointStruct(id=str(uuid5(NAMESPACE_URL, f"{scope_id}:{source_id}:{generation}:{start+i}")), vector=vector,
+                payload={"scopeId": scope_id, "sourceId": source_id, "revision": revision, "text": text, "page": page, "position": start + i,
+                         'generation': generation,
+                         **({"imageId": image_id} if image_id else {})})
+                for i, ((text, page, image_id), vector) in enumerate(zip(batch, vectors, strict=True))]
+            with timing.measure("qdrant_ms"):
+                self.client.upsert(self.collection, points, wait=True)
+        if getattr(self, 'manifests', None):
+            staged = self.scope_filter(scope_id, [source_id], active=False)
+            staged.must.append(models.FieldCondition(key='generation', match=models.MatchValue(value=generation)))
+            if self.client.count(self.collection, count_filter=staged, exact=True).count != len(chunks):
+                raise RuntimeError('Staged document index is incomplete')
+            self.manifests.put(scope_id, source_id, self.collection,
+                               generation=generation, revision=revision, chunkCount=len(chunks))
+            obsolete = self.scope_filter(scope_id, [source_id], active=False)
+            obsolete.must_not = [models.FieldCondition(key='generation', match=models.MatchValue(value=generation))]
+            self.client.delete(self.collection, points_selector=models.FilterSelector(filter=obsolete), wait=True)
+        embedding_seconds = timing.metrics["embedding_ms"] / 1000
+        timing.metrics["embedding_chunks_per_sec"] = len(chunks) / embedding_seconds if embedding_seconds else 0
+        return {"chunkCount": len(chunks), "embeddingCache": {
+            'hits': int(timing.metrics.get('embedding_cache_hits', 0)),
+            'misses': int(timing.metrics.get('embedding_cache_misses', 0)),
+        }}
+
+    def embed_documents(self, scope_id, texts, timing):
+        cache = getattr(self, 'vector_cache', None)
+        if cache is None:
+            return self.embed(texts)
+        vectors, hits, misses = cache.embed(scope_id, self.collection, texts, self.embed)
+        timing.metrics['embedding_cache_hits'] = timing.metrics.get('embedding_cache_hits', 0) + hits
+        timing.metrics['embedding_cache_misses'] = timing.metrics.get('embedding_cache_misses', 0) + misses
+        return vectors
+
+    def close(self):
+        if self.api_embeddings:
+            self.api_embeddings.close()
+        if getattr(self, 'vector_cache', None):
+            self.vector_cache.close()
+
+    def _ensure_collection(self, dimensions):
+        if not self.client.collection_exists(self.collection):
+            self.client.create_collection(self.collection, vectors_config=models.VectorParams(size=dimensions, distance=models.Distance.COSINE))
+            self.client.create_payload_index(self.collection, "scopeId", models.PayloadSchemaType.KEYWORD)
+            self.client.create_payload_index(self.collection, "sourceId", models.PayloadSchemaType.KEYWORD)
+            self.client.create_payload_index(self.collection, "text", models.TextIndexParams(type="text", tokenizer=models.TokenizerType.MULTILINGUAL, lowercase=True))
+
+    @staticmethod
+    def evidence(point):
+        payload = point.payload
+        return {"id": str(point.id), "sourceId": payload["sourceId"], "text": payload["text"],
+                "page": payload.get("page"), "position": payload["position"],
+                **({"imageId": payload["imageId"]} if payload.get("imageId") else {})}
+
+    def query_vector(self, question: str):
+        # Cache model output only, never document hits or authorization decisions.
+        key = hashlib.sha256(question.encode()).digest()
+        with self.query_lock:
+            cached = self.query_vectors.pop(key, None)
+            if cached and time.monotonic() - cached[0] < 120:
+                self.query_vectors[key] = cached
+                return list(cached[1])
+            pending = self.query_flights.get(key)
+            owner = pending is None
+            if owner:
+                pending = self.query_flights[key] = Future()
+        if not owner:
+            return list(pending.result())
+        try:
+            vector = tuple(self.embed([question], query=True)[0])
+            with self.query_lock:
+                self.query_vectors[key] = (time.monotonic(), vector)
+                while len(self.query_vectors) > 128:
+                    self.query_vectors.popitem(last=False)
+            pending.set_result(vector)
+            return list(vector)
+        except BaseException as error:
+            pending.set_exception(error)
+            raise
+        finally:
+            with self.query_lock:
+                del self.query_flights[key]
+
+    def retrieve(self, scope_id: str, source_ids: list[str], question: str):
+        if not self.client.collection_exists(self.collection):
+            raise ValueError("Index pipeline changed; re-index sources")
+        filter_ = self.scope_filter(scope_id, source_ids)
+        if self.client.count(self.collection, count_filter=filter_, exact=True).count == 0:
+            return {'evidence': []}
+        dense = self.client.query_points(self.collection, query=self.query_vector(question),
+            query_filter=filter_, limit=12, with_payload=True).points
+        terms = query_terms(question)
+        lexical = []
+        if terms:
+            lexical_filter = models.Filter(must=filter_.must, should=[models.FieldCondition(key="text", match=models.MatchText(text=term)) for term in terms])
+            lexical, _ = self.client.scroll(self.collection, scroll_filter=lexical_filter, limit=64, with_vectors=False)
+        by_id = {str(p.id): p for p in [*dense, *lexical]}
+        dense_ids = [str(p.id) for p in dense]
+        lexical_ids = bm25_order(question, [(str(p.id), self.evidence(p)["text"]) for p in lexical])
+        candidates = reciprocal_rank(dense_ids, lexical_ids, limit=24)
+        ranked = rerank_candidates(question, [(key, self.evidence(by_id[key])["text"]) for key in candidates])
+        result = []; budget = 0
+        for key in ranked:
+            item = self.evidence(by_id[key]); size = len(item["text"].encode())
+            if budget + size > 16000:
+                continue
+            result.append(item); budget += size
+        return {"evidence": result}
+
+    def chunks(self, scope_id: str, source_ids: list[str]):
+        if not self.client.collection_exists(self.collection):
+            raise ValueError("Index unavailable; re-index sources")
+        result = []; offset = None
+        while True:
+            points, offset = self.client.scroll(self.collection, scroll_filter=self.scope_filter(scope_id, source_ids),
+                limit=128, offset=offset, with_vectors=False)
+            result.extend(self.evidence(point) for point in points)
+            if len(result) > 10000:
+                raise ValueError("Index exceeds source limit")
+            if offset is None:
+                break
+        return {"evidence": sorted(result, key=lambda item: (item["sourceId"], item["position"]))}
+
+    def delete(self, scope_id: str, source_id: str | None = None, clear_prepared=True):
+        # A source-level delete must not interleave with indexing the same source (same lock as _index).
+        with scope_lock(scope_id, self.collection, deleting=source_id is None, cleanup=True), document_lock(scope_id, source_id, self.collection):
+            if clear_prepared:
+                self.prepared_cache.clear_scope(scope_id)
+                if source_id is None and getattr(self, 'vector_cache', None):
+                    self.vector_cache.clear_scope(scope_id)
+            if self.client.collection_exists(self.collection):
+                self.client.delete(self.collection, points_selector=models.FilterSelector(filter=self.scope_filter(scope_id, [source_id] if source_id else None, active=False)), wait=True)
+            if getattr(self, 'manifests', None):
+                self.manifests.delete(scope_id, source_id, self.collection)
+        return {"ok": True}

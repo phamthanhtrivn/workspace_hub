@@ -1,10 +1,18 @@
+import { reserveImportedAttachments } from '../../media/imported-attachment-reservation';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MeetingRole, MessageType } from '@prisma/client';
+import {
+  MeetingParticipantStatus,
+  MeetingRole,
+  MeetingStatus,
+  MessageType,
+} from '@prisma/client';
+import { CHAT_CONTEXT_TYPE } from '../../../common/types/chat.enums';
 import { getMediaType, mapMediaWithUrl } from '../../../common/utils/file.util';
 import { S3Service } from '../../../infrastructure/s3/s3.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -27,6 +35,13 @@ import type {
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
 import { MESSAGE_UPDATE_WINDOW_MS } from '../types/meeting.constants';
+import {
+  DELIVERY_CONFLICT,
+  recordMessageDelivery,
+  reserveMessageDelivery,
+  type MessageDeliveryIdentity,
+} from '../../../common/utils/message-delivery';
+import { parseClientRequestId } from '../../../common/dto/message-delivery.dto';
 
 @Injectable()
 export class MeetingMessageService {
@@ -117,12 +132,18 @@ export class MeetingMessageService {
       });
     const content = dto.content?.trim() ?? '';
     const medias = dto.medias ?? [];
+    const requestId = parseClientRequestId(dto.clientRequestId);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId: userId,
+          requestId,
+          chatId: meeting.id,
+          chatType: 'MEETING',
+          payload: { content, ...(medias.length ? { medias } : {}) },
+        }
+      : undefined;
 
-    if (!meeting.chatEnabled && participant.role === MeetingRole.PARTICIPANT) {
-      throw new ForbiddenException(
-        MEETING_ERROR_MESSAGES.MEETING_CHAT_DISABLED,
-      );
-    }
+    this.assertChatEnabled(meeting.chatEnabled, participant.role);
 
     if (!content && medias.length === 0) {
       throw new BadRequestException(
@@ -130,7 +151,68 @@ export class MeetingMessageService {
       );
     }
 
+    if (medias.length)
+      await this.s3Service.assertAttachments(medias, {
+        actorId: userId,
+        referenceId: meeting.id,
+        chatType: CHAT_CONTEXT_TYPE.MEETING,
+      });
+
     const createdMessage = await this.prisma.$transaction(async (tx) => {
+      // Conditional Prisma updates serialize with room end and participant removal.
+      const activeMeeting = await tx.meeting.updateMany({
+        where: { id: meeting.id, status: MeetingStatus.LIVE },
+        data: { status: MeetingStatus.LIVE },
+      });
+      if (!activeMeeting.count)
+        throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+      const sender = await tx.meetingParticipant.updateMany({
+        where: {
+          meetingId: meeting.id,
+          userId,
+          status: MeetingParticipantStatus.JOINED,
+        },
+        data: { lastSeenAt: new Date() },
+      });
+      if (!sender.count)
+        throw new ForbiddenException(
+          MEETING_ERROR_MESSAGES.PARTICIPANT_NOT_JOINED,
+        );
+      const current =
+        await this.meetingPolicyService.assertJoinedMeetingParticipant(
+          { joinToken, userId },
+          tx,
+        );
+      this.assertChatEnabled(
+        current.meeting.chatEnabled,
+        current.participant.role,
+      );
+      const priorId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorId) {
+        const prior = await tx.meetingMessage.findUnique({
+          where: { id: priorId },
+          include: this.getMessageInclude(),
+        });
+        if (
+          !prior ||
+          prior.meetingId !== meeting.id ||
+          prior.senderId !== userId ||
+          prior.deletedAt ||
+          prior.recalled
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return { message: prior, reused: true };
+      }
+      await reserveImportedAttachments(
+        tx,
+        userId,
+        meeting.id,
+        'MEETING',
+        medias,
+      );
       const message = await tx.meetingMessage.create({
         data: {
           meetingId: meeting.id,
@@ -166,15 +248,18 @@ export class MeetingMessageService {
         },
       });
 
-      return message;
-    });
-    const payload = await this.mapMeetingMessagePayload(createdMessage);
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
 
-    this.meetingRealtimeService.emitMeetingEvent(
-      meeting.id,
-      MeetingEvent.MESSAGE_SENT,
-      payload,
-    );
+      return { message, reused: false };
+    });
+    const payload = await this.mapMeetingMessagePayload(createdMessage.message);
+
+    if (!createdMessage.reused)
+      this.meetingRealtimeService.emitMeetingEvent(
+        meeting.id,
+        MeetingEvent.MESSAGE_SENT,
+        payload,
+      );
 
     return payload;
   }
@@ -418,6 +503,14 @@ export class MeetingMessageService {
     };
   }
 
+  private assertChatEnabled(enabled: boolean, role: MeetingRole) {
+    if (!enabled && role === MeetingRole.PARTICIPANT) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_CHAT_DISABLED,
+      );
+    }
+  }
+
   private async getMessagesPage(
     meetingId: string,
     limit: number,
@@ -433,14 +526,14 @@ export class MeetingMessageService {
       take: limit + 1,
       skip: cursor ? 1 : 0,
       cursor: cursor ? { id: cursor } : undefined,
-      orderBy: { createdAt: order },
+      orderBy: [{ createdAt: order }, { id: order }],
       include: this.getMessageInclude(),
     });
 
     let pageCursor: string | undefined;
     if (messages.length > limit) {
-      const nextItem = messages.pop();
-      pageCursor = nextItem?.id;
+      messages.pop();
+      pageCursor = messages.at(-1)?.id;
     }
 
     const pageMessages = order === 'desc' ? messages.reverse() : messages;
@@ -469,7 +562,7 @@ export class MeetingMessageService {
         take: halfLimit + 1,
         skip: 1,
         cursor: { id: cursor },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include,
       }),
       this.prisma.meetingMessage.findMany({
@@ -477,21 +570,21 @@ export class MeetingMessageService {
         take: halfLimit + 1,
         skip: 1,
         cursor: { id: cursor },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         include,
       }),
     ]);
 
     let nextCursor: string | undefined;
     if (olderMessages.length > halfLimit) {
-      const nextItem = olderMessages.pop();
-      nextCursor = nextItem?.id;
+      olderMessages.pop();
+      nextCursor = olderMessages.at(-1)?.id;
     }
 
     let prevCursor: string | undefined;
     if (newerMessages.length > halfLimit) {
-      const prevItem = newerMessages.pop();
-      prevCursor = prevItem?.id;
+      newerMessages.pop();
+      prevCursor = newerMessages.at(-1)?.id;
     }
 
     const messages = [
@@ -525,7 +618,7 @@ export class MeetingMessageService {
   }
 
   private async mapMeetingMessagePayloads<
-    T extends { senderId: string; medias?: unknown[] },
+    T extends { senderId: string; medias?: { s3Key: string }[] },
   >(messages: T[]) {
     const mappedMessages = messages.map((message) => ({
       ...message,
@@ -538,9 +631,10 @@ export class MeetingMessageService {
   }
 
   private async mapMeetingMessagePayload<
-    T extends { senderId: string; medias?: unknown[] },
+    T extends { senderId: string; medias?: { s3Key: string }[] },
   >(message: T) {
     const [mappedMessage] = await this.mapMeetingMessagePayloads([message]);
+
     return mappedMessage;
   }
 

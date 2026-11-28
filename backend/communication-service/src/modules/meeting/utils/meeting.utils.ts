@@ -51,7 +51,11 @@ export function canBypassMeetingPassword({
 }
 
 export function getTerminalMeetingMessage(payload: unknown): string | null {
-  if (typeof payload !== 'object' || payload === null || !('status' in payload)) {
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    !('status' in payload)
+  ) {
     return null;
   }
 

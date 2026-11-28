@@ -1,6 +1,8 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { CalendarClock, UsersRound } from "lucide-react";
+import type { ReactNode } from "react";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
 import { MeetingJoinTokenCopyButton } from "./meeting-join-token-copy-button";
@@ -11,17 +13,21 @@ import {
 
 interface MeetingHistoryListRowProps {
   meeting: MeetingHistoryItem;
+  actions?: ReactNode;
+  selection?: ReactNode;
 }
 
-export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
+export function MeetingHistoryListRow({ meeting, actions, selection }: MeetingHistoryListRowProps) {
+  useAccountTimezone();
   return (
-    <article className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
+    <article className="grid min-w-0 gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_10rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-[#E9F2FF] text-[#0052CC]">
-          <CalendarClock className="h-5 w-5" />
+        {selection}
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
+          <CalendarClock className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-black text-[#172B4D]">
+          <h3 className="truncate text-sm font-semibold text-foreground">
             {getMeetingHistoryTitle(meeting)}
           </h3>
           <MeetingJoinTokenCopyButton
@@ -32,17 +38,18 @@ export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
         </div>
       </div>
 
-      <div className="grid gap-2 text-xs font-bold text-slate-500">
+      <div className="grid gap-2 text-xs tabular-nums text-muted-foreground">
         <span>{formatMeetingHistoryStartTime(meeting.startedAt)}</span>
         <span className="flex items-center gap-2">
-          <UsersRound className="h-4 w-4 text-[#0052CC]" />
+          <UsersRound className="h-4 w-4" aria-hidden />
           {meeting.participantCount}{" "}
           {meeting.participantCount === 1 ? "participant" : "participants"}
         </span>
       </div>
 
-      <div className="flex items-center justify-start sm:justify-end">
+      <div className="flex items-center justify-start gap-1 sm:justify-end">
         <MeetingStatusTag className="w-28" status={meeting.status} />
+        {actions}
       </div>
     </article>
   );

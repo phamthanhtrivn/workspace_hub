@@ -38,13 +38,40 @@ export interface DocumentItem {
   ownerProfile?: UserProfileSnapshotResponse | null;
 }
 
+export type DocumentPreviewItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType"
+>;
+
+export interface StorageQuotaBreakdown {
+  documentsBytes: number;
+  mediaBytes: number;
+  otherBytes: number;
+}
+
 export interface UserStorageQuota {
   userId: string;
   maxBytes: number;
   usedBytes: number;
+  breakdown?: StorageQuotaBreakdown;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface DocumentNavigationSummary {
+  myFilesCount: number;
+  recentCount: number;
+  starredCount: number;
+  sharedCount: number;
+  trashCount: number;
+}
+
+export type AccessibleDocumentItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType" | "projectId" | "isStarred"
+> & {
+  userRole: DocumentRole;
+};
 
 export interface PaginatedResponse<T> {
   data: T;
@@ -65,6 +92,7 @@ export interface DocumentVersion {
   id: string;
   documentItemId: string;
   versionNumber: number;
+  isCurrent: boolean;
   s3Key: string;
   sizeBytes: number;
   uploadedBy: string;
@@ -113,6 +141,8 @@ export interface ChatMetadataResponse {
   ownerName: string | null;
   createdAt: string;
   hasPermission: boolean;
+  userRole: DocumentRole;
+  projectId: string | null;
 }
 
 export { ViewLayout, DocumentSortBy };

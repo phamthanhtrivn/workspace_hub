@@ -1,3 +1,6 @@
+import { Prisma } from '@prisma/client';
+import { claimUserEvent, InvalidUserEvent } from '../../infrastructure/kafka/user-event-policy';
+import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -17,17 +20,25 @@ export class UserProfileSnapshotService {
 
   async upsertFromEvent(payload: UserProfileSnapshotPayload) {
     this.assertValidPayload(payload);
+    return this.prisma.$transaction(async (tx) => {
+      if (!(await claimUserEvent(tx, KAFKA_CONFIG.TOPIC, payload))) return null;
+      return this.applySnapshot(tx, payload);
+    });
+  }
+
+  private async applySnapshot(tx: Prisma.TransactionClient, payload: UserProfileSnapshotPayload) {
+    this.assertValidPayload(payload);
 
     const occurredAt = payload.occurredAt
       ? new Date(payload.occurredAt)
       : new Date();
 
-    const existingSnapshot = await this.prisma.userProfileSnapshot.findUnique({
+    const existingSnapshot = await tx.userProfileSnapshot.findUnique({
       where: { userId: payload.userId },
       select: { syncedAt: true },
     });
 
-    if (existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
+    if (!payload.revision && existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
       this.logger.debug(
         `Ignored stale user profile snapshot event for ${payload.userId}`,
       );
@@ -38,12 +49,12 @@ export class UserProfileSnapshotService {
       payload.eventType === UserProfileSnapshotEventType.REMOVED ||
       payload.eventType === UserProfileSnapshotEventType.DISABLED
     ) {
-      return this.prisma.userProfileSnapshot.deleteMany({
+      return tx.userProfileSnapshot.deleteMany({
         where: { userId: payload.userId },
       });
     }
 
-    return this.prisma.userProfileSnapshot.upsert({
+    return tx.userProfileSnapshot.upsert({
       where: { userId: payload.userId },
       create: {
         userId: payload.userId,
@@ -79,7 +90,7 @@ export class UserProfileSnapshotService {
       },
     });
 
-    return new Map(
+    const profileMap = new Map(
       snapshots.map((snapshot) => [
         snapshot.userId,
         {
@@ -91,6 +102,16 @@ export class UserProfileSnapshotService {
         },
       ]),
     );
+    const botId = '00000000-0000-4000-8000-0000000000a1';
+    if (uniqueUserIds.includes(botId))
+      profileMap.set(botId, {
+        id: botId,
+        userId: botId,
+        fullName: 'AI',
+        email: null,
+        avatarUrl: null,
+      });
+    return profileMap;
   }
 
   async attachProfilesToMembers<T extends { userId: string }>(
@@ -286,11 +307,11 @@ export class UserProfileSnapshotService {
       !payload ||
       !Object.values(UserProfileSnapshotEventType).includes(payload.eventType)
     ) {
-      throw new Error(UserProfileSnapshotErrorMessage.INVALID_EVENT);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.INVALID_EVENT);
     }
 
     if (!payload.userId) {
-      throw new Error(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
     }
   }
 }

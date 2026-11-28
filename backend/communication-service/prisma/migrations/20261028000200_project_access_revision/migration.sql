@@ -1,0 +1,1 @@
+ALTER TABLE spaces ADD COLUMN access_sync_revision BIGINT NOT NULL DEFAULT 0;

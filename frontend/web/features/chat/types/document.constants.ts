@@ -11,6 +11,10 @@ export const EXTENSIONS = {
 
 export const METADATA_QUERY_KEY = "chat-document-metadata";
 export const METADATA_STALE_TIME = 10000;
+export const chatDocumentMetadataKey = (
+  userId: string | null | undefined,
+  documentId: string,
+) => [METADATA_QUERY_KEY, userId, documentId] as const;
 
 export const CHAT_MESSAGE_TYPES = {
   DOCUMENT: "DOCUMENT",

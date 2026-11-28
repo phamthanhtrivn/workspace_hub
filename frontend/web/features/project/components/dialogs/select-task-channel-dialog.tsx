@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MessageSquare, Sparkles, UserCheck, Hash, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { chatKeys } from "@/features/chat/types/chat.constant";
+import { useState } from "react";
+import { MessageSquare, Sparkles, UserCheck, Hash, Lock, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getSpaceChannels } from "@/features/chat/api/space.api";
-import { SpaceRole } from "@/features/chat/types/chat.enums";
-import type { ChannelResponse } from "@/features/chat/types/chat.types";
+import { ChannelVisibility, SpaceRole } from "@/features/chat/types/chat.enums";
+
 import type { Task } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
+
 
 interface SelectTaskChannelDialogProps {
   task: Task | null;
@@ -31,7 +36,7 @@ interface SelectTaskChannelDialogProps {
   onSubmit: (params: { channelId?: string }) => void;
 }
 
-export default function SelectTaskChannelDialog({
+function SelectTaskChannelForm({
   task,
   spaceId,
   isOpen,
@@ -40,19 +45,13 @@ export default function SelectTaskChannelDialog({
   onSubmit,
 }: SelectTaskChannelDialogProps) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const [channels, setChannels] = useState<ChannelResponse[]>([]);
-  const [loadingChannels, setLoadingChannels] = useState(false);
-  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [chosenChannelId, setSelectedChannelId] = useState<string>("");
 
-  useEffect(() => {
-    if (!isOpen || !spaceId) {
-      setChannels([]);
-      setSelectedChannelId("");
-      return;
-    }
-    setLoadingChannels(true);
-    getSpaceChannels(spaceId)
-      .then((res) => {
+  const channelQuery = useQuery({
+    queryKey: [...chatKeys.channels(spaceId), "task-options", currentUserId],
+    enabled: isOpen && !!spaceId,
+    queryFn: async () => {
+      const res = await getSpaceChannels(spaceId!);
         const rawChannels = res.data || [];
         // Filter channels joined by current user AND where member chat is permitted
         const allowedChannels = rawChannels.filter((c) => {
@@ -63,39 +62,29 @@ export default function SelectTaskChannelDialog({
           }
 
           // 2. Must not prohibit member messaging in channel settings
-          const setting = (c as any).setting;
+          const setting = c.setting;
           if (setting && setting.allowSendMessage === false) {
             const userMember = c.members?.find((m) => m.userId === currentUserId);
             const isUserAdmin =
-              userMember?.role === SpaceRole.ADMIN || c.createdBy === currentUserId;
+              c.visibility === ChannelVisibility.PRIVATE ? c.ownerId === currentUserId : userMember?.role === SpaceRole.ADMIN || c.createdBy === currentUserId;
             if (!isUserAdmin) return false;
           }
 
           // 3. Read only flag check
-          if ((c as any).isReadOnly) return false;
+          if ('isReadOnly' in c && c.isReadOnly === true) return false;
 
           return true;
         });
 
-        setChannels(allowedChannels);
-        if (allowedChannels.length > 0) {
-          const taskChannel = allowedChannels.find(
-            (c) => c.name?.toLowerCase() === "task-discussions",
-          );
-          const defaultChannel = allowedChannels.find((c) => c.isDefault);
-          setSelectedChannelId(
-            (taskChannel ?? defaultChannel ?? allowedChannels[0]).id,
-          );
-        } else {
-          setSelectedChannelId("");
-        }
-      })
-      .catch(() => {
-        setChannels([]);
-        setSelectedChannelId("");
-      })
-      .finally(() => setLoadingChannels(false));
-  }, [isOpen, spaceId, currentUserId]);
+      return allowedChannels;
+    },
+  });
+  const channels = channelQuery.isError ? [] : channelQuery.data ?? [];
+  const loadingChannels = channelQuery.isFetching;
+  const preferredChannel = channels.find(channel => channel.name?.toLowerCase() === "task-discussions")
+    ?? channels.find(channel => channel.isDefault) ?? channels[0];
+  const selectedChannelId = channels.some(channel => channel.id === chosenChannelId)
+    ? chosenChannelId : preferredChannel?.id ?? "";
 
   if (!task) return null;
 
@@ -106,30 +95,30 @@ export default function SelectTaskChannelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md p-6 rounded-2xl border-slate-200 bg-white shadow-2xl">
-        <DialogHeader className="text-left pb-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600">
+      <DialogContent className="flex max-w-md flex-col p-0 rounded-dialog border-border bg-card">
+        <DialogHeader className="shrink-0 break-words text-left px-4 pt-4 pb-2 pr-12 sm:px-6 sm:pr-12">
+          <div className="flex items-center gap-2 text-xs font-semibold text-info-content">
             <MessageSquare size={16} />
             <span>Task Discussion Thread</span>
           </div>
-          <DialogTitle className="text-base font-bold text-slate-900 mt-1">
+          <DialogTitle className="text-base font-semibold text-foreground mt-1">
             Choose Channel for Discussion Thread
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500 mt-1">
-            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="font-semibold text-slate-700">"{task.title}"</span> will be created inside it.
+          <DialogDescription className="text-xs text-muted-foreground mt-1">
+            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="inline-block max-w-full truncate align-bottom font-semibold text-foreground" title={task.title}>&quot;{task.title}&quot;</span> will be created inside it.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <UserCheck size={14} className="text-blue-600" />
+        <form onSubmit={handleSubmit} className="flex min-h-0 max-h-[inherit] flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-4 sm:px-6">
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <UserCheck size={14} className="text-info-content" />
               <span>Target Channel {spaceId ? `(${channels.length} available)` : ""}</span>
             </label>
 
             {!spaceId ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-800 font-medium flex flex-col gap-1">
-                <span className="font-bold flex items-center gap-1.5 text-amber-900">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning-content font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning-content">
                   <AlertCircle size={14} /> Project Space Required
                 </span>
                 <span>
@@ -137,12 +126,10 @@ export default function SelectTaskChannelDialog({
                 </span>
               </div>
             ) : loadingChannels ? (
-              <div className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 flex items-center text-xs text-slate-400 font-medium">
-                Loading your space channels...
-              </div>
+              <LoadingState label="Loading your space channels..." className="h-11 w-full rounded-panel border border-border bg-background px-3.5 flex items-center text-xs text-muted-foreground font-medium" />
             ) : channels.length === 0 ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-800 font-medium flex flex-col gap-1">
-                <span className="font-bold flex items-center gap-1.5 text-amber-900">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning-content font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning-content">
                   <AlertCircle size={14} /> No Selectable Channels
                 </span>
                 <span>
@@ -154,21 +141,21 @@ export default function SelectTaskChannelDialog({
                 value={selectedChannelId}
                 onValueChange={(val) => setSelectedChannelId(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/80 px-3.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-blue-600 focus:border-blue-600 cursor-pointer shadow-xs transition-colors">
+                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground cursor-pointer transition-colors">
                   <SelectValue placeholder="Select a channel..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 bg-white shadow-xl z-[130]">
+                <SelectContent className="rounded-panel border-border bg-card">
                   {channels.map((channel) => (
                     <SelectItem
                       key={channel.id}
                       value={channel.id}
-                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-blue-50 focus:text-blue-700 font-medium rounded-lg"
+                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-info-soft focus:text-info-content font-medium rounded-lg"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <Hash size={14} className="text-blue-600 shrink-0" />
+                        {channel.visibility === ChannelVisibility.PRIVATE ? <Lock size={14} className="text-info-content shrink-0" aria-label="Private channel" /> : <Hash size={14} className="text-info-content shrink-0" />}
                         <span className="truncate">{channel.name}</span>
                         {channel.isDefault && (
-                          <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded-full font-medium ml-1">
+                          <span className="text-xs bg-info-soft text-info-content px-1.5 py-0.2 rounded-full font-medium ml-1">
                             default
                           </span>
                         )}
@@ -180,25 +167,29 @@ export default function SelectTaskChannelDialog({
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-            <button
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-border sm:px-6">
+            <Button variant="secondary"
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="rounded-control px-4 py-2 text-xs font-semibold transition-colors cursor-pointer"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button loading={isSubmitting} variant="default"
               type="submit"
               disabled={!spaceId || isSubmitting || loadingChannels || channels.length === 0}
-              className="flex items-center gap-1.5 rounded-xl bg-[#0052CC] px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 rounded-control px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Sparkles size={13} />
               <span>{isSubmitting ? "Opening..." : "Open Thread in Space"}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
   );
+}
+
+export default function SelectTaskChannelDialog(props: SelectTaskChannelDialogProps) {
+  return props.isOpen && props.task ? <SelectTaskChannelForm key={JSON.stringify([props.spaceId, props.task.id])} {...props} /> : null;
 }

@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { logActionError } from "@/lib/permission-feedback";
+import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
+import { ChatScope } from "../../../types/chat.constant";
+
+import type { ChatContextPayload, ChatSocketMemberPayload } from "@/features/chat/types/chat-socket.types";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useState, useEffect } from "react";
 import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
 import {
-  getChannelMedia,
   muteChannel,
   pinChannel,
 } from "../../../api/chat.api";
 import MediaLightbox from "../../message/media-lightbox";
 import ChannelSettingsSection from "./channel-settings-section";
+import ChannelOwnerSection from "./channel-owner-section";
 import ChannelActionsSection from "./channel-actions-section";
 import FilesSection from "../files/files-section";
 import PollsSection from "../polls/polls-section";
@@ -31,10 +37,11 @@ import {
 } from "@/store/chat/chat-slice";
 import { chatKeys } from "../../../types/chat.constant";
 import { ChannelResponse } from "../../../types/chat.types";
-import { useActiveChat } from "../../../hooks/useChatQueries";
-import { logApiError } from "@/lib/interceptors";
+import { useActiveChat, type SpaceChannelsQueryData } from "../../../hooks/useChatQueries";
 import { sortChannelsByPin } from "../../../utils/direct-conversation-utils";
 import MediaDetailView from "../files/media-detail-view";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelRightPanelProps {
   onClose: () => void;
@@ -45,17 +52,19 @@ export default function ChannelRightPanel({
   onClose,
   initialDetailView,
 }: ChannelRightPanelProps) {
-  const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
   );
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "notes" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
-  const [mediaItems, setMediaItems] = useState<any[]>([]);
+
+
+
+
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const lastFetchedChatId = useRef<string | null>(null);
+
 
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
@@ -63,21 +72,24 @@ export default function ChannelRightPanel({
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
-  const activeChannel = activeConversation as ChannelResponse;
 
-  useEffect(() => {
-    if (initialDetailView !== undefined) {
-      setDetailView(initialDetailView);
-    }
-  }, [initialDetailView]);
+  const activeChannel = activeConversation as ChannelResponse;
+  const mediaQuery = useChatMediaPreview(ChatScope.CHANNEL, activeChannel?.id, expandedSection === "files");
+  const mediaItems = mediaQuery.medias;
+  const mediaLoading = mediaQuery.isFetching;
+  const mediaError = mediaQuery.isError;
+
+  const [previousDetailView, setPreviousDetailView] = useState(initialDetailView);
+  if (previousDetailView !== initialDetailView) {
+    setPreviousDetailView(initialDetailView);
+    if (initialDetailView !== undefined) setDetailView(initialDetailView);
+  }
 
   const currentMember = activeChannel?.members?.find(
-    (m: any) => m.userId === currentUserId,
+    (m) => m.userId === currentUserId,
   );
 
-  useEffect(() => {
-    setIsMuted(currentMember?.muted || false);
-  }, [currentMember]);
+  const isMuted = currentMember?.muted ?? false;
 
   const isPinned = currentMember?.pinned || false;
 
@@ -86,27 +98,27 @@ export default function ChannelRightPanel({
     memberPatch: { muted?: boolean; pinned?: boolean },
   ) => {
     const queryKey = chatKeys.channels(activeSpaceId);
-    queryClient.setQueryData(queryKey, (oldData: any) => {
+    queryClient.setQueryData<SpaceChannelsQueryData>(queryKey, (oldData) => {
       if (!oldData) return oldData;
-      const nextChannels = oldData.map((channel: any) => {
+      const nextChannels = oldData.channels.map((channel) => {
         if (channel.id !== channelId) return channel;
         return {
           ...channel,
-          members: channel.members?.map((member: any) =>
+          members: channel.members?.map((member) =>
             member.userId === currentUserId
               ? { ...member, ...memberPatch }
               : member,
           ),
         };
       });
-      return sortChannelsByPin(nextChannels, currentUserId);
+      return { ...oldData, channels: sortChannelsByPin(nextChannels, currentUserId) };
     });
   };
 
   const handleToggleMute = async () => {
     if (!activeChannel || !currentUserId) return;
     const targetMuted = !isMuted;
-    setIsMuted(targetMuted);
+    updateChannelMemberCache(activeChannel.id, { muted: targetMuted });
 
     try {
       await muteChannel(activeChannel.id, targetMuted);
@@ -117,12 +129,10 @@ export default function ChannelRightPanel({
           muted: targetMuted,
         }),
       );
-      updateChannelMemberCache(activeChannel.id, {
-        muted: targetMuted,
-      });
+
     } catch (error) {
-      setIsMuted(isMuted);
-      console.error("Failed to update mute status:", error);
+      updateChannelMemberCache(activeChannel.id, { muted: isMuted });
+      logActionError("Failed to update mute status:", error);
     }
   };
 
@@ -157,7 +167,7 @@ export default function ChannelRightPanel({
       updateChannelMemberCache(activeChannel.id, {
         pinned: isPinned,
       });
-      console.error("Failed to update pin status:", error);
+      logActionError("Failed to update pin status:", error);
     }
   };
 
@@ -171,52 +181,27 @@ export default function ChannelRightPanel({
     onClose();
   };
 
-  useEffect(() => {
-    if (
-      activeChannel?.id &&
-      expandedSection === "files" &&
-      lastFetchedChatId.current !== activeChannel.id
-    ) {
-      getChannelMedia(activeChannel.id)
-        .then((res: any) => {
-          if (res.data && res.data.medias) {
-            setMediaItems(res.data.medias);
-            lastFetchedChatId.current = activeChannel.id;
-          }
-        })
-        .catch((err: unknown) =>
-          logApiError(err, "Failed to fetch channel media"),
-        );
-    }
-  }, [activeChannel?.id, expandedSection]);
 
-  useEffect(() => {
-    if (activeChannel?.id && lastFetchedChatId.current !== activeChannel.id) {
-      setMediaItems([]);
-    }
-  }, [activeChannel?.id]);
+
+
 
   useEffect(() => {
     const socket = socketService.getSocket();
     if (socket) {
-      const getEventChannelId = (payload: any) =>
+      const getEventChannelId = (payload: Partial<ChatContextPayload>) =>
         payload?.channelId ?? payload?.conversationId;
 
-      const handleMediaUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeChannel?.id && data.media) {
-          setMediaItems((prev) => [...data.media, ...prev]);
-        }
-      };
 
-      const handleMemberJoin = (data: any) => {
+      const handleMemberJoin = (data: ChatSocketMemberPayload) => {
         if (
           activeChannel &&
           getEventChannelId(data) === activeChannel.id &&
           data.member &&
           data.profile
         ) {
+          const joinedUserId = data.member.userId;
           const isAlreadyMember = activeChannel.members?.some(
-            (m) => m.userId === data.member.userId,
+            (m) => m.userId === joinedUserId,
           );
           if (!isAlreadyMember) {
             queryClient.invalidateQueries({ queryKey: ["channels"] });
@@ -224,11 +209,9 @@ export default function ChannelRightPanel({
         }
       };
 
-      socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
 
       return () => {
-        socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       };
     }
@@ -236,7 +219,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -248,7 +231,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "polls") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -259,7 +242,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "notes") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <NoteDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -270,7 +253,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -283,7 +266,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -294,7 +277,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -310,54 +293,56 @@ export default function ChannelRightPanel({
   const displayDescription = `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Channel Details</h2>
-        <button
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">Channel Details</h2>
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 text-2xl flex items-center gap-1.5">
+        <div className="p-6 flex flex-col items-center border-b border-border">
+          <h3 className="font-semibold text-foreground text-section-title flex items-center gap-1.5">
             <span>{displayName}</span>
           </h3>
-          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
+          <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
-            <button
+            <Button variant="unstyled"
               onClick={handleTogglePin}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 <Pin
                   size={18}
-                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
               </div>
               <span className="text-xs font-medium">
                 {isPinned ? "Unpin" : "Pin"}
               </span>
-            </button>
+            </Button>
 
-            <button
+            <Button variant="unstyled"
               onClick={handleToggleMute}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
                 {isMuted ? "Unmute" : "Mute"}
               </span>
-            </button>
+            </Button>
           </div>
         </div>
+
+        <ChannelOwnerSection channel={activeChannel} />
 
         {/* Accordions */}
         <div className="py-2">
@@ -376,10 +361,13 @@ export default function ChannelRightPanel({
             onJumpToMessage={handleJumpToMessage}
           />
 
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => { void mediaQuery.refetch(); }} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
             files={mediaItems}
+            loading={mediaLoading}
+            error={mediaError}
             onOpenPreview={(mediaId) => {
               const visualItems = mediaItems.filter(
                 (m) =>

@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { taskActionRequest } from "./task-error-policy";
 import type { TaskDependency } from "@/features/project/types/project";
 
 interface ApiResponse<T> {
@@ -30,6 +31,7 @@ export async function createTaskDependency(
     await api.post<ApiResponse<TaskDependency>>(
       `/api/tasks/${successorTaskId}/dependencies`,
       { predecessorTaskId, dependencyType: "FINISH_TO_START" },
+      taskActionRequest(),
     ),
   );
 }
@@ -40,5 +42,6 @@ export async function deleteTaskDependency(
 ): Promise<void> {
   await api.delete(
     `/api/tasks/${successorTaskId}/dependencies/${predecessorTaskId}`,
+    taskActionRequest(),
   );
 }

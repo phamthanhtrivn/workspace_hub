@@ -1,8 +1,11 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { useEffect, useMemo, useState } from "react";
 
 export function useMeetingClock() {
+  const accountTimezone = useAccountTimezone();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -12,17 +15,18 @@ export function useMeetingClock() {
 
   return useMemo(
     () => ({
-      timeLabel: now.toLocaleTimeString([], {
+      now,
+      timeLabel: formatInTimezone(now, "en-US", {
         hour: "2-digit",
         minute: "2-digit",
-      }),
-      dateLabel: now.toLocaleDateString([], {
+      }, accountTimezone),
+      dateLabel: formatInTimezone(now, "en-US", {
         weekday: "long",
         month: "long",
         day: "numeric",
         year: "numeric",
-      }),
+      }, accountTimezone),
     }),
-    [now],
+    [now, accountTimezone],
   );
 }

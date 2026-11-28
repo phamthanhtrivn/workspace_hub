@@ -10,15 +10,10 @@ import type {
   NotificationDateRange,
 } from "../types/notification.types";
 import { useAppDispatch } from "@/store/store";
-import {
-  deleteNotificationSuccess,
-} from "@/store/notification/notification.slice";
+import { deleteNotificationSuccess } from "@/store/notification/notification.slice";
+import { notificationKeys } from "../types/notification.query-keys";
 
-export const notificationKeys = {
-  root: ["notifications"] as const,
-  lists: () => [...notificationKeys.root, "list"] as const,
-  unreadCount: () => [...notificationKeys.root, "unread-count"] as const,
-};
+export { notificationKeys } from "../types/notification.query-keys";
 
 interface DeleteNotificationsMutationPayload {
   category?: NotificationCategory;

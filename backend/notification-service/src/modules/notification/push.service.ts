@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { pushAgent, PUSH_POLICY, withPushSlot } from './push-policy';
 import * as webpush from "web-push";
 import {
   PushNotificationPayload,
@@ -57,12 +58,16 @@ export class PushService implements OnModuleInit {
 
       const payloadString = JSON.stringify(payload);
 
-      await webpush.sendNotification(pushSubscription, payloadString);
+      await withPushSlot(async () => {
+        const agent = await pushAgent(subscription.endpoint);
+        try { await webpush.sendNotification(pushSubscription, payloadString, { agent, timeout: PUSH_POLICY.timeout }); }
+        finally { agent.destroy(); }
+      });
       return true;
     } catch (error: unknown) {
       const webPushError = isWebPushError(error) ? error : {};
       const statusCode = webPushError.statusCode;
-      const responseBody = webPushError.body || webPushError.response?.body;
+
 
       // These statuses mean the subscription is invalid, expired, denied, or mismatched with VAPID details.
       if (
@@ -70,14 +75,13 @@ export class PushService implements OnModuleInit {
         [400, 403, 404, 410].includes(statusCode)
       ) {
         this.logger.warn(
-          `Invalid push subscription (Status ${statusCode}). Endpoint: ${subscription.endpoint}. Body: ${responseBody || "N/A"}`,
+          `Invalid push subscription (Status ${statusCode})`,
         );
         return false;
       }
 
       this.logger.error(
-        `Failed to send web push notification: ${webPushError.message || String(error)}. Status: ${statusCode || "N/A"}. Body: ${responseBody || "N/A"}`,
-        webPushError.stack,
+        `Failed to send web push notification (Status ${statusCode || "N/A"})`,
       );
       return true; // Keep subscription for general errors (e.g. network timeout)
     }

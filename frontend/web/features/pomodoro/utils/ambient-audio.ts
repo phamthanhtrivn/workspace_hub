@@ -1,9 +1,11 @@
 import type { AmbientTrackId } from "../types/ambient";
+import { getStorageAccess, isPrivateStorageReference, type StorageAccess } from "@/features/storage/api/storage.api";
 
 export class AmbientAudioManager {
   private audioElement: HTMLAudioElement | null = null;
   private currentTrackId: AmbientTrackId = "none";
   private currentUrl: string | null = null;
+  private access: StorageAccess | null = null;
   private volume = 0.5;
   private isPlayingState = false;
   private playbackVersion = 0;
@@ -51,6 +53,7 @@ export class AmbientAudioManager {
     this.stop();
     this.currentTrackId = trackId;
     this.currentUrl = nextUrl;
+    this.access = null;
     if (this.audioElement) {
       this.audioElement.removeAttribute("src");
       this.audioElement.load();
@@ -62,8 +65,16 @@ export class AmbientAudioManager {
     if (this.currentTrackId === "none" || !this.currentUrl || !audio) return;
     const version = ++this.playbackVersion;
     try {
-      if (audio.getAttribute("src") !== this.currentUrl || audio.error) {
-        audio.src = this.currentUrl;
+      let url = this.currentUrl;
+      if (isPrivateStorageReference(url)) {
+        if (!this.access || Date.parse(this.access.expiresAt) < Date.now() + 15_000 || audio.error) {
+          this.access = await getStorageAccess(url);
+        }
+        url = this.access.url;
+      }
+      if (version !== this.playbackVersion) return;
+      if (audio.getAttribute("src") !== url || audio.error) {
+        audio.src = url;
         audio.load();
       }
       audio.volume = this.volume;

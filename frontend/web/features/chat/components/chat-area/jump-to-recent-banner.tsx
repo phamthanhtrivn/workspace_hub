@@ -1,6 +1,8 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface JumpToRecentBannerProps {
   /** When true: viewing old history — shows text "Jump to Recent" */
@@ -17,14 +19,14 @@ export default function JumpToRecentBanner({
 }: JumpToRecentBannerProps) {
   return (
     <div className="absolute top-15 left-1/2 -translate-x-1/2 z-20">
-      <button
+      <Button variant="unstyled"
         onClick={onAction}
-        className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 text-xs font-semibold whitespace-nowrap"
+        className="cursor-pointer bg-primary hover:bg-primary text-primary-foreground px-4 py-2 rounded-full transition-all duration-200 flex items-center gap-2 text-xs font-semibold whitespace-nowrap"
       >
         {isViewingHistory ? (
           <>
             <span>Viewing older messages</span>
-            <span className="bg-blue-500 hover:bg-blue-600 px-2 py-0.5 rounded-full text-[10px] transition-colors">
+            <span className="bg-primary hover:bg-primary px-2 py-0.5 rounded-full text-xs transition-colors">
               Jump to Recent
             </span>
           </>
@@ -34,7 +36,7 @@ export default function JumpToRecentBanner({
             <span>Scroll to Latest</span>
           </>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

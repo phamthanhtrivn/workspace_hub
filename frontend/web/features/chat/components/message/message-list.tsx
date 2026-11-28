@@ -1,13 +1,15 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import {
-  NO_AVATAR_TYPES,
   GROUP_MESSAGES_THRESHOLD_MS,
   TIME_BLOCK_THRESHOLD_MS,
 } from "../../types/chat.constant";
 import ChatMessage from "./chat-message";
+import { zonedDateKey } from "@/lib/timezone";
 import TimeDivider from "./time-divider";
 import { RenderableChatMessage, MemberProfilesMap } from "./chat-message.types";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface MessageListProps {
   messages: RenderableChatMessage[];
@@ -24,7 +26,7 @@ interface MessageListProps {
   spaceCreatorId?: string;
   conversationMembers?: { userId: string; role?: "ADMIN" | "MEMBER" }[];
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
-  onPollVote: (messageId: string, pollOptionId: string) => void;
+  onPollVote: (messageId: string, pollOptionId: string, selected?: boolean) => void | Promise<unknown>;
   onPollAddOption: (messageId: string, text: string) => void;
   onPollEdit: (
     messageId: string,
@@ -33,7 +35,7 @@ interface MessageListProps {
     allowAddOptions: boolean,
     anonymous: boolean,
     isLocked: boolean,
-  ) => void;
+  ) => void | Promise<unknown>;
   onNoteEdit: (messageId: string, title: string, content: string) => void;
   onEditMessage: (msg: RenderableChatMessage) => void;
   onRecallMessage: (msg: RenderableChatMessage) => void;
@@ -63,7 +65,6 @@ export default function MessageList({
   isFetchingPreviousPage,
   loadMoreRef,
   authUserId,
-  activeChatType,
   memberProfiles,
   readReceipts,
   spaceCreatorId,
@@ -83,17 +84,16 @@ export default function MessageList({
   conversationId,
   isDirectConversation,
 }: MessageListProps) {
+  useAccountTimezone();
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full text-gray-400">
-        Loading...
-      </div>
+      <LoadingState label="Loading..." layout="centered" className="flex justify-center items-center h-full text-muted-foreground" />
     );
   }
 
   if (messages.length === 0) {
     return (
-      <div className="flex justify-center items-center h-full text-gray-400">
+      <div className="flex justify-center items-center h-full text-muted-foreground">
         No messages yet
       </div>
     );
@@ -108,69 +108,12 @@ export default function MessageList({
 
     const isMe = msg.senderId === authUserId;
 
-    // ── Xác định time block mới (cách prevMsg >= 6h hoặc khác ngày) ──────
-    let isNewTimeBlockVisually = false;
-    if (prevMsg) {
-      const currentMsgTime = new Date(msg.createdAt).getTime();
-      const prevMsgTime = new Date(prevMsg.createdAt).getTime();
-      if (prevMsgTime - currentMsgTime > TIME_BLOCK_THRESHOLD_MS) {
-        isNewTimeBlockVisually = true;
-      } else {
-        const currDate = new Date(msg.createdAt);
-        const prevDate = new Date(prevMsg.createdAt);
-        if (
-          currDate.getDate() !== prevDate.getDate() ||
-          currDate.getMonth() !== prevDate.getMonth() ||
-          currDate.getFullYear() !== prevDate.getFullYear()
-        ) {
-          isNewTimeBlockVisually = true;
-        }
-      }
-    }
-
-    // ── Avatar: chỉ hiện ở đầu nhóm tin nhắn cùng người gửi ──────────────
-    let showAvatar = false;
-    if (!NO_AVATAR_TYPES.includes(msg.type)) {
-      if (
-        i === 0 ||
-        messages[i - 1].senderId !== msg.senderId ||
-        NO_AVATAR_TYPES.includes(messages[i - 1].type) ||
-        isNewTimeBlockVisually
-      ) {
-        showAvatar = true;
-      }
-    }
-
-    // ── Timestamp: ẩn nếu cùng người gửi và trong vòng 5 phút ───────────
-    let showTime = true;
-    if (prevMsg) {
-      const currentMsgTime = new Date(msg.createdAt).getTime();
-      const prevMsgTime = new Date(prevMsg.createdAt).getTime();
-      if (
-        prevMsg.senderId === msg.senderId &&
-        prevMsgTime - currentMsgTime <= GROUP_MESSAGES_THRESHOLD_MS
-      ) {
-        showTime = false;
-      }
-    }
-
-    // ── Tên người gửi: hiện dưới tin nhắn cuối cùng trong nhóm ──────────
-    let showSenderName = false;
-    if (!isMe || activeChatType === "CHANNEL") {
-      if (!nextMsg) {
-        showSenderName = true;
-      } else {
-        const currentMsgTime = new Date(msg.createdAt).getTime();
-        const nextMsgTime = new Date(nextMsg.createdAt).getTime();
-        if (
-          nextMsg.senderId !== msg.senderId ||
-          currentMsgTime - nextMsgTime > GROUP_MESSAGES_THRESHOLD_MS ||
-          NO_AVATAR_TYPES.includes(nextMsg.type)
-        ) {
-          showSenderName = true;
-        }
-      }
-    }
+    // Messages are stored newest first; nextMsg is the preceding visual message.
+    const showSenderName = !nextMsg || nextMsg.senderId !== msg.senderId ||
+      new Date(msg.createdAt).getTime() - new Date(nextMsg.createdAt).getTime() > GROUP_MESSAGES_THRESHOLD_MS ||
+      ["SYSTEM", "NOTE", "POLL"].includes(nextMsg.type);
+    const showAvatar = showSenderName;
+    const showTime = showSenderName || !prevMsg || prevMsg.senderId !== msg.senderId;
 
     rendered.push(
       <ChatMessage
@@ -186,9 +129,6 @@ export default function MessageList({
           conversationMembers?.find((m) => m.userId === msg.senderId)?.role
         }
         spaceCreatorId={spaceCreatorId}
-        readBy={Object.keys(readReceipts || {}).filter(
-          (uid) => readReceipts[uid] === msg.id && uid !== authUserId,
-        )}
         showTime={showTime}
         showSenderName={showSenderName}
         onReact={onReact}
@@ -229,9 +169,7 @@ export default function MessageList({
         const currDate = new Date(msg.createdAt);
         const nextDate = new Date(nextMsg.createdAt);
         if (
-          currDate.getDate() !== nextDate.getDate() ||
-          currDate.getMonth() !== nextDate.getMonth() ||
-          currDate.getFullYear() !== nextDate.getFullYear()
+          zonedDateKey(currDate) !== zonedDateKey(nextDate)
         ) {
           showDividerAbove = true;
         }
@@ -254,9 +192,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2"
       >
         {isFetchingNextPage && (
-          <span className="text-xs text-gray-400">
-            Loading more messages...
-          </span>
+          <LoadingState label="Loading more messages..." className="text-xs text-muted-foreground" />
         )}
       </div>,
     );
@@ -269,9 +205,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2 shrink-0"
       >
         {isFetchingPreviousPage && (
-          <span className="text-xs text-gray-400">
-            Loading new messages...
-          </span>
+          <LoadingState label="Loading new messages..." className="text-xs text-muted-foreground" />
         )}
       </div>,
     );

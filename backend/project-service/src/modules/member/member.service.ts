@@ -1,3 +1,4 @@
+import { enqueueProjectAccessSync } from "../project/project-access-sync";
 import {
   ConflictException,
   Injectable,
@@ -16,6 +17,9 @@ import {
 } from "../../common/prisma/prisma-errors";
 import { defaultMemberPermissions } from "./member-permissions";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import { NotificationOutboxService } from '../notification-outbox/notification-outbox.service';
+import { KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import { PROJECT_PERMISSION_LABELS, projectNotificationIdentity } from '../../common/utils/project-notification.util';
 
 @Injectable()
 export class MemberService {
@@ -24,6 +28,7 @@ export class MemberService {
     private readonly access: ProjectAccessService,
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly projects: ProjectService,
+    private readonly notifications: NotificationOutboxService,
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
@@ -51,6 +56,7 @@ export class MemberService {
           where: { projectId_userId: { projectId, userId: dto.userId } },
         });
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
+        await enqueueProjectAccessSync(tx, projectId);
         return toMemberResponse(member, profile);
       }
 
@@ -68,6 +74,7 @@ export class MemberService {
           },
         });
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
+        await enqueueProjectAccessSync(tx, projectId);
         return toMemberResponse(member, profile);
       } catch (error) {
         if (isUniqueConstraintError(error)) {
@@ -78,8 +85,7 @@ export class MemberService {
         throw error;
       }
     });
-    await this.projects.syncProjectDocumentAccess(projectId);
-    await this.projects.syncProjectSpaceAccess(projectId);
+
     return memberResponse;
   }
 
@@ -89,7 +95,7 @@ export class MemberService {
     memberUserId: string,
     dto: UpdateMemberPermissionsDto,
   ) {
-    await this.access.requireOwnerWriteAccess(userId, projectId);
+    const project = await this.access.requireOwnerWriteAccess(userId, projectId);
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
     });
@@ -105,9 +111,24 @@ export class MemberService {
 
     let updated;
     try {
-      updated = await this.prisma.projectMember.update({
+      updated = await this.prisma.$transaction(async tx => {
+        const result = await tx.projectMember.update({
         where: { id: member.id, version: member.version },
         data: { ...dto, updatedAt: new Date(), version: { increment: 1 } },
+        });
+        const changes = (Object.keys(PROJECT_PERMISSION_LABELS) as Array<keyof UpdateMemberPermissionsDto>)
+          .filter((field) => member[field] !== result[field])
+          .map((field) => ({ field, label: PROJECT_PERMISSION_LABELS[field], before: member[field], after: result[field] }));
+        if (changes.length) await this.notifications.enqueueNotification({
+          recipientId: memberUserId, senderId: userId,
+          type: KAFKA_EVENTS.NOTIFICATION.PROJECT_PERMISSIONS_UPDATED,
+          title: 'Your project permissions changed',
+          content: `Your permissions in project "${project.name}" were updated.`,
+          link: `/projects/${projectId}`,
+          metadata: { ...projectNotificationIdentity(project), changes },
+        }, tx);
+        await enqueueProjectAccessSync(tx, projectId);
+        return result;
       });
     } catch (error) {
       rethrowWriteConflict(
@@ -117,7 +138,7 @@ export class MemberService {
     }
 
     const profile = await this.userProfiles.getProfileByUserId(memberUserId);
-    await this.projects.syncProjectDocumentAccess(projectId);
+
     return toMemberResponse(updated, profile);
   }
 
@@ -128,6 +149,7 @@ export class MemberService {
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await this.access.requireCanManageMembers(userId, projectId);
+      const project = await tx.project.findUniqueOrThrow({ where: { id: projectId } });
       const member = await tx.projectMember.findUnique({
         where: { projectId_userId: { projectId, userId: memberUserId } },
       });
@@ -149,6 +171,15 @@ export class MemberService {
             version: { increment: 1 },
           },
         });
+        await tx.taskAssignee.deleteMany({ where: { projectId, userId: memberUserId } });
+        await this.notifications.enqueueNotification({
+          recipientId: memberUserId, senderId: userId,
+          type: KAFKA_EVENTS.NOTIFICATION.PROJECT_MEMBER_REMOVED,
+          title: 'You were removed from a project',
+          content: `You were removed from project "${project.name}". You no longer have access to this project.`,
+          metadata: { ...projectNotificationIdentity(project), removedAt: new Date().toISOString() },
+        }, tx);
+        await enqueueProjectAccessSync(tx, projectId);
       } catch (error) {
         rethrowWriteConflict(
           error,
@@ -156,7 +187,6 @@ export class MemberService {
         );
       }
     });
-    await this.projects.syncProjectDocumentAccess(projectId);
-    await this.projects.syncProjectSpaceAccess(projectId);
+
   }
 }

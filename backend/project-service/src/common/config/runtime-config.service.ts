@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { requireInternalServiceKey } from '../auth/service-key';
 
 @Injectable()
 export class RuntimeConfigService {
@@ -14,11 +15,13 @@ export class RuntimeConfigService {
   );
   readonly frontendUrl = this.baseUrl(process.env.FRONTEND_URL ?? 'http://localhost:3000');
   readonly notificationServiceKey = this.required(
-    process.env.NOTIFICATION_INTERNAL_SERVICE_KEY ?? process.env.INTERNAL_SERVICE_KEY,
-    'NOTIFICATION_INTERNAL_SERVICE_KEY or INTERNAL_SERVICE_KEY',
+    process.env.PROJECT_TO_NOTIFICATION_KEY,
+    'PROJECT_TO_NOTIFICATION_KEY',
   );
-  readonly internalServiceKey =
-    this.optional(process.env.INTERNAL_SERVICE_KEY) ?? 'local-internal-key';
+  readonly communicationServiceKey = requireInternalServiceKey(process.env.PROJECT_TO_COMMUNICATION_KEY);
+  readonly documentServiceKey = requireInternalServiceKey(process.env.PROJECT_TO_DOCUMENT_KEY);
+  readonly communicationCallerKey = requireInternalServiceKey(process.env.COMMUNICATION_TO_PROJECT_KEY);
+  readonly documentCallerKey = requireInternalServiceKey(process.env.DOCUMENT_TO_PROJECT_KEY);
   readonly httpTimeoutMs = this.positiveInteger(process.env.SERVICE_HTTP_TIMEOUT_MS, 5_000);
   readonly outboxPollIntervalMs = this.positiveInteger(process.env.OUTBOX_POLL_INTERVAL_MS, 2_000);
   readonly outboxBatchSize = this.positiveInteger(process.env.OUTBOX_BATCH_SIZE, 20);

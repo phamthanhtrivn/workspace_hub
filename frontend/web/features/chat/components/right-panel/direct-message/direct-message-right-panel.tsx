@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { socketService } from "../../../api/chat-socket.service";
-import { ChatEvent } from "../../../api/chat.events";
+import { logActionError } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
+import { ChatScope } from "../../../types/chat.constant";
+import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
+
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useState } from "react";
+
 import {
-  getDirectConversationMedia,
   muteDirectConversation,
   pinDirectConversation,
 } from "../../../api/chat.api";
@@ -15,8 +20,8 @@ import ThreadsSection from "../thread/threads-section";
 import PinnedMessagesDetailView from "../pinned-messages/pinned-messages-detail-view";
 import SearchMessagesSection from "../search/search-messages-section";
 import ThreadsListView from "../thread/threads-list-view";
-import { X, Bell, BellOff, Pin, User } from "lucide-react";
-import Image from "next/image";
+import { X, Bell, BellOff, Pin } from "lucide-react";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -28,17 +33,17 @@ import {
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../../types/chat.constant";
-import { ChatContextType } from "../../../types/chat.types";
+
 import { useActiveChat } from "../../../hooks/useChatQueries";
-import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
+import { Button } from "@/components/ui/button";
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
   initialDetailView?: "files" | "polls" | "search" | "threads" | null;
 }
 
-function getMessageChatId(message: any) {
+function getMessageChatId(message: ChatMessageResponse) {
   return (
     message?.chatId ?? message?.channelId ?? message?.conversationId ?? null
   );
@@ -48,36 +53,36 @@ export default function DirectMessageRightPanel({
   onClose,
   initialDetailView,
 }: DirectMessageRightPanelProps) {
-  const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
   );
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
-  const [mediaItems, setMediaItems] = useState<any[]>([]);
+
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
-  const lastFetchedChatId = useRef<string | null>(null);
 
   const { activeChat: activeConversation } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const mediaQuery = useChatMediaPreview(ChatScope.DIRECT, activeConversation?.id, expandedSection === "files");
+  const mediaItems = mediaQuery.medias;
+  const mediaLoading = mediaQuery.isFetching;
+  const mediaError = mediaQuery.isError;
 
-  useEffect(() => {
-    if (initialDetailView !== undefined) {
-      setDetailView(initialDetailView);
-    }
-  }, [initialDetailView]);
+  const [previousDetailView, setPreviousDetailView] = useState(initialDetailView);
+  if (previousDetailView !== initialDetailView) {
+    setPreviousDetailView(initialDetailView);
+    if (initialDetailView !== undefined) setDetailView(initialDetailView);
+  }
 
   const currentMember = activeConversation?.members?.find(
-    (m: any) => m.userId === currentUserId,
+    (m) => m.userId === currentUserId,
   );
 
-  useEffect(() => {
-    setIsMuted(currentMember?.muted || false);
-  }, [currentMember]);
+  const isMuted = currentMember?.muted ?? false;
 
   const isPinned = currentMember?.pinned || false;
 
@@ -85,30 +90,30 @@ export default function DirectMessageRightPanel({
     conversationId: string,
     memberPatch: { muted?: boolean; pinned?: boolean },
   ) => {
-    queryClient.setQueriesData(
+    queryClient.setQueriesData<import("../../../hooks/useChatQueries").DirectMessagesQueryData>(
       { queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS] },
-      (oldData: any) => {
-        if (!oldData?.conversations) return oldData;
+      (oldData) => {
+        if (!oldData?.directMessages) return oldData;
         return {
           ...oldData,
-          conversations: oldData.conversations
-            .map((conversation: any) => {
+          directMessages: oldData.directMessages
+            .map((conversation) => {
               if (conversation.id !== conversationId) return conversation;
               return {
                 ...conversation,
-                members: conversation.members?.map((member: any) =>
+                members: conversation.members?.map((member) =>
                   member.userId === currentUserId
                     ? { ...member, ...memberPatch }
                     : member,
                 ),
               };
             })
-            .sort((a: any, b: any) => {
+            .sort((a, b) => {
               const aPinned = a.members?.find(
-                (member: any) => member.userId === currentUserId,
+                (member) => member.userId === currentUserId,
               )?.pinned;
               const bPinned = b.members?.find(
-                (member: any) => member.userId === currentUserId,
+                (member) => member.userId === currentUserId,
               )?.pinned;
               if (aPinned !== bPinned) return aPinned ? -1 : 1;
               return (
@@ -124,7 +129,7 @@ export default function DirectMessageRightPanel({
   const handleToggleMute = async () => {
     if (!activeConversation || !currentUserId) return;
     const targetMuted = !isMuted;
-    setIsMuted(targetMuted);
+    updateDirectConversationMemberCache(activeConversation.id, { muted: targetMuted });
 
     try {
       await muteDirectConversation(activeConversation.id, targetMuted);
@@ -135,12 +140,10 @@ export default function DirectMessageRightPanel({
           muted: targetMuted,
         }),
       );
-      updateDirectConversationMemberCache(activeConversation.id, {
-        muted: targetMuted,
-      });
+
     } catch (error) {
-      setIsMuted(isMuted);
-      console.error("Failed to update mute status:", error);
+      updateDirectConversationMemberCache(activeConversation.id, { muted: isMuted });
+      logActionError("Failed to update mute status:", error);
     }
   };
 
@@ -175,7 +178,7 @@ export default function DirectMessageRightPanel({
       updateDirectConversationMemberCache(activeConversation.id, {
         pinned: isPinned,
       });
-      console.error("Failed to update pin status:", error);
+      logActionError("Failed to update pin status:", error);
     }
   };
 
@@ -209,61 +212,14 @@ export default function DirectMessageRightPanel({
     onClose();
   };
 
-  const handleOpenThread = (message: any) => {
+  const handleOpenThread = (message: ChatMessageResponse) => {
     if (getMessageChatId(message) !== activeConversation?.id) return;
     dispatch(setActiveThreadRootMessage(message));
   };
 
-  useEffect(() => {
-    if (
-      activeConversation?.id &&
-      expandedSection === "files" &&
-      lastFetchedChatId.current !== activeConversation.id
-    ) {
-      getDirectConversationMedia(activeConversation.id)
-        .then((res: any) => {
-          if (res.data && res.data.medias) {
-            setMediaItems(res.data.medias);
-            lastFetchedChatId.current = activeConversation.id;
-          }
-        })
-        .catch((err: unknown) =>
-          logApiError(err, "Failed to fetch direct message media"),
-        );
-    }
-  }, [activeConversation?.id, expandedSection]);
-
-  useEffect(() => {
-    if (
-      activeConversation?.id &&
-      lastFetchedChatId.current !== activeConversation.id
-    ) {
-      setMediaItems([]);
-    }
-  }, [activeConversation?.id]);
-
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      const getEventChannelId = (payload: any) =>
-        payload?.channelId ?? payload?.conversationId;
-
-      const handleMediaUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeConversation?.id && data.media) {
-          setMediaItems((prev) => [...data.media, ...prev]);
-        }
-      };
-
-      socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
-      return () => {
-        socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
-      };
-    }
-  }, [activeConversation]);
-
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -275,7 +231,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -288,7 +244,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
@@ -299,7 +255,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -310,72 +266,68 @@ export default function DirectMessageRightPanel({
   }
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">
           Details
         </h2>
-        <button
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <div
-            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden cursor-pointer"
+        <div className="p-6 flex flex-col items-center border-b border-border">
+          <Button variant="unstyled" type="button"
+            className="w-full text-left w-20 h-20 bg-muted rounded-full flex items-center justify-center font-semibold text-3xl mb-3 overflow-hidden cursor-pointer"
             onClick={() => {
               if (otherMemberId) {
                 dispatch(setSelectedProfileUserId(otherMemberId));
               }
             }}
           >
-            {displayAvatarUrl ? (
-              <Image
-                src={displayAvatarUrl}
-                alt="Avatar"
-                width={80}
-                height={80}
-                className="rounded-full"
-              />
-            ) : (
-              <User size={40} className="text-gray-400" />
-            )}
-          </div>
-          <h3 className="font-bold text-gray-900 text-lg">{displayName}</h3>
-          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
+            <UserAvatar
+              src={displayAvatarUrl}
+              alt="Avatar"
+              width={80}
+              height={80}
+              className="rounded-full"
+            />
+          </Button>
+          <h3 className="font-semibold text-foreground text-section-title">{displayName}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
-            <button
+            <Button variant="unstyled"
               onClick={handleTogglePin}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 <Pin
                   size={18}
-                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
               </div>
               <span className="text-xs font-medium">
                 {isPinned ? "Unpin" : "Pin"}
               </span>
-            </button>
+            </Button>
 
-            <button
+            <Button variant="unstyled"
               onClick={handleToggleMute}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
                 {isMuted ? "Unmute" : "Mute"}
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -399,10 +351,13 @@ export default function DirectMessageRightPanel({
             onOpenThread={handleOpenThread}
           />
 
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => { void mediaQuery.refetch(); }} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
             files={mediaItems}
+            loading={mediaLoading}
+            error={mediaError}
             onOpenPreview={(mediaId) => {
               const visualItems = mediaItems.filter(
                 (m) =>

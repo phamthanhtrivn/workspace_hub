@@ -1,18 +1,24 @@
 "use client";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
+import { CALENDAR_MIN_EVENT_DURATION_MS } from "../../types/calendar.constants";
+
 
 import { Clock3 } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CALENDAR_FORM_COPY as copy, CALENDAR_FORM_LOCALE } from "../../constants/calendar-form-copy";
 import type { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
-import { getDateInputValue, getTimeInputValue } from "../../utils/calendar-date.utils";
+import { composeDateTimeLocal, getDateInputValue, getTimeInputValue } from "../../utils/calendar-date.utils";
 import { createEndTimeOptions, createStartTimeOptions } from "../../utils/calendar-time-options";
 import { CalendarSelect } from "./calendar-select";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 
 export interface CalendarTimeFieldsProps {
+  mode: "create" | "edit";
+  today: string;
   form: UseFormReturn<CalendarEventEditorValues>;
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
@@ -20,6 +26,8 @@ export interface CalendarTimeFieldsProps {
   onEndDateTimeChange: (dateTime: string) => void;
   onAllDayChange: (checked: boolean) => void;
   showTimeZone?: boolean;
+  allowPastStart?: boolean;
+  disabled?: boolean;
 }
 
 export function QuickRow({
@@ -27,11 +35,13 @@ export function QuickRow({
   children,
   className,
   contentClassName,
+  iconAlignment = "start",
 }: {
   icon: ReactNode;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  iconAlignment?: "start" | "center";
 }) {
   return (
     <div
@@ -40,7 +50,12 @@ export function QuickRow({
         className,
       )}
     >
-      <span className="mt-1 grid h-9 w-9 place-items-center rounded-xl text-slate-500">
+      <span
+        className={cn(
+          "grid h-9 w-9 place-items-center rounded-panel text-muted-foreground",
+          iconAlignment === "center" && "mt-0 self-center",
+        )}
+      >
         {icon}
       </span>
       <div className={cn("min-w-0", contentClassName)}>{children}</div>
@@ -49,15 +64,27 @@ export function QuickRow({
 }
 
 export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
-  onStartTimeChange, onEndDateTimeChange, onAllDayChange, showTimeZone = false }: CalendarTimeFieldsProps) {
-  const { control, setValue } = form;
+  onStartTimeChange, onEndDateTimeChange, onAllDayChange, mode, today, showTimeZone = false, allowPastStart = false, disabled = false }: CalendarTimeFieldsProps) {
+  const id = useId();
+  const { control } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
   const startTime = getTimeInputValue(startAt);
+  const bounds = getDateRangeBounds({ start: startAt, end: endAt, mode, today, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS, allowPastStart });
+  const startError = form.formState.errors.startAt?.message;
+  const endError = form.formState.errors.endAt?.message;
+  const [startDatePickerOpen, setStartDatePickerOpen] = useState(false);
+  const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
   const startTimeOptions = useMemo(
-    () => createStartTimeOptions(CALENDAR_FORM_LOCALE, startTime),
-    [startTime],
+    () => createStartTimeOptions(CALENDAR_FORM_LOCALE, startTime).map(option => ({
+      ...option,
+      disabled: hasDateRangeErrors(getDateRangeErrors({
+        start: composeDateTimeLocal(getDateInputValue(startAt), option.value), end: "",
+        mode, today, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS, allowPastStart,
+      })),
+    })),
+    [startTime, startAt, mode, today, allowPastStart],
   );
   const endTimeOptions = useMemo(
     () => createEndTimeOptions(startAt, endAt, CALENDAR_FORM_LOCALE),
@@ -75,74 +102,94 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
     <QuickRow icon={<Clock3 className="h-5 w-5" />}>
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
-            <span className="block text-xs font-medium text-slate-500">
+          <label className={`min-w-0 rounded-panel border border-input bg-background px-3 py-2 transition-colors hover:bg-muted ${FIELD_FOCUS_CONTAINER_CLASS_NAME}`} data-invalid={Boolean(startError) || undefined} data-state={startDatePickerOpen ? "open" : undefined}>
+            <span className="block text-xs font-medium text-muted-foreground">
               {copy.startDate}
             </span>
-            <Input
-              type="date"
-              aria-label={copy.startDate}
+            <CustomDatePicker
+              disabled={disabled}
+              ariaLabel={copy.startDate}
               value={getDateInputValue(startAt)}
-              onChange={(event) => onStartDateChange(event.target.value)}
-              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+              max={bounds.startMax?.slice(0, 10)}
+              invalid={Boolean(startError)}
+              descriptionId={startError ? `${id}-start-error` : undefined}
+              onChange={nextValue => onStartDateChange(nextValue)}
+              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
+              allowClear
+              focusMode="container"
+              onOpenChange={setStartDatePickerOpen}
             />
+            {startError && <p id={`${id}-start-error`} role="alert" className="mt-1 text-xs text-destructive-content">{startError}</p>}
           </label>
-          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
-            <span className="block text-xs font-medium text-slate-500">
+          <label className={`min-w-0 rounded-panel border border-input bg-background px-3 py-2 transition-colors hover:bg-muted ${FIELD_FOCUS_CONTAINER_CLASS_NAME}`} data-invalid={Boolean(endError) || undefined} data-state={endDatePickerOpen ? "open" : undefined}>
+            <span className="block text-xs font-medium text-muted-foreground">
               {copy.endDate}
             </span>
-            <Input
-              type="date"
-              aria-label={copy.endDate}
+            <CustomDatePicker
+              disabled={disabled || !startAt}
+              ariaLabel={copy.endDate}
               value={getDateInputValue(endAt)}
-              min={getDateInputValue(startAt)}
-              onChange={(event) => onEndDateChange(event.target.value)}
-              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+              min={bounds.endMin?.slice(0, 10)}
+              invalid={Boolean(endError)}
+              descriptionId={endError || !startAt ? `${id}-end-description` : undefined}
+              onChange={nextValue => onEndDateChange(nextValue)}
+              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
+              allowClear
+              focusMode="container"
+              onOpenChange={setEndDatePickerOpen}
             />
+            {(endError || !startAt) && <p id={`${id}-end-description`} role={endError ? "alert" : undefined}
+              className="mt-1 text-xs text-muted-foreground">{endError || DATE_RANGE_MESSAGES.startRequired}</p>}
           </label>
         </div>
 
         {!allDay && (
           <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <CalendarSelect
+              disabled={disabled || !startAt}
               value={startTime}
+              invalid={Boolean(startError)}
+              descriptionId={startError ? `${id}-start-error` : undefined}
               options={startTimeOptions}
               ariaLabel={copy.start}
               onChange={onStartTimeChange}
-              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
+              triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-foreground hover:bg-accent/70 data-[state=open]:bg-card"
               popupClassName="min-w-[11.75rem]"
             />
-            <span className="hidden text-sm font-medium text-slate-400 sm:block">
+            <span className="hidden text-sm font-medium text-muted-foreground sm:block">
               -
             </span>
             <CalendarSelect
+              disabled={disabled || !startAt || !endAt}
               value={endAt}
+              invalid={Boolean(endError)}
+              descriptionId={endError || !startAt ? `${id}-end-description` : undefined}
               options={endTimeOptions}
               ariaLabel={copy.end}
               onChange={onEndDateTimeChange}
               triggerLabel={selectedEndTimeLabel}
-              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
+              triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-foreground hover:bg-accent/70 data-[state=open]:bg-card"
               popupClassName="min-w-[11.75rem]"
             />
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-muted-foreground">
           <label className="inline-flex cursor-pointer items-center gap-2">
             <Checkbox
+              disabled={disabled}
               aria-label={copy.allDay}
               checked={allDay}
               onCheckedChange={(checked) => {
-                setValue("allDay", checked, { shouldDirty: true });
-                onAllDayChange(checked);
+                onAllDayChange(Boolean(checked));
               }}
-              className="h-3.5 w-3.5 rounded border-slate-300"
+              className="h-3.5 w-3.5 rounded border-input"
             />
             {copy.allDay}
           </label>
           {showTimeZone && (
             <>
-              <span className="text-slate-300">{"\u00B7"}</span>
+              <span className="text-muted-foreground">{"\u00B7"}</span>
               <span>
                 {copy.timeZone}
               </span>

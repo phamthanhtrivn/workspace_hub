@@ -33,7 +33,7 @@ export default function TaskLabelBadges({
   return (
     <div
       className={cn(
-        "relative z-20 flex flex-wrap items-center gap-1 overflow-visible select-none",
+        "relative z-20 flex min-w-0 flex-wrap items-center gap-1 overflow-visible select-none [&>[data-slot=badge]]:min-w-0 [&>[data-slot=badge]]:max-w-full [&>[data-slot=badge]]:whitespace-normal [&>[data-slot=badge]]:break-all",
         className,
       )}
     >
@@ -43,12 +43,12 @@ export default function TaskLabelBadges({
       {hiddenLabels.length > 0 ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span
+            <span data-ui-interaction-exception="Focusable tooltip trigger; click only prevents parent card activation."
               tabIndex={0}
               aria-label={`${hiddenLabels.length} more labels`}
               onClick={stopParentActivation}
               onKeyDown={stopParentActivation}
-              className="inline-flex h-5 min-w-6 cursor-default items-center justify-center rounded-full bg-slate-100 px-2 font-mono text-[10px] font-bold text-slate-600 ring-1 ring-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
+              className="inline-flex h-5 min-w-6 cursor-default items-center justify-center rounded-full bg-muted px-2 font-mono text-xs font-semibold text-muted-foreground ring-1 ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               +{hiddenLabels.length}
             </span>

@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Body,
   BadRequestException,
@@ -12,8 +13,19 @@ import {
   Put,
   Query,
   UnauthorizedException,
+  ValidationPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
+import {
+  ChannelResource,
+  SkipChannelResource,
+} from './access/channel-resource.decorator';
+import { UpdateChannelInfoDto } from './dto/update-channel-info.dto';
+import { AddChannelMembersDto } from './dto/add-channel-members.dto';
+import { PrivateChannelMembersQueryDto } from './dto/private-channel-members-query.dto';
+import { PrivateChannelMembersService } from './private-channel-members.service';
 import { CheckChannelTaskPermissionDto } from './dto/check-channel-task-permission.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
@@ -25,20 +37,24 @@ import {
 } from './types/channel.enums';
 
 @Controller('api/channels')
+@ChannelResource('channel')
 export class ChannelController {
   constructor(
     @Inject(ChannelService)
     private readonly channelService: ChannelService,
     private readonly config: RuntimeConfigService,
+    private readonly privateMembers: PrivateChannelMembersService,
   ) {}
 
+  @IndependentAuthentication()
   @Post('internal/:id/task-create-permission')
+  @SkipChannelResource()
   async checkTaskCreatePermission(
     @Param('id') channelId: string,
     @Headers('x-internal-service-key') serviceKey: string,
     @Body() request: CheckChannelTaskPermissionDto,
   ) {
-    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+    if (!isServiceKeyValid(serviceKey, this.config.projectCallerKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
     await this.channelService.assertCanCreateTaskInChannel(
@@ -111,6 +127,22 @@ export class ChannelController {
     };
   }
 
+  @Get(':id/member-directory')
+  async getPrivateMemberDirectory(
+    @Param('id', ParseUUIDPipe) channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PrivateChannelMembersQueryDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+    return {
+      message: CHANNEL_SUCCESS_MESSAGES.MEMBERS_LISTED,
+      data: await this.privateMembers.getDirectory(channelId, userId, query),
+    };
+  }
+
   @Put(':id/members/:memberId/role')
   async updateMemberRole(
     @Param('id') channelId: string,
@@ -152,6 +184,21 @@ export class ChannelController {
     };
   }
 
+  @Post(':id/members')
+  async addMembers(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() body: AddChannelMembersDto,
+  ) {
+    return {
+      data: await this.channelService.addMembers(
+        channelId,
+        userId,
+        body.userIds,
+      ),
+    };
+  }
+
   // @Delete(':id/members/:memberId')
   // async kickMember(
   //   @Param('id') channelId: string,
@@ -167,31 +214,11 @@ export class ChannelController {
   //   };
   // }
 
-  @Get(':id/avatar/presigned-url')
-  getAvatarPresignedUrl(
-    @Param('id') channelId: string,
-    @Headers('x-user-id') userId: string,
-    @Query('fileName') fileName: string,
-    @Query('contentType') contentType: string,
-  ) {
-    if (!userId || !channelId || !fileName || !contentType) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
-      );
-    }
-    return this.channelService.getAvatarUploadPresignedUrl(
-      channelId,
-      userId,
-      fileName,
-      contentType,
-    );
-  }
-
   @Patch(':id/info')
   async updateChannelInfo(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
-    @Body() data: { name: string },
+    @Body() data: UpdateChannelInfoDto,
   ) {
     if (!userId || !channelId) {
       throw new BadRequestException(

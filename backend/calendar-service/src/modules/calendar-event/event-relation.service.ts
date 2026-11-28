@@ -1,13 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import {
-  AttendeeResponseStatus,
-  Prisma,
-  ReminderDeliveryStatus,
-} from '@prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { AttendeeResponseStatus, Prisma } from '@prisma/client';
 import { CalendarEventAttendeeDto } from './dto/calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './dto/calendar-event-reminder.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { EventWithRelations } from './calendar-event.types';
+import { CALENDAR_ERROR_MESSAGES } from '../../common/constants/calendar.constants';
+import { reminderSchedule } from './reminder-schedule';
 
 export type SeriesRelationInputs = {
   attendees: CalendarEventAttendeeDto[];
@@ -125,12 +123,16 @@ export class EventRelationService {
     reminders: CalendarEventReminderDto[] = [],
   ): CalendarEventReminderDto[] {
     const seen = new Set<string>();
-    return reminders.filter((reminder) => {
+    for (const reminder of reminders) {
       const key = `${reminder.method}:${reminder.minutesBefore}`;
-      if (seen.has(key)) return false;
+      if (seen.has(key))
+        throw new BadRequestException(
+          CALENDAR_ERROR_MESSAGES.DUPLICATE_REMINDER,
+        );
       seen.add(key);
-      return true;
-    });
+    }
+
+    return reminders;
   }
 
   private async createDocuments(
@@ -180,10 +182,7 @@ export class EventRelationService {
         eventId,
         minutesBefore: reminder.minutesBefore,
         method: reminder.method,
-        scheduledAt: this.getReminderScheduledAt(
-          startAt,
-          reminder.minutesBefore,
-        ),
+        ...reminderSchedule(startAt, reminder.minutesBefore),
       })),
     });
   }
@@ -304,26 +303,40 @@ export class EventRelationService {
     nextStartAt: Date,
     reminders?: CalendarEventReminderDto[],
   ): Promise<void> {
-    if (reminders !== undefined) {
-      await tx.reminder.deleteMany({ where: { eventId: target.id } });
-      await this.createReminders(
-        tx,
-        target.id,
-        nextStartAt,
-        this.normalizeReminders(reminders),
-      );
-      return;
-    }
-    if (nextStartAt.getTime() === target.startAt.getTime()) return;
-    for (const reminder of target.reminders) {
+    const changedStart = nextStartAt.getTime() !== target.startAt.getTime();
+    if (reminders === undefined && !changedStart) return;
+    const current = await tx.reminder.findMany({
+      where: { eventId: target.id },
+    });
+    const requested = this.normalizeReminders(
+      reminders ??
+        current.map(({ method, minutesBefore }) => ({ method, minutesBefore })),
+    );
+    const keyOf = (reminder: CalendarEventReminderDto) =>
+      `${reminder.method}:${reminder.minutesBefore}`;
+    const requestedKeys = new Set(requested.map(keyOf));
+    const removedIds = current
+      .filter((reminder) => !requestedKeys.has(keyOf(reminder)))
+      .map((reminder) => reminder.id);
+    if (removedIds.length)
+      await tx.reminder.deleteMany({
+        where: { eventId: target.id, id: { in: removedIds } },
+      });
+    const existingKeys = new Set(current.map(keyOf));
+    await this.createReminders(
+      tx,
+      target.id,
+      nextStartAt,
+      requested.filter((reminder) => !existingKeys.has(keyOf(reminder))),
+    );
+    if (!changedStart) return;
+    for (const reminder of current.filter((reminder) =>
+      requestedKeys.has(keyOf(reminder)),
+    )) {
       await tx.reminder.update({
         where: { id: reminder.id },
         data: {
-          scheduledAt: this.getReminderScheduledAt(
-            nextStartAt,
-            reminder.minutesBefore,
-          ),
-          deliveryStatus: ReminderDeliveryStatus.PENDING,
+          ...reminderSchedule(nextStartAt, reminder.minutesBefore),
           attemptCount: 0,
           nextAttemptAt: null,
           dispatchedAt: null,
@@ -331,9 +344,5 @@ export class EventRelationService {
         },
       });
     }
-  }
-
-  private getReminderScheduledAt(startAt: Date, minutesBefore: number): Date {
-    return new Date(startAt.getTime() - minutesBefore * 60_000);
   }
 }

@@ -38,3 +38,9 @@ Desktop.ini
 .env
 .env.docker
 .idea
+
+# Python-generated artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

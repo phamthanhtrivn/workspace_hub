@@ -19,6 +19,8 @@ export const getKafkaConfig = (): KafkaOptions => {
       consumer: {
         groupId: KAFKA_CONFIG.GROUP_ID,
       },
+      // New task-sync subscriptions must also receive updates produced while this service was offline.
+      subscribe: { fromBeginning: true },
     },
   };
 };

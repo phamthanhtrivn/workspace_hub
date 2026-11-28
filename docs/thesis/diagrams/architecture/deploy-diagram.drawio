@@ -1,0 +1,212 @@
+<mxfile host="app.diagrams.net" pages="2">
+  <diagram id="cicd-pipeline-01" name="01 - CI/CD Pipeline">
+    <mxGraphModel dx="1423" dy="777" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title-01" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=24;fontStyle=1;fontColor=#0F172A;" value="CI/CD PIPELINE - AUTOMATED DEPLOYMENT" vertex="1">
+          <mxGeometry height="40" width="800" x="185" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="card-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F8FAFC;strokeColor=#475569;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="100" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#0F172A;strokeColor=#0F172A;fontColor=#FFFFFF;fontSize=22;fontStyle=1;" value="GH" vertex="1">
+          <mxGeometry height="70" width="70" x="195" y="134" as="geometry" />
+        </mxCell>
+        <mxCell id="text-1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#0F172A&quot;&gt;1. PUSH CODE&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;Push / Merge nhánh &lt;b&gt;main&lt;/b&gt;&lt;br&gt;lên GitHub&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="115" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="card-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="455" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#2563EB;strokeColor=#1D4ED8;fontColor=#FFFFFF;fontSize=22;fontStyle=1;" value="▶" vertex="1">
+          <mxGeometry height="70" width="70" x="550" y="134" as="geometry" />
+        </mxCell>
+        <mxCell id="text-2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#1D4ED8&quot;&gt;2. TRIGGER &amp;amp; PLAN CI/CD&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;GitHub Actions Coordinator&lt;br&gt;Lập kế hoạch &amp;amp; chạy CI checks&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="470" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="card-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0F9FF;strokeColor=#0284C7;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="810" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#0284C7;strokeColor=#0369A1;fontColor=#FFFFFF;fontSize=15;fontStyle=1;" value="Buildx" vertex="1">
+          <mxGeometry height="64" width="80" x="900" y="137" as="geometry" />
+        </mxCell>
+        <mxCell id="text-3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#0369A1&quot;&gt;3. BUILD IMAGE&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;Docker Buildx (GHA cache)&lt;br&gt;Build runtime &amp;amp; migration images&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="825" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="card-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0F9FF;strokeColor=#0284C7;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="810" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#0284C7;strokeColor=#0369A1;fontColor=#FFFFFF;fontSize=20;fontStyle=1;" value="DH" vertex="1">
+          <mxGeometry height="64" width="80" x="900" y="437" as="geometry" />
+        </mxCell>
+        <mxCell id="text-4" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#0369A1&quot;&gt;4. PUSH IMAGE&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;Push tag bất biến &lt;b&gt;:sha-&amp;lt;commit&amp;gt;&lt;/b&gt;&lt;br&gt;lên Docker Hub&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="825" y="518" as="geometry" />
+        </mxCell>
+        <mxCell id="card-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF7ED;strokeColor=#EA580C;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="455" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#EA580C;strokeColor=#C2410C;fontColor=#FFFFFF;fontSize=19;fontStyle=1;" value="EC2" vertex="1">
+          <mxGeometry height="64" width="80" x="545" y="437" as="geometry" />
+        </mxCell>
+        <mxCell id="text-5" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#9A3412&quot;&gt;5. DEPLOY TO EC2&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;SCP compose + SSH (SHA-256)&lt;br&gt;INFRA → REALTIME → APP&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="470" y="518" as="geometry" />
+        </mxCell>
+        <mxCell id="card-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ECFDF5;strokeColor=#059669;strokeWidth=2;" value="" vertex="1">
+          <mxGeometry height="220" width="260" x="100" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="badge-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#059669;strokeColor=#047857;fontColor=#FFFFFF;fontSize=22;fontStyle=1;" value="▶" vertex="1">
+          <mxGeometry height="70" width="70" x="195" y="434" as="geometry" />
+        </mxCell>
+        <mxCell id="text-6" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;spacing=4;" value="&lt;b style=&quot;font-size:15px;color:#065F46&quot;&gt;6. MIGRATE &amp;amp; RUN APP&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#475569&quot;&gt;DB Migrations, compose up -d&lt;br&gt;Health check &amp;amp; auto Rollback&lt;/font&gt;" vertex="1">
+          <mxGeometry height="90" width="230" x="115" y="518" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-1-2" edge="1" parent="1" source="card-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#475569;fontColor=#475569;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="card-2" value="push">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-2-3" edge="1" parent="1" source="card-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#2563EB;fontColor=#2563EB;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="card-3" value="plan &amp;amp; build">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-3-4" edge="1" parent="1" source="card-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0284C7;fontColor=#0369A1;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="card-4" value="push image">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-4-5" edge="1" parent="1" source="card-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#EA580C;fontColor=#C2410C;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="card-5" value="deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-5-6" edge="1" parent="1" source="card-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#059669;fontColor=#047857;fontSize=12;fontStyle=1;labelBackgroundColor=#FFFFFF;" target="card-6" value="migrate &amp;amp; up">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="summary-01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=18;fillColor=#F1F5F9;strokeColor=#CBD5E1;strokeWidth=1.5;fontColor=#1E293B;fontSize=13;" value="&lt;b&gt;Kết quả:&lt;/b&gt; Push main → GitHub Actions (Plan &amp;amp; CI) → Docker Buildx → Docker Hub (:sha-&amp;lt;commit&amp;gt;) → SCP/SSH tới AWS EC2 → Migrate, Up -d &amp;amp; Health Check" vertex="1">
+          <mxGeometry height="54" width="970" x="100" y="685" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="aws-topology-02" name="02 - AWS EC2 Topology">
+    <mxGraphModel dx="1500" dy="960" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="920" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title-02" value="WORKSPACEHUB - AWS EC2 DEPLOYMENT TOPOLOGY (ap-southeast-1)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=22;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="900" height="36" as="geometry" />
+        </mxCell>
+        <!-- External Left Column -->
+        <mxCell id="ext-users" value="&lt;b&gt;Người dùng (Browser)&lt;/b&gt;&lt;br&gt;HTTPS / WebSockets / WebRTC" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#EFF6FF;strokeColor=#2563EB;strokeWidth=1.8;fontColor=#1E293B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="130" width="210" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-gh" value="&lt;b&gt;GitHub Actions Runner&lt;/b&gt;&lt;br&gt;Plan, CI &amp;amp; SCP/SSH (TCP 22)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F8FAFC;strokeColor=#475569;strokeWidth=1.8;fontColor=#1E293B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="290" width="210" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-dh" value="&lt;b&gt;Docker Hub Registry&lt;/b&gt;&lt;br&gt;17 APP/AI images (:sha-&amp;lt;commit&amp;gt;)&lt;br&gt;Caddy, Qdrant, Infra &amp;amp; Realtime" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0F9FF;strokeColor=#0284C7;strokeWidth=1.8;fontColor=#1E293B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="450" width="210" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-providers" value="&lt;b&gt;External Providers&lt;/b&gt;&lt;br&gt;Google OAuth · SMTP Mail&lt;br&gt;LLM / Vision API · Web Push" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F8FAFC;strokeColor=#64748B;strokeWidth=1.8;fontColor=#1E293B;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="30" y="620" width="210" height="105" as="geometry" />
+        </mxCell>
+        <!-- AWS VPC Container -->
+        <mxCell id="vpc-box" value="AWS VPC (ap-southeast-1 · Singapore) — 3 Ubuntu 24.04 x86_64 EC2 Instances" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#FFFBEB;strokeColor=#D97706;strokeWidth=2;dashed=1;verticalAlign=top;align=left;spacingTop=10;spacingLeft=16;fontSize=14;fontStyle=1;fontColor=#92400E;" vertex="1" parent="1">
+          <mxGeometry x="310" y="75" width="800" height="790" as="geometry" />
+        </mxCell>
+        <!-- EC2 APP -->
+        <mxCell id="ec2-app" value="EC2 APP (/opt/workspacehub/app)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#EA580C;strokeWidth=2;verticalAlign=top;align=left;spacingTop=10;spacingLeft=12;fontSize=13;fontStyle=1;fontColor=#9A3412;" vertex="1" parent="1">
+          <mxGeometry x="335" y="125" width="465" height="405" as="geometry" />
+        </mxCell>
+        <mxCell id="app-web" value="&lt;b&gt;Caddy HTTPS (:443) + Web (:3000)&lt;/b&gt;&lt;br&gt;Next.js 16 + Auto TLS" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="355" y="170" width="200" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="app-kong" value="&lt;b&gt;kong API Gateway&lt;/b&gt;&lt;br&gt;Kong 3.9.1 (:8000)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="170" width="200" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="app-services" value="&lt;b&gt;6 Business Microservices&lt;/b&gt;&lt;br&gt;user (:8081) · project (:8082) · communication (:8083)&lt;br&gt;notification (:8084) · document (:8085) · calendar (:8086)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F8FAFC;strokeColor=#475569;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="355" y="248" width="425" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="app-migrations" value="&lt;b&gt;6 × *-service-migration&lt;/b&gt;&lt;br&gt;Prisma / SQL runners (profile: migration)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F1F5F9;strokeColor=#94A3B8;fontColor=#334155;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="355" y="344" width="425" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="app-ai" value="&lt;b&gt;Notebook AI Stack (CI/CD tích hợp)&lt;/b&gt;&lt;br&gt;notebook-api (:8087) · notebook-jobs · rag-worker · speech-worker · qdrant&lt;br&gt;Mạng cô lập ai_internal + bootstrap/migrate tự động" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F5F3FF;strokeColor=#7C3AED;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="355" y="416" width="425" height="92" as="geometry" />
+        </mxCell>
+        <!-- EC2 REALTIME -->
+        <mxCell id="ec2-realtime" value="EC2 REALTIME (/opt/workspacehub/realtime)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#EA580C;strokeWidth=2;verticalAlign=top;align=left;spacingTop=10;spacingLeft=12;fontSize=13;fontStyle=1;fontColor=#9A3412;" vertex="1" parent="1">
+          <mxGeometry x="835" y="125" width="250" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="rt-livekit" value="&lt;b&gt;Caddy WSS (:443) + LiveKit 1.13.5&lt;/b&gt;&lt;br&gt;Signaling TCP 7880/7881&lt;br&gt;Media UDP 7882 (Host net)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ECFDF5;strokeColor=#059669;fontColor=#065F46;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="855" y="175" width="210" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="rt-egress" value="&lt;b&gt;LiveKit Egress 1.14.1&lt;/b&gt;&lt;br&gt;Recording Worker (MP4)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#ECFDF5;strokeColor=#059669;fontColor=#065F46;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="855" y="272" width="210" height="68" as="geometry" />
+        </mxCell>
+        <!-- EC2 INFRA -->
+        <mxCell id="ec2-infra" value="EC2 INFRA (/opt/workspacehub/infra) — Private VPC Only" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#EA580C;strokeWidth=2;verticalAlign=top;align=left;spacingTop=10;spacingLeft=12;fontSize=13;fontStyle=1;fontColor=#9A3412;" vertex="1" parent="1">
+          <mxGeometry x="335" y="610" width="750" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-pg" value="&lt;b&gt;PostgreSQL 15.18&lt;/b&gt;&lt;br&gt;TCP 5432&lt;br&gt;user_db, project_db,&lt;br&gt;comm_db, notif_db,&lt;br&gt;doc_db, cal_db, notebook_db" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#EFF6FF;strokeColor=#1D4ED8;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="355" y="660" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-redis" value="&lt;b&gt;Redis 7.4.8&lt;/b&gt;&lt;br&gt;TCP 6379 (AOF)&lt;br&gt;Cache, Socket Adapter,&lt;br&gt;LiveKit &amp;amp; AI Queues" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FEF2F2;strokeColor=#DC2626;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="660" width="220" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="infra-kafka" value="&lt;b&gt;Apache Kafka 4.3.1&lt;/b&gt;&lt;br&gt;TCP 9092 + kafka-init&lt;br&gt;Async Domain Events" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F8FAFC;strokeColor=#334155;fontColor=#1E293B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="845" y="660" width="220" height="140" as="geometry" />
+        </mxCell>
+        <!-- AWS Managed S3 -->
+        <mxCell id="aws-s3" value="&lt;b&gt;Amazon S3&lt;/b&gt;&lt;br&gt;&lt;b&gt;workspacehub-s3&lt;/b&gt;&lt;br&gt;Tài liệu, Avatar, Media&lt;br&gt;&amp;amp; Bản ghi cuộc họp" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF7ED;strokeColor=#EA580C;strokeWidth=2;fontColor=#9A3412;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1165" y="230" width="205" height="125" as="geometry" />
+        </mxCell>
+        <!-- Topology Connections -->
+        <mxCell id="topo-users-app" value="HTTP :3000 / :8000" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#2563EB;fontColor=#1D4ED8;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ext-users" target="ec2-app">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="275" y="175" />
+              <mxPoint x="275" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="topo-gh-vpc" value="SCP + SSH" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#475569;fontColor=#475569;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ext-gh" target="vpc-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="topo-dh-vpc" value="Pull images" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#0284C7;fontColor=#0369A1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ext-dh" target="vpc-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="topo-app-ext" value="API / SMTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.6;strokeColor=#64748B;dashed=1;fontColor=#475569;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ec2-app" target="ext-providers">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="285" y="480" />
+              <mxPoint x="285" y="672" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="topo-app-infra" value="TCP 5432 / 6379 / 9092" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;strokeColor=#1D4ED8;fontColor=#1D4ED8;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFBEB;" edge="1" parent="1" source="ec2-app" target="ec2-infra">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="topo-rt-infra" value="Redis :6379" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#DC2626;fontColor=#DC2626;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFBEB;" edge="1" parent="1" source="ec2-realtime" target="ec2-infra">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="480" />
+              <mxPoint x="960" y="480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="topo-app-rt" value="API :7880 / Webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#059669;startArrow=classic;endArrow=classic;fontColor=#047857;fontSize=11;labelBackgroundColor=#FFFBEB;" edge="1" parent="1" source="ec2-app" target="ec2-realtime">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="818" y="245" />
+              <mxPoint x="818" y="245" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="topo-app-s3" value="IAM Role / S3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.8;strokeColor=#EA580C;fontColor=#9A3412;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ec2-app" target="aws-s3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="430" />
+              <mxPoint x="1268" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="topo-rt-s3" value="Egress Upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1.6;strokeColor=#EA580C;dashed=1;fontColor=#9A3412;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="ec2-realtime" target="aws-s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

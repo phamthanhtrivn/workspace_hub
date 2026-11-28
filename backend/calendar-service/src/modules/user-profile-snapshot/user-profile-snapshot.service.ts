@@ -1,4 +1,8 @@
+import { Prisma } from '@prisma/client';
+import { claimUserEvent, InvalidUserEvent } from '../../infrastructure/kafka/user-event-policy';
+import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 import { Injectable, Logger } from '@nestjs/common';
+import { getServiceEndpoints } from '../../common/config/service-endpoints';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   UserProfileSnapshotPayload,
@@ -12,24 +16,31 @@ import {
 @Injectable()
 export class UserProfileSnapshotService {
   private readonly logger = new Logger(UserProfileSnapshotService.name);
-  private readonly userServiceUrl =
-    process.env.USER_SERVICE_URL ?? 'http://user-service:8081';
+  private readonly userServiceUrl = getServiceEndpoints().user;
 
   constructor(private readonly prisma: PrismaService) {}
 
   async upsertFromEvent(payload: UserProfileSnapshotPayload) {
+    this.assertValidPayload(payload);
+    return this.prisma.$transaction(async (tx) => {
+      if (!(await claimUserEvent(tx, KAFKA_CONFIG.TOPIC, payload))) return null;
+      return this.applySnapshot(tx, payload);
+    });
+  }
+
+  private async applySnapshot(tx: Prisma.TransactionClient, payload: UserProfileSnapshotPayload) {
     this.assertValidPayload(payload);
 
     const occurredAt = payload.occurredAt
       ? new Date(payload.occurredAt)
       : new Date();
 
-    const existingSnapshot = await this.prisma.userProfileSnapshot.findUnique({
+    const existingSnapshot = await tx.userProfileSnapshot.findUnique({
       where: { userId: payload.userId },
       select: { syncedAt: true },
     });
 
-    if (existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
+    if (!payload.revision && existingSnapshot && occurredAt < existingSnapshot.syncedAt) {
       this.logger.debug(
         `Ignored stale user profile snapshot event for ${payload.userId}`,
       );
@@ -40,12 +51,12 @@ export class UserProfileSnapshotService {
       payload.eventType === UserProfileSnapshotEventType.REMOVED ||
       payload.eventType === UserProfileSnapshotEventType.DISABLED
     ) {
-      return this.prisma.userProfileSnapshot.deleteMany({
+      return tx.userProfileSnapshot.deleteMany({
         where: { userId: payload.userId },
       });
     }
 
-    return this.prisma.userProfileSnapshot.upsert({
+    return tx.userProfileSnapshot.upsert({
       where: { userId: payload.userId },
       create: {
         userId: payload.userId,
@@ -121,6 +132,14 @@ export class UserProfileSnapshotService {
 
       try {
         const response = await fetch(url, {
+          ...(process.env.CALENDAR_TO_USER_KEY &&
+          process.env.CALENDAR_TO_USER_KEY.length >= 32
+            ? {
+                headers: {
+                  'x-internal-service-key': process.env.CALENDAR_TO_USER_KEY,
+                },
+              }
+            : {}),
           signal: AbortSignal.timeout(3000),
         });
         if (!response.ok) {
@@ -207,11 +226,11 @@ export class UserProfileSnapshotService {
       !payload ||
       !Object.values(UserProfileSnapshotEventType).includes(payload.eventType)
     ) {
-      throw new Error(UserProfileSnapshotErrorMessage.INVALID_EVENT);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.INVALID_EVENT);
     }
 
     if (!payload.userId) {
-      throw new Error(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
+      throw new InvalidUserEvent(UserProfileSnapshotErrorMessage.MISSING_USER_ID);
     }
   }
 }

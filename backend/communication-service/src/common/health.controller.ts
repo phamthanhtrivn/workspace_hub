@@ -1,4 +1,11 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { kafkaConsumerState } from '../infrastructure/kafka/consumer-lifecycle';
+import { Public } from './decorators/http-authentication.decorator';
+import {
+  Controller,
+  Get,
+  ServiceUnavailableException,
+  Logger,
+} from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { createClient } from 'redis';
 import { PrismaService } from '../prisma/prisma.service';
@@ -12,8 +19,10 @@ type DependencyCheck = {
 const SERVICE_NAME = 'communication-service';
 const KAFKA_DEFAULT_BROKER = 'localhost:9092';
 
+@Public()
 @Controller()
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
   constructor(private readonly prisma: PrismaService) {}
 
   @Get('health')
@@ -28,6 +37,7 @@ export class HealthController {
       this.checkKafka(),
       this.checkRedis(),
     ]);
+    checks.push({ name: 'kafka-consumer', status: kafkaConsumerState.ready() ? 'ok' : 'error' });
     const isReady = checks.every((check) => check.status === 'ok');
 
     if (!isReady) {
@@ -40,7 +50,10 @@ export class HealthController {
     return this.response('ready', checks);
   }
 
-  private response(status: 'ok' | 'ready' | 'unready', checks: DependencyCheck[]) {
+  private response(
+    status: 'ok' | 'ready' | 'unready',
+    checks: DependencyCheck[],
+  ) {
     return {
       service: SERVICE_NAME,
       status,
@@ -114,10 +127,14 @@ export class HealthController {
   }
 
   private errorCheck(name: string, error: unknown): DependencyCheck {
+    this.logger.error(
+      `Readiness check failed: ${name}`,
+      error instanceof Error ? error.stack : undefined,
+    );
     return {
       name,
       status: 'error',
-      message: error instanceof Error ? error.message : String(error),
+      message: 'Dependency unavailable',
     };
   }
 }

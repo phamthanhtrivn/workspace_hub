@@ -32,23 +32,6 @@ export function useProjectSidebarState() {
       desktopMedia.removeEventListener("change", closeDrawerOnDesktop);
   }, []);
 
-  useEffect(() => {
-    if (!isMobileOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsMobileOpen(false);
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", closeOnEscape);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [isMobileOpen]);
-
   const toggleCollapsed = useCallback(() => {
     setIsCollapsed((collapsed) => {
       const nextState = !collapsed;

@@ -1,4 +1,10 @@
+import { Bot } from "lucide-react";
+import { getMentionNames, splitMentionText } from "./mention-presentation";
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import MessageCodeBlock from "../components/message/message-code-block";
 import { UserProfileSnapshotResponse } from "../types/chat.types";
 
 // Helper to parse inline styles (Bold, Italic, Strikethrough, Inline Code)
@@ -74,26 +80,26 @@ export const parseInlineStyles = (
         return (
           <code
             key={`inline-code-${index}`}
-            className="bg-gray-100 text-red-500 font-mono px-1 py-0.5 rounded text-[11px] border border-gray-200"
+            className="bg-muted text-destructive-content font-mono px-1 py-0.5 rounded text-[11px] border border-border"
           >
             {t.text}
           </code>
         );
       case "bold":
         return (
-          <strong key={`bold-${index}`} className="font-bold text-gray-900">
+          <strong key={`bold-${index}`} className="font-bold text-foreground">
             {t.text}
           </strong>
         );
       case "italic":
         return (
-          <em key={`italic-${index}`} className="italic text-gray-800">
+          <em key={`italic-${index}`} className="italic text-foreground">
             {t.text}
           </em>
         );
       case "strike":
         return (
-          <span key={`strike-${index}`} className="line-through text-gray-400">
+          <span key={`strike-${index}`} className="line-through text-muted-foreground">
             {t.text}
           </span>
         );
@@ -106,110 +112,22 @@ export const parseInlineStyles = (
 export const formatMessageContent = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): (string | React.ReactNode)[] => {
   if (!content) return [content || ""];
 
-  let parts: (string | React.ReactNode)[] = [content];
-
-  // 1. Process Special Mentions (@All, @all, @channel, @here)
-  const specialMentions = ["@All", "@all", "@channel", "@here"];
-  specialMentions.forEach((specialStr) => {
-    if (!content.includes(specialStr)) return;
-    const newParts: (string | React.ReactNode)[] = [];
-    parts.forEach((part, partIdx) => {
-      if (typeof part === "string") {
-        const split = part.split(specialStr);
-        split.forEach((s, idx) => {
-          newParts.push(s);
-          if (idx < split.length - 1) {
-            newParts.push(
-              <span
-                key={`special-${specialStr}-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md transition-colors"
-              >
-                {specialStr}
-              </span>,
-            );
-          }
-        });
-      } else {
-        newParts.push(part);
-      }
-    });
-    parts = newParts;
-  });
-
-  // 2. Process Member Profile Mentions from memberProfiles map
-  const allProfiles = Object.values(memberProfiles || {})
-    .map((profile: any) => ({
-      userId: profile.userId || profile.id,
-      name: profile.fullName || profile.displayName || "Someone",
-    }))
-    .filter((p) => p.name && p.name !== "Someone")
-    .sort((a, b) => b.name.length - a.name.length);
-
-  allProfiles.forEach(({ userId, name }: any) => {
-    const searchStr = `@${name}`;
-    const newParts: (string | React.ReactNode)[] = [];
-    parts.forEach((part, partIdx) => {
-      if (typeof part === "string") {
-        const split = part.split(searchStr);
-        split.forEach((s, idx) => {
-          newParts.push(s);
-          if (idx < split.length - 1) {
-            newParts.push(
-              <span
-                key={`user-${userId}-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
-              >
-                {searchStr}
-              </span>,
-            );
-          }
-        });
-      } else {
-        newParts.push(part);
-      }
-    });
-    parts = newParts;
-  });
-
-  // 3. Fallback General Mention Regex for single-word @mentions (no spaces allowed to prevent swallowing following text)
-  const mentionRegex = /@([\p{L}\p{N}_\-]+)/gu;
-  const fallbackParts: (string | React.ReactNode)[] = [];
-  parts.forEach((part, partIdx) => {
-    if (typeof part === "string") {
-      let lastIdx = 0;
-      let match;
-      mentionRegex.lastIndex = 0;
-      while ((match = mentionRegex.exec(part)) !== null) {
-        const matchIdx = match.index;
-        const fullMention = match[0];
-        if (matchIdx > lastIdx) {
-          fallbackParts.push(part.substring(lastIdx, matchIdx));
-        }
-        fallbackParts.push(
-          <span
-            key={`mention-regex-${partIdx}-${matchIdx}`}
-            className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
-          >
-            {fullMention}
-          </span>,
-        );
-        lastIdx = mentionRegex.lastIndex;
-      }
-      if (lastIdx < part.length) {
-        fallbackParts.push(part.substring(lastIdx));
-      }
-    } else {
-      fallbackParts.push(part);
-    }
-  });
-  parts = fallbackParts;
+  let parts: (string | React.ReactNode)[] = splitMentionText(content, [...getMentionNames(memberProfiles), ...mentionNames]).map((part, index) =>
+    part.mention ? (
+      <span key={index} className="inline rounded-md bg-info-soft/80 px-1 py-0.5 font-semibold text-info-content [box-decoration-break:clone]">
+        {part.ai && <Bot aria-hidden="true" className="mr-1 inline size-3.5 align-text-bottom" />}
+        {part.text}
+      </span>
+    ) : part.text,
+  );
 
   // Process Markdown Links [text](url)
   const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-  let mdLinkParts: (string | React.ReactNode)[] = [];
+  const mdLinkParts: (string | React.ReactNode)[] = [];
   parts.forEach((part, partIdx) => {
     if (typeof part === "string") {
       let lastIdx = 0;
@@ -228,7 +146,7 @@ export const formatMessageContent = (
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline break-all"
+            className="text-info-content hover:underline break-all"
             onClick={(e) => e.stopPropagation()}
           >
             {linkText}
@@ -259,7 +177,7 @@ export const formatMessageContent = (
               href={s}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline break-all"
+              className="text-info-content hover:underline break-all"
               onClick={(e) => e.stopPropagation()}
             >
               {s}
@@ -280,8 +198,9 @@ export const formatMessageContent = (
 export const formatMessageContentAndStyles = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): React.ReactNode[] => {
-  const parts = formatMessageContent(content, memberProfiles);
+  const parts = formatMessageContent(content, memberProfiles, mentionNames);
   const finalParts: React.ReactNode[] = [];
 
   parts.forEach((part) => {
@@ -298,17 +217,18 @@ export const formatMessageContentAndStyles = (
 export const parseBlocks = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): React.ReactNode => {
   if (!content) return null;
 
-  const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```/g;
-  const parts: { type: "text" | "code"; content: string }[] = [];
+  const codeBlockRegex = /```([^\r\n`]*)\r?\n([\s\S]*?)```/g;
+  const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
     const matchIndex = match.index;
-    const codeContent = match[1];
+    const codeContent = match[2];
 
     if (matchIndex > lastIndex) {
       parts.push({
@@ -320,6 +240,7 @@ export const parseBlocks = (
     parts.push({
       type: "code",
       content: codeContent,
+      language: match[1].trim().split(/\s+/)[0] || undefined,
     });
 
     lastIndex = codeBlockRegex.lastIndex;
@@ -337,12 +258,11 @@ export const parseBlocks = (
       {parts.map((part, partIdx) => {
         if (part.type === "code") {
           return (
-            <pre
+            <MessageCodeBlock
               key={`block-code-${partIdx}`}
-              className="bg-gray-950 text-gray-100 font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-w-full my-1.5 border border-gray-800 leading-normal select-text"
-            >
-              <code>{part.content.trim()}</code>
-            </pre>
+              code={part.content}
+              language={part.language}
+            />
           );
         }
 
@@ -350,6 +270,7 @@ export const parseBlocks = (
 
         interface BlockNode {
           type:
+            | "table"
             | "heading"
             | "quote"
             | "bullet_list"
@@ -364,7 +285,19 @@ export const parseBlocks = (
         const nodes: BlockNode[] = [];
         let currentList: BlockNode | null = null;
 
-        lines.forEach((line) => {
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+          const line = lines[lineIndex];
+          const next = lines[lineIndex + 1];
+          if (line.includes("|") && next && /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/.test(next)) {
+            const tableLines = [line, next];
+            lineIndex++;
+            while (lineIndex + 1 < lines.length && lines[lineIndex + 1].trim() && lines[lineIndex + 1].includes("|")) {
+              tableLines.push(lines[++lineIndex]);
+            }
+            currentList = null;
+            nodes.push({ type: "table", text: tableLines.join("\n") });
+            continue;
+          }
           const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
           const bulletMatch = line.match(/^[\-\*]\s+(.*)$/);
           const numberMatch = line.match(/^\d+\.\s+(.*)$/);
@@ -412,24 +345,41 @@ export const parseBlocks = (
               text: line,
             });
           }
-        });
+        }
 
         return (
           <div key={`text-block-${partIdx}`} className="space-y-1 w-full">
             {nodes.map((node, nodeIdx) => {
+              if (node.type === "table") {
+                return (
+                  <div key={`table-${nodeIdx}`} role="region" aria-label="Message table" tabIndex={0}
+                    className="my-3 max-w-full overflow-x-auto rounded-lg border border-border bg-card whitespace-normal focus-visible:outline-2 focus-visible:outline-primary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{
+                      table: ({ children }) => <Table unstyled className="w-full min-w-[28rem] border-collapse text-left text-sm leading-relaxed">{children}</Table>,
+                      tr: ({ children }) => <TableRow unstyled>{children}</TableRow>,
+                      thead: ({ children }) => <TableHeader unstyled className="bg-muted text-foreground">{children}</TableHeader>,
+                      th: ({ children, style }) => <TableHead unstyled scope="col" style={style} className="border-b border-r border-border px-3 py-2.5 font-semibold last:border-r-0">{children}</TableHead>,
+                      td: ({ children, style }) => <TableCell unstyled style={style} className="border-b border-r border-border px-3 py-2 align-top last:border-r-0">{children}</TableCell>,
+                      tbody: ({ children }) => <TableBody unstyled className="[&_tr:nth-child(even)]:bg-muted/40 [&_tr:last-child_td]:border-b-0">{children}</TableBody>,
+                      a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-link underline underline-offset-2">{children}</a>,
+                      img: ({ alt }) => <span>{alt}</span>,
+                    }}>{node.text!}</ReactMarkdown>
+                  </div>
+                );
+              }
               if (node.type === "heading") {
-                const HeadingTag = `h${node.level}` as any;
+                const HeadingTag = `h${node.level}` as keyof React.JSX.IntrinsicElements;
                 const classMap: Record<number, string> = {
-                  1: "text-xl font-black text-gray-950 mt-3 mb-1.5 leading-tight tracking-tight",
-                  2: "text-lg font-extrabold text-gray-950 mt-2.5 mb-1.5 leading-tight tracking-tight",
-                  3: "text-base font-extrabold text-gray-950 mt-2 mb-1 leading-snug",
+                  1: "text-xl font-black text-foreground mt-3 mb-1.5 leading-tight tracking-tight",
+                  2: "text-lg font-extrabold text-foreground mt-2.5 mb-1.5 leading-tight tracking-tight",
+                  3: "text-base font-extrabold text-foreground mt-2 mb-1 leading-snug",
                 };
                 const className =
                   classMap[node.level!] ||
-                  "text-sm font-bold text-gray-950 mt-1.5 mb-0.5 leading-snug";
+                  "text-sm font-bold text-foreground mt-1.5 mb-0.5 leading-snug";
                 return (
                   <HeadingTag key={`h-${nodeIdx}`} className={className}>
-                    {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                    {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                   </HeadingTag>
                 );
               }
@@ -438,9 +388,9 @@ export const parseBlocks = (
                 return (
                   <blockquote
                     key={`quote-${nodeIdx}`}
-                    className="border-l-4 border-gray-300 px-3 py-1  my-1 text-gray-600 bg-gray-100 rounded-r-md italic text-xs leading-relaxed"
+                    className="border-l-4 border-input px-3 py-1  my-1 text-muted-foreground bg-muted rounded-r-md italic text-xs leading-relaxed"
                   >
-                    {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                    {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                   </blockquote>
                 );
               }
@@ -449,11 +399,11 @@ export const parseBlocks = (
                 return (
                   <ul
                     key={`bullet-${nodeIdx}`}
-                    className="list-disc list-inside pl-4 text-xs text-gray-800 my-1 space-y-0.5"
+                    className="list-disc list-inside pl-4 text-xs text-foreground my-1 space-y-0.5"
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`bullet-item-${itemIdx}`}>
-                        {formatMessageContentAndStyles(item, memberProfiles)}
+                        {formatMessageContentAndStyles(item, memberProfiles, mentionNames)}
                       </li>
                     ))}
                   </ul>
@@ -464,11 +414,11 @@ export const parseBlocks = (
                 return (
                   <ol
                     key={`number-${nodeIdx}`}
-                    className="list-decimal list-inside pl-4 text-xs text-gray-800 my-1 space-y-0.5"
+                    className="list-decimal list-inside pl-4 text-xs text-foreground my-1 space-y-0.5"
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`number-item-${itemIdx}`}>
-                        {formatMessageContentAndStyles(item, memberProfiles)}
+                        {formatMessageContentAndStyles(item, memberProfiles, mentionNames)}
                       </li>
                     ))}
                   </ol>
@@ -487,7 +437,7 @@ export const parseBlocks = (
                   key={`line-${nodeIdx}`}
                   className="min-h-[16px] break-words"
                 >
-                  {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                  {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                 </div>
               );
             })}
@@ -501,11 +451,12 @@ export const parseBlocks = (
 export const renderMessageContent = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ) => {
   if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
   return (
     <div className="whitespace-pre-wrap leading-relaxed select-text">
-      {parseBlocks(content, memberProfiles)}
+      {parseBlocks(content, memberProfiles, mentionNames)}
     </div>
   );
 };

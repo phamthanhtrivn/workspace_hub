@@ -1,4 +1,6 @@
+import { copiedAttachmentDelivery } from "./copied-attachment-delivery";
 import { api } from "@/lib/axios";
+import type { PrivateChannelMembersResponse } from "../types/chat.types";
 import {
   ApiResponse,
   ChannelResponse,
@@ -27,6 +29,33 @@ export const getChannelMembers = async (
     params: { search, limit },
   });
   return normalizeApiResponse<ChannelMembersListResponse>(response.data);
+};
+
+export const addChannelMembers = async (
+  channelId: string,
+  userIds: string[],
+) => {
+  const response = await api.post(`/api/channels/${channelId}/members`, {
+    userIds,
+  });
+
+  return normalizeApiResponse<{ count: number }>(response.data);
+};
+
+export const getPrivateChannelMemberDirectory = async (
+  channelId: string,
+  params: { page: number; search?: string },
+  signal?: AbortSignal,
+): Promise<ApiResponse<PrivateChannelMembersResponse>> => {
+  const response = await api.get(
+    `/api/channels/${channelId}/member-directory`,
+    {
+      params: { ...params, search: params.search || undefined },
+      signal,
+    },
+  );
+
+  return normalizeApiResponse<PrivateChannelMembersResponse>(response.data);
 };
 
 export const inviteMembers = async (
@@ -103,20 +132,6 @@ export const updateChannelSettings = async (
   return normalizeApiResponse<ConversationSetting>(response.data);
 };
 
-export const getChannelAvatarPresignedUrl = async (
-  channelId: string,
-  fileName: string,
-  contentType: string,
-): Promise<ApiResponse<{ presignedUrl: string; fileUrl?: string }>> => {
-  const response = await api.get(
-    `/api/channels/${channelId}/avatar/presigned-url`,
-    { params: { fileName, contentType } },
-  );
-  return normalizeApiResponse<{ presignedUrl: string; fileUrl?: string }>(
-    response.data,
-  );
-};
-
 export const muteChannel = async (
   channelId: string,
   muted: boolean,
@@ -154,6 +169,7 @@ export const getChannelMessages = async (
 export const sendChannelMessage = async (
   channelId: string,
   payload: {
+    clientRequestId?: string;
     content?: string;
     type?: MessageType | string;
     medias?: {
@@ -168,8 +184,18 @@ export const sendChannelMessage = async (
     mentions?: string[];
   },
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.post(`/api/channels/${channelId}/messages`, payload);
-  return normalizeApiResponse<ChatMessageResponse>(response.data);
+  return copiedAttachmentDelivery(
+    "channel:" + channelId,
+    payload,
+    async (next) => {
+      const response = await api.post(
+        `/api/channels/${channelId}/messages`,
+        next,
+      );
+
+      return normalizeApiResponse<ChatMessageResponse>(response.data);
+    },
+  );
 };
 
 export const markChannelMessageAsRead = async (
@@ -195,7 +221,10 @@ export const editChannelMessage = async (
 export const recallChannelMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(`/api/channels/messages/${messageId}/recall`);
+  const response = await api.patch(
+    `/api/channels/messages/${messageId}/recall`,
+  );
+
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
@@ -211,12 +240,17 @@ export const reactChannelMessage = async (
       `/api/channels/messages/${messageId}/reactions`,
       { data: { emoji } },
     );
+
     return normalizeApiResponse(response.data);
   }
 
-  const response = await api.post(`/api/channels/messages/${messageId}/reactions`, {
-    emoji,
-  });
+  const response = await api.post(
+    `/api/channels/messages/${messageId}/reactions`,
+    {
+      emoji,
+    },
+  );
+
   return normalizeApiResponse(response.data);
 };
 
@@ -238,10 +272,11 @@ export const voteChannelPoll = async (
   channelId: string,
   messageId: string,
   pollOptionId: string,
+  selected?: boolean,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
   const response = await api.post(
     `/api/polls/${channelId}/messages/${messageId}/votes`,
-    { pollOptionId },
+    { pollOptionId, selected },
   );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };

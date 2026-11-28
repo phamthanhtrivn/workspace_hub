@@ -1,22 +1,24 @@
-import { io, Socket } from 'socket.io-client';
+import { attachSocketRecovery } from "@/lib/authenticated-socket";
+import { SOCKET_RETRY } from "@/lib/socket-session.constants";
+import { io, Socket } from "socket.io-client";
 
 export type ProjectResource =
-  | 'PROJECT'
-  | 'TASK'
-  | 'MEMBER'
-  | 'INVITATION'
-  | 'PROJECT_SPACE'
-  | 'CHECKLIST'
-  | 'COMMENT'
-  | 'TASK_DOCUMENT'
-  | 'LABEL'
-  | 'DEPENDENCY'
-  | 'DOCUMENT';
+  | "PROJECT"
+  | "TASK"
+  | "MEMBER"
+  | "INVITATION"
+  | "PROJECT_SPACE"
+  | "CHECKLIST"
+  | "COMMENT"
+  | "TASK_DOCUMENT"
+  | "LABEL"
+  | "DEPENDENCY"
+  | "DOCUMENT";
 
 export interface ProjectChangedEvent {
   projectId: string;
   resource: ProjectResource;
-  action: 'CREATED' | 'UPDATED' | 'DELETED';
+  action: "CREATED" | "UPDATED" | "DELETED";
   actorId: string;
   entityId?: string;
   taskId?: string;
@@ -26,109 +28,83 @@ export interface ProjectChangedEvent {
 }
 
 interface ServerToClientEvents {
-  'project:changed': (event: ProjectChangedEvent) => void;
+  "project:changed": (event: ProjectChangedEvent) => void;
 }
 
 interface ClientToServerEvents {
-  'project:join': (request: { projectId: string }) => void;
-  'project:leave': (request: { projectId: string }) => void;
+  "project:join": (request: { projectId: string }) => void;
+  "project:leave": (request: { projectId: string }) => void;
 }
 
 export type ProjectSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 class ProjectSocketService {
   private socket: ProjectSocket | null = null;
-  private currentToken: string | null = null;
+  private disposeRecovery?: () => void;
   private joinedProjectIds = new Set<string>();
-  private desiredProjectIds = new Set<string>();
+  private listedProjectIds = new Set<string>();
+  private watchedProjectIds = new Set<string>();
 
   connect(token: string): ProjectSocket {
-    if (this.socket && this.currentToken === token) {
-      if (!this.socket.connected && !this.socket.active) {
-        this.socket.connect();
-      }
-      return this.socket;
-    }
-
-    if (this.socket) {
-      this.disconnect();
-    }
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-    const baseUrl = apiUrl.replace(/\/api$/, '');
-
-    this.currentToken = token;
+    if (this.socket) return this.socket;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL!.replace(/\/api$/, "");
     this.socket = io(baseUrl, {
-      path: '/project.io',
-      transports: ['websocket'],
-      auth: {
-        token,
-      },
+      path: "/project.io",
+      transports: ["websocket"],
+      autoConnect: false,
+      reconnection: false,
+      timeout: SOCKET_RETRY.timeoutMs,
+      auth: { token },
     }) as ProjectSocket;
-
-    this.socket.on('connect', () => {
+    this.socket.on("connect", () => {
       this.joinedProjectIds.clear();
-      for (const projectId of this.desiredProjectIds) {
-        this.socket?.emit('project:join', { projectId });
-        this.joinedProjectIds.add(projectId);
-      }
+      this.syncRooms();
     });
-
-    if (!this.socket.connected && !this.socket.active) {
-      this.socket.connect();
-    }
-
+    this.disposeRecovery = attachSocketRecovery(this.socket, token, "project");
     return this.socket;
   }
 
-  joinProject(projectId: string): void {
-    if (!projectId) return;
-    this.desiredProjectIds.add(projectId);
-    if (this.socket?.connected && !this.joinedProjectIds.has(projectId)) {
-      this.socket.emit('project:join', { projectId });
+  private syncRooms(): void {
+    if (!this.socket?.connected) return;
+    const desired = new Set([
+      ...this.listedProjectIds,
+      ...this.watchedProjectIds,
+    ]);
+    for (const projectId of desired) {
+      if (this.joinedProjectIds.has(projectId)) continue;
+      this.socket.emit("project:join", { projectId });
       this.joinedProjectIds.add(projectId);
     }
-  }
-
-  leaveProject(projectId: string): void {
-    if (!projectId) return;
-    this.desiredProjectIds.delete(projectId);
-    if (this.socket?.connected && this.joinedProjectIds.has(projectId)) {
-      this.socket.emit('project:leave', { projectId });
+    for (const projectId of this.joinedProjectIds) {
+      if (desired.has(projectId)) continue;
+      this.socket.emit("project:leave", { projectId });
       this.joinedProjectIds.delete(projectId);
     }
   }
 
+  joinProject(projectId: string): void {
+    if (!projectId) return;
+    this.watchedProjectIds.add(projectId);
+    this.syncRooms();
+  }
+
+  leaveProject(projectId: string): void {
+    this.watchedProjectIds.delete(projectId);
+    this.syncRooms();
+  }
+
   syncProjects(projectIds: string[]): void {
-    const nextIds = new Set(projectIds);
-    for (const id of nextIds) {
-      this.desiredProjectIds.add(id);
-    }
-
-    if (!this.socket?.connected) return;
-
-    for (const projectId of nextIds) {
-      if (!this.joinedProjectIds.has(projectId)) {
-        this.socket.emit('project:join', { projectId });
-        this.joinedProjectIds.add(projectId);
-      }
-    }
-    for (const projectId of this.joinedProjectIds) {
-      if (!nextIds.has(projectId)) {
-        this.socket.emit('project:leave', { projectId });
-        this.joinedProjectIds.delete(projectId);
-      }
-    }
+    this.listedProjectIds = new Set(projectIds);
+    this.syncRooms();
   }
 
   disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-    this.currentToken = null;
+    this.disposeRecovery?.();
+    this.disposeRecovery = undefined;
+    this.socket = null;
     this.joinedProjectIds.clear();
-    this.desiredProjectIds.clear();
+    this.listedProjectIds.clear();
+    this.watchedProjectIds.clear();
   }
 
   getSocket(): ProjectSocket | null {
@@ -137,4 +113,3 @@ class ProjectSocketService {
 }
 
 export const projectSocketService = new ProjectSocketService();
-

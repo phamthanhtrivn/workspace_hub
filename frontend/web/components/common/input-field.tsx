@@ -1,4 +1,16 @@
 import React from "react";
+import { Input } from "@/components/ui/input";
+import { IconButton } from "@/components/ui/icon-button";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
+import { cn } from "@/lib/utils";
+
+interface InputFieldProps extends React.ComponentProps<typeof Input> {
+  icon?: React.ComponentType<{ className?: string }>;
+  error?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  onRightClick?: React.MouseEventHandler<HTMLButtonElement>;
+  variant?: "default" | "auth";
+}
 
 const InputField = React.memo(function InputField({
   id,
@@ -10,40 +22,56 @@ const InputField = React.memo(function InputField({
   onChange,
   rightIcon,
   onRightClick,
-}: any) {
+  variant = "default",
+  className,
+  disabled,
+  "aria-invalid": ariaInvalid,
+  ...inputProps
+}: InputFieldProps) {
+  const isInvalid = Boolean(error) || ariaInvalid === true || ariaInvalid === "true";
   return (
     <div className="space-y-1">
       <div
-        className={`flex h-12 items-center gap-3 rounded-2xl border bg-slate-50/80 px-4 transition
-        ${
-          error
-            ? "border-red-500 bg-red-50/40"
-            : "border-slate-200 hover:border-slate-300 focus-within:border-[var(--color-primary)]"
-        }`}
+        data-invalid={isInvalid || undefined}
+        className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} flex h-12 items-center gap-3 border px-4 transition ${
+          variant === "auth" ? "rounded-2xl bg-background/80" : "rounded-control bg-background"
+        } ${
+          isInvalid
+            ? "border-destructive-outline bg-destructive-soft/40"
+            : "border-input hover:border-input"
+        } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
       >
-        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
 
-        <input
+        <Input unstyled
+          {...inputProps}
+          focusMode="container"
+          disabled={disabled}
           id={id}
           type={type}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          className="h-full w-full bg-transparent text-sm outline-none"
+          aria-invalid={isInvalid || undefined}
+          aria-describedby={[inputProps["aria-describedby"], error && id ? `${id}-error` : undefined].filter(Boolean).join(" ") || undefined}
+          className={cn("h-full min-w-0 flex-1 bg-transparent text-sm outline-none", className)}
         />
 
         {rightIcon && (
-          <button
+          <IconButton variant="unstyled"
             type="button"
+            disabled={disabled}
             onClick={onRightClick}
-            className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
+            label={type === "password" ? "Show password" : "Hide password"}
+            showTooltip={false}
+            className="text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
           >
             {rightIcon}
-          </button>
+          </IconButton>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p id={id ? `${id}-error` : undefined} className="text-xs text-destructive-content">{error}</p>}
     </div>
   );
 });

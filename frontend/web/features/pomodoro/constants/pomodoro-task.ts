@@ -6,6 +6,7 @@ export const POMODORO_TASK_SETTINGS = {
   maxGoalTitleLength: 200,
   maxDescriptionLength: 2000,
   taskRefetchInterval: 60_000,
+  focusPageSize: 20,
 } as const;
 
 export const POMODORO_FOCUS_SOURCES = [
@@ -14,7 +15,34 @@ export const POMODORO_FOCUS_SOURCES = [
   { value: "project", label: "Project tasks" },
 ] as const;
 
+export const POMODORO_TASK_COPY = {
+  addTask: "Add task",
+  filters: "Filters",
+  filterControls: (source: string) => `${source} task filters`,
+  resetFilters: (source: string) => `Reset ${source} task filters`,
+  defaultDateOrder: "Through today. Oldest first.",
+  filteredDateOrder: "Overlapping dates. Oldest first.",
+  missingDatesTitle: "Incomplete schedule",
+  missingDatesHint: "Missing Start or End. Date filters don't apply.",
+  loadMore: "Load more",
+  currentTask: "Current task",
+  toDo: "To do",
+  inProgress: "In progress",
+  starts: "Starts",
+  due: "Due",
+  overdue: "Overdue",
+  todayAndOverdue: "Today & overdue",
+  allEligible: "All eligible tasks",
+  todayScopeHint: "Scheduled through today, including overdue tasks.",
+  allScopeHint: "Overdue, today, upcoming and unscheduled tasks.",
+  excludedHint: "Completed and cancelled tasks are excluded.",
+  showAll: "Show all eligible tasks",
+  openSource: (source: string) => `Open ${source}`,
+} as const;
+
 export const POMODORO_TASK_MESSAGES = {
+  selectionLocked: "Stop and save to change tasks.",
+  selectionHint: "Choose a task, or use Free focus.",
   unavailable: "This task is no longer available for focus. Choose another task.",
   busy: "Saving the focus session. Please try again shortly.",
   notReady: "Pomodoro is loading. Please try again shortly.",
@@ -23,6 +51,5 @@ export const POMODORO_TASK_MESSAGES = {
   personalCalendarRequired: "Your personal task list is unavailable. Open Calendar to set it up, then try again.",
   createFailed: "Unable to create the task. Please try again.",
   savedTaskUnavailable: "Task saved to My tasks, but it is not available for focus. Your current session has been kept.",
-  invalidDeadline: "Choose a valid deadline date and time.",
-  descriptionTooLong: "Shorten the description to leave room for the task deadline (2,000 characters total).",
+  descriptionTooLong: "Shorten the description to 2,000 characters or fewer.",
 } as const;

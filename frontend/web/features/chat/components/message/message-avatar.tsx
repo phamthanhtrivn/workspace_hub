@@ -1,10 +1,14 @@
-import Image from "next/image";
-import { User } from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import { FaKey } from "react-icons/fa";
+import { Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+
 interface MessageAvatarProps {
   showAvatar: boolean;
+  isBot?: boolean;
   senderName: string;
   senderProfile: UserProfileSnapshotResponse | null;
   memberRole?: "ADMIN" | "MEMBER";
@@ -14,6 +18,7 @@ interface MessageAvatarProps {
 
 export default function MessageAvatar({
   showAvatar,
+  isBot = false,
   senderName,
   senderProfile,
   memberRole,
@@ -24,42 +29,38 @@ export default function MessageAvatar({
     senderProfile?.userId && senderProfile.userId === spaceCreatorId;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
+      disabled={isBot || !showAvatar}
+      tabIndex={showAvatar && !isBot ? 0 : -1}
       onClick={showAvatar ? onClick : undefined}
       className={cn(
-        "w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold mt-1 mr-2.5",
-        showAvatar &&
-          "bg-gradient-to-br from-slate-100 to-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all shadow-sm",
+        "w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-semibold mt-1 disabled:opacity-100",
+        showAvatar && !isBot &&
+          "bg-muted cursor-pointer hover:ring-2 hover:ring-ring transition-all",
+        showAvatar && isBot && "bg-info-soft text-info-content ring-1 ring-border",
       )}
-      aria-label={showAvatar ? `Open ${senderName}'s profile` : undefined}
+      aria-label={showAvatar ? isBot ? senderName : `Open ${senderName}'s profile` : undefined}
     >
-      {showAvatar ? (
+      {showAvatar && isBot ? <Bot className="size-5 text-info-content" aria-hidden="true" /> : showAvatar ? (
         <span className="relative inline-block">
-          {senderProfile?.avatarUrl ? (
-            <Image
-              src={senderProfile.avatarUrl}
-              alt={senderName}
-              width={36}
-              height={36}
-              unoptimized
-              className="rounded-full object-cover"
-            />
-          ) : (
-            <span className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center">
-              <User size={15} className="text-slate-400" />
-            </span>
-          )}
+          <UserAvatar
+            src={senderProfile?.avatarUrl}
+            alt={senderName}
+            width={36}
+            height={36}
+            className="rounded-full object-cover"
+          />
           {isCreator ? (
             <span
-              className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
+              className="absolute -bottom-1 -right-1 bg-warning text-warning-foreground rounded-full p-0.5 border border-border flex items-center justify-center h-4 w-4"
               title="Owner"
             >
               <FaKey size={8} />
             </span>
           ) : memberRole === "ADMIN" ? (
             <span
-              className="absolute -bottom-1 -right-1 bg-slate-400 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
+              className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-0.5 border border-border flex items-center justify-center h-4 w-4"
               title="Admin"
             >
               <FaKey size={8} />
@@ -67,6 +68,6 @@ export default function MessageAvatar({
           ) : null}
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }

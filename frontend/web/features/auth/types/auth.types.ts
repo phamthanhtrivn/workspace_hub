@@ -16,7 +16,7 @@ export interface AuthErrorResponse {
 
 export interface RegisterRequest {
   fullName: string;
-  dob: string;
+  dob: string | null;
   email: string;
   password: string;
 }

@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import type { Task, TaskLabel } from "../types/project";
@@ -79,7 +80,7 @@ export function useProjectResourceActions({
       await createLabelMutation.mutateAsync(payload);
       toast.success("Label created");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to create label");
+      toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create label"));
       throw error;
     }
   };
@@ -97,7 +98,7 @@ export function useProjectResourceActions({
       );
       toast.success("Label deleted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete label");
+      toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to delete label"));
     }
   };
 
@@ -122,7 +123,7 @@ export function useProjectResourceActions({
       );
       toast.success("Label updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update label");
+      toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update label"));
       throw error;
     }
   };

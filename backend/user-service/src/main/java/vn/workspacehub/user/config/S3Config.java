@@ -23,6 +23,14 @@ public class S3Config {
     private String secretKey;
 
     @Bean
+    public software.amazon.awssdk.services.s3.S3Client s3Client() {
+        return software.amazon.awssdk.services.s3.S3Client.builder().region(Region.of(region))
+                .credentialsProvider(accessKey.isBlank() && secretKey.isBlank()
+                    ? DefaultCredentialsProvider.builder().build()
+                    : StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey))).build();
+    }
+
+    @Bean
     public S3Presigner s3Presigner() {
         S3Presigner.Builder builder = S3Presigner.builder()
                 .region(Region.of(region))

@@ -1,17 +1,22 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { formatInTimezone } from "@/lib/timezone";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getMyProjectInvitations } from "../api/invitation.api";
 import { useRespondProjectInvitation } from "../hooks/use-invitations";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function ProjectInvitationsScreen({
   invitationId,
 }: {
   invitationId?: string;
 }) {
+  const timeZone = useAccountTimezone();
   const query = useQuery({
     queryKey: ["projects", "invitations", "mine"],
     queryFn: getMyProjectInvitations,
@@ -32,69 +37,69 @@ export default function ProjectInvitationsScreen({
       if (action === "accept") {
         window.location.assign(`/projects/${result.projectId}`);
       }
-    } catch {
-      toast.error("Failed to respond to project invitation");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to respond to project invitation"));
     }
   };
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 p-6">
-      <h1 className="text-xl font-bold text-slate-800">Project Invitations</h1>
-      <Link href="/projects" className="text-sm font-semibold text-[#0052CC] hover:underline">
+      <h1 className="text-page-title font-semibold text-foreground">Project Invitations</h1>
+      <Link href="/projects" className="text-sm font-semibold text-info-content hover:underline">
         ← Back to Projects
       </Link>
       {query.isLoading ? (
-        <p className="text-xs text-slate-500">Loading invitations...</p>
+        <LoadingState label="Loading invitations..." className="text-xs text-muted-foreground" />
       ) : query.isError ? (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-destructive-content">
           Failed to load invitations.{" "}
           <Button
             type="button"
             variant="link"
             size="sm"
             onClick={() => void query.refetch()}
-            className="h-auto p-0 font-bold underline text-red-600 hover:text-red-700 cursor-pointer"
+            className="h-auto p-0 font-semibold underline text-destructive-content hover:text-destructive-content cursor-pointer"
           >
             Retry
           </Button>
         </p>
       ) : !invitations.length ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm font-semibold text-slate-500 shadow-xs">
+        <div className="rounded-panel border border-border bg-card p-6 text-center text-sm font-semibold text-muted-foreground">
           You have no pending project invitations.
         </div>
       ) : (
         invitations.map((invitation) => (
           <section
             key={invitation.id}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-3"
+            className="rounded-panel border border-border bg-card p-5 space-y-3"
           >
-            <h2 className="text-base font-bold text-slate-800">
+            <h2 className="text-section-title font-semibold text-foreground">
               {invitation.projectName}
             </h2>
             {invitation.expiresAt && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Expires on:{" "}
-                {new Date(invitation.expiresAt).toLocaleDateString(undefined, {
+                {formatInTimezone(invitation.expiresAt, "en-US", {
                   dateStyle: "medium",
                   timeStyle: "short",
-                })}
+                }, timeZone)}
               </p>
             )}
             <div className="flex gap-2.5 pt-1">
-              <Button
+              <Button loading={respond.isPending && respond.variables?.invitationId === invitation.id && respond.variables?.action === "accept"}
                 type="button"
                 disabled={respond.isPending}
                 onClick={() => void handleRespond(invitation.id, "accept")}
-                className="bg-[#0052CC] hover:bg-[#0747A6] text-white font-bold text-xs h-9 px-4 rounded-xl cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs h-9 px-4 rounded-control cursor-pointer"
               >
                 Accept
               </Button>
-              <Button
+              <Button loading={respond.isPending && respond.variables?.invitationId === invitation.id && respond.variables?.action === "decline"}
                 type="button"
                 variant="outline"
                 disabled={respond.isPending}
                 onClick={() => void handleRespond(invitation.id, "decline")}
-                className="border-slate-200 text-slate-700 font-bold text-xs h-9 px-4 rounded-xl hover:bg-slate-50 cursor-pointer"
+                className="border-border text-foreground font-semibold text-xs h-9 px-4 rounded-control hover:bg-background cursor-pointer"
               >
                 Decline
               </Button>

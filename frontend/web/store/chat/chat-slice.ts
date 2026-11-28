@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { mergeChatMessageUpdate, type ChatMessageUpdate } from '@/features/chat/utils/message-update-cache';
 import {
   ChatContextType,
   ChatEntity,
@@ -32,6 +33,7 @@ interface ChatState {
   activeThreadRootMessage: ChatMessageResponse | null;
   activeThreadChatId: string | null;
   activeThreadChatType: ChatUiType | null;
+  threadFocusRequest: number;
 }
 
 const initialState: ChatState = {
@@ -45,6 +47,7 @@ const initialState: ChatState = {
   activeThreadRootMessage: null,
   activeThreadChatId: null,
   activeThreadChatType: null,
+  threadFocusRequest: 0,
 };
 
 const chatSlice = createSlice({
@@ -121,6 +124,11 @@ const chatSlice = createSlice({
     setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
       state.highlightMessageId = action.payload;
     },
+    patchActiveThreadRootMessage: (state, action: PayloadAction<ChatMessageUpdate>) => {
+      if (state.activeThreadRootMessage?.id === action.payload.id) {
+        state.activeThreadRootMessage = mergeChatMessageUpdate(state.activeThreadRootMessage, action.payload);
+      }
+    },
     setActiveThreadRootMessage: (
       state,
       action: PayloadAction<
@@ -143,6 +151,7 @@ const chatSlice = createSlice({
             : null);
 
       state.activeThreadRootMessageId = messageId;
+      if (messageId) state.threadFocusRequest = (state.threadFocusRequest ?? 0) + 1;
       state.activeThreadRootMessage =
         payload && "senderId" in payload ? payload : null;
       state.activeThreadChatId = messageId
@@ -198,6 +207,7 @@ export const {
   setSelectedProfileUserId,
   setHighlightMessageId,
   setActiveThreadRootMessage,
+  patchActiveThreadRootMessage,
   setActiveSpaceId,
   updateMuteStatus,
   updatePinStatus,

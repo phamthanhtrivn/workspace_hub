@@ -112,7 +112,7 @@ export interface TaskComment {
   taskId: string;
   authorId: string;
   authorName: string;
-  authorAvatar?: string;
+  authorAvatar?: string | null;
   content: string;
   edited: boolean;
   createdAt: string;
@@ -194,7 +194,6 @@ export interface Task {
   completedAt?: string;
   deletedAt?: string;
   rank: string;
-  archived: boolean;
   createdAt: string;
   updatedAt: string;
 
@@ -210,6 +209,7 @@ export interface Task {
 }
 
 export interface Project {
+  accessSync?: import("./project-access-sync").ProjectAccessState;
   id: string;
   name: string;
   color: string;

@@ -3,7 +3,6 @@ package vn.workspacehub.user.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +13,12 @@ import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.DirectMessageSettingsResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
+import vn.workspacehub.user.dto.response.PublicUserProfileResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
 import vn.workspacehub.user.service.UserService;
+import vn.workspacehub.user.service.InternalServiceAuthorization;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,8 +31,7 @@ public class UserController {
     private final AuthService authService;
     private final UserService userService;
 
-    @Value("${INTERNAL_SERVICE_KEY:local-internal-key}")
-    private String internalServiceKey;
+    private final InternalServiceAuthorization internalAuthorization;
 
     @GetMapping("/me/sessions")
     public ResponseEntity<ApiResponse<List<UserSessionResponse>>> getActiveSessions(
@@ -88,9 +88,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<DirectMessageSettingsResponse>> getDirectMessageSettings(
             @PathVariable UUID id,
             @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey) {
-        if (serviceKey == null || !serviceKey.equals(internalServiceKey)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
-        }
+        internalAuthorization.requirePrivacy(serviceKey);
         boolean allowed = userService.getAccountSettings(id).isAllowNewDirectMessages();
         return ResponseEntity.ok(ApiResponse.<DirectMessageSettingsResponse>builder()
                 .success(true)
@@ -117,11 +115,11 @@ public class UserController {
     }
 
     @GetMapping("/{id}/profile")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> getPublicProfile(
+    public ResponseEntity<ApiResponse<PublicUserProfileResponse>> getPublicProfile(
             @PathVariable UUID id) {
 
-        UserProfileResponse profile = userService.getPublicProfile(id);
-        return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
+        PublicUserProfileResponse profile = userService.getPublicProfile(id);
+        return ResponseEntity.ok(ApiResponse.<PublicUserProfileResponse>builder()
                 .success(true)
                 .message("User profile retrieved successfully")
                 .data(profile)
@@ -129,11 +127,11 @@ public class UserController {
     }
 
     @GetMapping("/profiles/bulk")
-    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getBulkProfiles(
+    public ResponseEntity<ApiResponse<List<PublicUserProfileResponse>>> getBulkProfiles(
             @RequestParam(required = false) List<UUID> ids,
             @RequestParam(required = false) List<String> emails) {
-        List<UserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
-        return ResponseEntity.ok(ApiResponse.<List<UserProfileResponse>>builder()
+        List<PublicUserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
+        return ResponseEntity.ok(ApiResponse.<List<PublicUserProfileResponse>>builder()
                 .success(true)
                 .message("User profiles retrieved successfully")
                 .data(profiles)

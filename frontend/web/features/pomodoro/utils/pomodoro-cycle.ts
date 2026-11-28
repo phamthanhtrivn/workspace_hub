@@ -5,6 +5,15 @@ export interface PomodoroCycleStep {
   cycleCount: number;
 }
 
+export function getPomodoroCycleContext(mode: PomodoroMode, cycleCount: number, interval: number) {
+  const limit = Math.max(1, interval);
+  return {
+    focusNumber: Math.min(limit, mode === "FOCUS" ? cycleCount + 1 : mode === "LONG_BREAK" ? limit : Math.max(1, cycleCount)),
+    interval: limit,
+    nextMode: getNextPomodoroCycleStep(mode, cycleCount, limit).mode,
+  };
+}
+
 export function getNextPomodoroCycleStep(
   currentMode: PomodoroMode,
   cycleCount: number,

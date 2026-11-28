@@ -7,7 +7,7 @@ import {
   getPendingProjectInvitations,
   resendProjectInvitation,
 } from "../api/invitation.api";
-import { projectKeys } from "./use-projects";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export const projectInvitationKeys = {
   pending: (projectId: string) =>
@@ -31,11 +31,7 @@ export function useCreateProjectInvitation(projectId: string) {
   return useMutation({
     mutationFn: (invitedUserId: string) =>
       createProjectInvitation(projectId, invitedUserId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectInvitationKeys.pending(projectId),
-      });
-    },
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'INVITATION', action: 'CREATED' }),
   });
 }
 
@@ -45,10 +41,7 @@ export function useCancelProjectInvitation(projectId: string) {
   return useMutation({
     mutationFn: (invitationId: string) =>
       cancelProjectInvitation(projectId, invitationId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: projectInvitationKeys.pending(projectId),
-      }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'INVITATION', action: 'DELETED' }),
   });
 }
 
@@ -58,10 +51,7 @@ export function useResendProjectInvitation(projectId: string) {
   return useMutation({
     mutationFn: (invitationId: string) =>
       resendProjectInvitation(projectId, invitationId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: projectInvitationKeys.pending(projectId),
-      }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'INVITATION', action: 'CREATED' }),
   });
 }
 
@@ -79,13 +69,6 @@ export function useRespondProjectInvitation() {
       action === "accept"
         ? acceptProjectInvitation(invitationId)
         : declineProjectInvitation(invitationId),
-    onSuccess: (invitation) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.all,
-      });
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.members(invitation.projectId),
-      });
-    },
+    onSuccess: (invitation) => invalidateProjectChange(queryClient, { projectId: invitation.projectId, resource: 'INVITATION', action: 'UPDATED', data: invitation }),
   });
 }

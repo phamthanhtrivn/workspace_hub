@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Python runtime and test artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/

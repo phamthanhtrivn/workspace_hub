@@ -1,124 +1,170 @@
 "use client";
 
+import React from "react";
+import { CheckCircle2, Flame, Target, Timer } from "lucide-react";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { Button } from "@/components/ui/button";
-import React, { useEffect, useState } from "react";
-import { Clock, CheckCircle2, Flame, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
 import { getDailyStats } from "../api/pomodoro-server.api";
-import type { PomodoroDailyStats } from "../types/pomodoro";
+import { localDateKey } from "../utils/pomodoro-report";
+import { Progress } from "@/components/ui/progress";
+import { LoadingState } from "@/components/ui/loading-state";
+import { PomodoroPanelHeader } from "./pomodoro-panel-header";
 
 interface PomodoroStatsCardProps {
   lastUpdated: number;
   dailyGoalPomodoros?: number;
 }
 
-export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({ lastUpdated, dailyGoalPomodoros }: PomodoroStatsCardProps) {
-  const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [retryRevision, setRetryRevision] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    getDailyStats()
-      .then((data) => { if (active) { setStats(data); setFailed(false); } })
-      .catch(() => { if (active) { setStats(null); setFailed(true); } });
-    return () => { active = false; };
-  }, [lastUpdated, retryRevision]);
-
-  if (failed) return <p role="alert" className="text-xs text-rose-600">
-    Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
-  </p>;
-  if (!stats) return <p role="status" className="text-xs text-slate-500">Loading stats...</p>;
-
-  const hours = Math.floor(stats.totalFocusMinutes / 60);
-  const mins = stats.totalFocusMinutes % 60;
-  const timeDisplay =
-    hours > 0 ? `${hours}h ${mins}m` : `${stats.totalFocusMinutes}m`;
-
-  const goalPercent = Math.min(
-    100,
-    Math.round((stats.completedPomodoros / ((dailyGoalPomodoros ?? stats.dailyGoalPomodoros) || 8)) * 100),
-  );
+export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
+  lastUpdated,
+  dailyGoalPomodoros,
+}: PomodoroStatsCardProps) {
+  const timeZone = useAccountTimezone();
+  const userId = useAppSelector((state) => state.auth.userId);
+  const {
+    data: stats,
+    isError: failed,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "pomodoro",
+      "daily-stats",
+      userId,
+      timeZone,
+      localDateKey(new Date(), timeZone),
+      lastUpdated,
+    ],
+    queryFn: () => getDailyStats(timeZone),
+    enabled: Boolean(userId),
+    refetchInterval: 30_000,
+  });
+  const goal = dailyGoalPomodoros ?? stats?.dailyGoalPomodoros ?? 0;
+  const goalPercent =
+    stats && goal > 0
+      ? Math.min(100, Math.round((stats.completedPomodoros / goal) * 100))
+      : 0;
+  const hours = stats ? Math.floor(stats.totalFocusMinutes / 60) : 0;
+  const focusTime = stats
+    ? hours > 0
+      ? `${hours}h ${stats.totalFocusMinutes % 60}m`
+      : `${stats.totalFocusMinutes}m`
+    : "";
+  const metrics = stats
+    ? [
+        {
+          label: "Focus time",
+          value: focusTime,
+          unit: "Recorded today",
+          icon: Timer,
+        },
+        {
+          label: "Completed",
+          value: String(stats.completedPomodoros),
+          unit: "Focus sessions",
+          icon: CheckCircle2,
+        },
+        {
+          label: "Daily goal",
+          value: `${stats.completedPomodoros} / ${goal}`,
+          unit: "Focus sessions",
+          icon: Target,
+        },
+        {
+          label: "Streak",
+          value: String(stats.currentStreak),
+          unit: stats.currentStreak === 1 ? "Day" : "Days",
+          icon: Flame,
+        },
+      ]
+    : [];
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm shadow-slate-200/40 backdrop-blur-md">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-extrabold tracking-tight text-slate-900">
-            Today&apos;s performance
-          </h3>
-          <p className="text-xs text-slate-500">
-            Your work rhythm and focus stats
-          </p>
+    <section
+      aria-label="Today's performance"
+      className="@container/performance w-full min-w-0 overflow-hidden rounded-panel border border-border bg-card"
+    >
+      <PomodoroPanelHeader
+        title="Today's focus log"
+        description="Your focus activity today."
+        icon={Timer}
+        action={
+          <span className="shrink-0 rounded-control bg-muted px-2 py-1 text-xs font-medium text-muted-foreground tabular-nums">
+            {focusTime || "0m"}
+          </span>
+        }
+      />
+      {failed && (
+        <div
+          role="alert"
+          className="px-5 py-4 text-xs text-destructive-content"
+        >
+          Unable to load today&apos;s stats.{" "}
+          <Button
+            variant="link"
+            size="sm"
+            type="button"
+            onClick={() => void refetch()}
+          >
+            Retry
+          </Button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5">
-        {/* Total Focus Time */}
-        <div className="min-w-0 rounded-xl border border-blue-100/70 bg-gradient-to-br from-blue-50/70 to-indigo-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-blue-700 font-semibold">
-            <div className="size-7 rounded-lg bg-blue-100/80 flex items-center justify-center text-blue-700">
-              <Clock className="size-3.5" />
-            </div>
-            <span>Focus time</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums">
-            {timeDisplay}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Actual focus time</p>
-        </div>
-
-        {/* Completed Pomodoros */}
-        <div className="min-w-0 rounded-xl border border-emerald-100/70 bg-gradient-to-br from-emerald-50/70 to-teal-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
-            <div className="size-7 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-700">
-              <CheckCircle2 className="size-3.5" />
-            </div>
-            <span>Completed</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums flex flex-wrap items-baseline gap-1">
-            <span>{stats.completedPomodoros}</span>
-            <span className="text-base font-normal text-slate-500">Pomodoros 🍅</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Fully completed sessions</p>
-        </div>
-
-        {/* Goal Progress */}
-        <div className="min-w-0 rounded-xl border border-indigo-100/70 bg-gradient-to-br from-indigo-50/70 to-sky-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center justify-between text-xs text-indigo-700 font-semibold">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-700">
-                <TrendingUp className="size-3.5" />
+      )}
+      {!stats && !failed && (
+        <LoadingState
+          label="Loading today's performance..."
+          className="px-5 py-6 text-xs text-muted-foreground"
+        />
+      )}
+      {stats && (
+        <>
+          <div className="border-b border-border px-4 py-4 sm:px-5">
+            <div className="rounded-control border border-border bg-muted/40 p-3">
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="font-medium text-muted-foreground">
+                  Daily Focus Target
+                </span>
+                <span className="font-semibold text-foreground tabular-nums">
+                  {stats.completedPomodoros} / {goal} sessions ({goalPercent}%)
+                </span>
               </div>
-              <span>Daily goal</span>
+              <Progress
+                value={goalPercent}
+                aria-label="Daily focus goal"
+                className="h-2 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+                  style={{ width: `${goalPercent}%` }}
+                />
+              </Progress>
             </div>
-            <span className="font-bold">{goalPercent}%</span>
           </div>
-          <div className="mt-2 text-base font-extrabold text-slate-900 tabular-nums">
-            {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions
-          </div>
-          <div className="mt-2 w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-700 shadow-xs"
-              style={{ width: `${goalPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Streak */}
-        <div className="min-w-0 rounded-xl border border-amber-100/70 bg-gradient-to-br from-amber-50/70 to-orange-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-amber-700 font-semibold">
-            <div className="size-7 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-700">
-              <Flame className="size-3.5" />
-            </div>
-            <span>Streak</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-1.5 tabular-nums">
-            <span>{stats.currentStreak} days</span>
-            <span className="text-xl">🔥</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Keep your daily habit going</p>
-        </div>
-      </div>
-    </div>
+          <dl className="grid grid-cols-2 gap-3 px-4 py-4 @min-[520px]/performance:grid-cols-4 sm:px-5">
+            {metrics.map(({ label, value, unit, icon: Icon }) => (
+              <div
+                key={label}
+                className="min-w-0 rounded-control border border-border bg-card p-3"
+              >
+                <dt className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                  <Icon
+                    aria-hidden="true"
+                    className="size-3.5 shrink-0 text-link"
+                  />
+                  {label}
+                </dt>
+                <dd className="mt-1.5 break-words text-xl font-semibold leading-tight tracking-tight text-foreground tabular-nums">
+                  {value}
+                </dd>
+                <dd className="mt-0.5 text-[11px] text-muted-foreground">
+                  {unit}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
+    </section>
   );
 });

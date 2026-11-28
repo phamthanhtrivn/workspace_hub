@@ -17,6 +17,10 @@ cp "$bundle_dir/scripts/"* "$runtime_dir/scripts/"
 "${RUNTIME_PYTHON:-/opt/workspacehub/venv/bin/python}" "$runtime_dir/scripts/verify-host-plan.py" "$role" "$runtime_dir" "$plan" "${tag#sha-}"
 if [[ "$role" == app ]]; then
   cp "$bundle_dir/config/compose.yml" "$runtime_dir/compose.candidate.yml"
+  cp "$bundle_dir/config/Caddyfile" "$runtime_dir/Caddyfile"
+  cp "$bundle_dir/config/bootstrap-db.sh" "$runtime_dir/bootstrap-db.sh"
+  chmod 0644 "$runtime_dir/Caddyfile"
+  chmod 0755 "$runtime_dir/bootstrap-db.sh"
   APP_DIR="$runtime_dir" RUNTIME_DIR="$runtime_dir" bash "$runtime_dir/scripts/deploy-app.sh" "$tag" "$plan"
 else
   cp -R "$bundle_dir/config/". "$runtime_dir/"

@@ -1,16 +1,19 @@
 "use client";
 
 import React from "react";
-import { FileText, Globe, Download, ExternalLink, History, Edit3 } from "lucide-react";
+import { Globe, Lock, Download, History, Edit3 } from "lucide-react";
+import { DocumentIcon } from "@/features/documents/components/common/document-icon";
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import {
-  LinkAccess,
   DocumentRole,
+  LinkAccess,
 } from "@/features/documents/types/documents.enums";
+import { LINK_ACCESS_LABELS } from "@/features/documents/types/documents.constants";
 import {
   formatBytes,
   getDocumentRoleMetadata,
 } from "@/features/documents/utils/documents.utils";
+import { Button } from "@/components/ui/button";
 
 interface SharedDetailsProps {
   item: DocumentItem;
@@ -31,47 +34,43 @@ export function SharedDetails({
     badgeText: roleBadgeText,
     badgeColor: roleBadgeColor,
     Icon: RoleIcon,
-    showOpenInWorkspace,
   } = getDocumentRoleMetadata(userRole);
+  const linkAccess = item.linkAccess ?? LinkAccess.NONE;
+  const AccessIcon = linkAccess === LinkAccess.NONE ? Lock : Globe;
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-lg p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="bg-card rounded-dialog border border-border p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
       <div className="flex items-center gap-4 min-w-0">
-        <div className="p-3 bg-blue-50 text-blue-500 rounded-2xl shrink-0">
-          <FileText size={28} />
-        </div>
+        <DocumentIcon item={item} iconSize={28} className="rounded-panel p-3" />
         <div className="min-w-0">
-          <h1 className="text-base font-black text-slate-800 truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
+          <h1 className="text-base font-semibold text-foreground truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
             <span>{item.name}</span>
             {onRename && (
-              <button
+              <Button
+                variant="unstyled"
                 onClick={onRename}
-                title="Đổi tên tài liệu"
-                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all cursor-pointer shrink-0"
+                title="Rename document"
+                className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-background rounded-control transition-all cursor-pointer shrink-0"
               >
                 <Edit3 size={14} />
-              </button>
+              </Button>
             )}
           </h1>
-          <div className="flex items-center gap-3 text-xs text-slate-400 font-bold mt-1.5 flex-wrap">
-            <span>Dung lượng: {formatBytes(item.sizeBytes)}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
-            <span className="truncate">Chủ sở hữu: {item.ownerEmail}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold mt-1.5 flex-wrap">
+            <span>Size: {formatBytes(item.sizeBytes)}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="truncate">Owner: {item.ownerEmail}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
 
             {/* General Link Access Badge */}
-            <div className="flex items-center gap-1 text-slate-500 bg-slate-100 rounded-lg px-2 py-0.5 font-black uppercase text-[9px] tracking-wide border border-slate-200/30">
-              <Globe size={10} />
-              <span>
-                {userRole === DocumentRole.EDITOR
-                  ? "Bất kỳ ai có liên kết (Sửa)"
-                  : "Bất kỳ ai có liên kết (Xem)"}
-              </span>
+            <div className="flex items-center gap-1 text-muted-foreground bg-muted rounded-lg px-2 py-0.5 font-semibold uppercase text-xs tracking-wide border border-border">
+              <AccessIcon aria-hidden="true" size={10} />
+              <span>{LINK_ACCESS_LABELS[linkAccess]}</span>
             </div>
 
             {/* Custom User Role Badge */}
             <div
-              className={`flex items-center gap-1 rounded-lg px-2 py-0.5 font-black uppercase text-[9px] tracking-wide border ${roleBadgeColor}`}
+              className={`flex items-center gap-1 rounded-lg px-2 py-0.5 font-semibold uppercase text-xs tracking-wide border ${roleBadgeColor}`}
             >
               <RoleIcon size={10} />
               <span>{roleBadgeText}</span>
@@ -80,24 +79,26 @@ export function SharedDetails({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-slate-50 pt-4 md:pt-0">
+      <div className="flex items-center gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-border pt-4 md:pt-0">
         {onViewVersions && (
-          <button
+          <Button
+            variant="unstyled"
             onClick={onViewVersions}
-            className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-3 text-xs font-black transition-all cursor-pointer w-full md:w-auto"
+            className="flex items-center justify-center gap-1.5 rounded-control border border-border hover:bg-background text-muted-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer w-full md:w-auto"
           >
             <History size={14} />
-            <span>Lịch sử phiên bản</span>
-          </button>
+            <span>Version history</span>
+          </Button>
         )}
         {onDownload && (
-          <button
+          <Button
+            variant="unstyled"
             onClick={onDownload}
-            className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-xs font-black shadow-md shadow-blue-500/10 cursor-pointer transition-all active:scale-98 w-full md:w-auto"
+            className="flex items-center justify-center gap-2 rounded-control bg-primary hover:bg-primary text-primary-foreground px-5 py-3 text-xs font-semibold cursor-pointer transition-all w-full md:w-auto"
           >
             <Download size={14} />
-            <span>Tải xuống tệp</span>
-          </button>
+            <span>Download file</span>
+          </Button>
         )}
       </div>
     </div>

@@ -9,9 +9,13 @@ import { Prisma } from "@prisma/client";
 import { RuntimeConfigService } from "../../common/config/runtime-config.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
+  isTaskNotification,
+  taskNotificationContent,
+} from "../../common/utils/task-notification.util";
+import {
   InvitationEmailInput,
   InvitationEmailService,
-} from "../invitation/invitation-email.service";
+} from "../invitation-delivery/invitation-email.service";
 import {
   NOTIFICATION_GATEWAY,
   NotificationGateway,
@@ -27,6 +31,7 @@ interface OutboxRecord {
   eventType: string;
   payload: Prisma.JsonValue;
   attemptCount: number;
+  leaseToken: string;
 }
 
 const PROJECT_NOTIFICATION = "PROJECT_NOTIFICATION";
@@ -132,6 +137,7 @@ export class NotificationOutboxService
 
   private claimBatch(): Promise<OutboxRecord[]> {
     const staleBefore = new Date(Date.now() - LOCK_TIMEOUT_MS);
+    const leaseToken = crypto.randomUUID();
     return this.prisma.$queryRaw<OutboxRecord[]>`
       WITH candidates AS (
         SELECT id
@@ -149,14 +155,15 @@ export class NotificationOutboxService
         FOR UPDATE SKIP LOCKED
       )
       UPDATE notification_outbox AS outbox
-      SET status = 'PROCESSING', locked_at = NOW()
+      SET status = 'PROCESSING', locked_at = NOW(), lease_token = ${leaseToken}::uuid
       FROM candidates
       WHERE outbox.id = candidates.id
       RETURNING
         outbox.id,
         outbox.event_type AS "eventType",
         outbox.payload,
-        outbox.attempt_count AS "attemptCount"
+        outbox.attempt_count AS "attemptCount",
+        outbox.lease_token AS "leaseToken"
     `;
   }
 
@@ -164,14 +171,25 @@ export class NotificationOutboxService
     try {
       if (record.eventType === PROJECT_NOTIFICATION) {
         const notification = this.toProjectNotification(record.payload);
+        notification.metadata = {
+          ...notification.metadata,
+          deliveryId: record.id,
+        };
         if (
-          notification.type === "PROJECT_INVITATION" &&
           notification.senderId &&
           !notification.senderName
         ) {
           const sender = await this.users.getContact(notification.senderId);
           notification.senderName = sender.fullName;
           notification.senderAvatar = sender.avatarUrl;
+        }
+        if (isTaskNotification(notification.type)) {
+          notification.content =
+            taskNotificationContent(
+              notification.type,
+              notification.metadata ?? {},
+              notification.senderName,
+            ) ?? notification.content;
         }
         await this.gateway.send(notification);
       } else if (record.eventType === INVITATION_EMAIL) {
@@ -188,17 +206,19 @@ export class NotificationOutboxService
       } else {
         throw new Error(`Unsupported outbox event type: ${record.eventType}`);
       }
-      await this.markSent(record.id);
+      await this.markSent(record);
     } catch (error) {
       await this.markFailed(record, error);
     }
   }
 
-  private async markSent(id: string): Promise<void> {
+  private async markSent(record: OutboxRecord): Promise<void> {
     await this.prisma.$executeRaw`
       UPDATE notification_outbox
-      SET status = 'SENT', processed_at = NOW(), locked_at = NULL, last_error = NULL
-      WHERE id = ${id}::uuid AND status = 'PROCESSING'
+      SET status = 'SENT', processed_at = NOW(), locked_at = NULL, last_error = NULL, lease_token = NULL
+      WHERE id = ${record.id}::uuid AND status = 'PROCESSING'
+        AND lease_token = ${record.leaseToken}::uuid
+        AND locked_at > ${new Date(Date.now() - LOCK_TIMEOUT_MS)}
     `;
   }
 
@@ -227,6 +247,8 @@ export class NotificationOutboxService
         locked_at = NULL,
         last_error = ${message}
       WHERE id = ${record.id}::uuid AND status = 'PROCESSING'
+        AND lease_token = ${record.leaseToken}::uuid
+        AND locked_at > ${new Date(Date.now() - LOCK_TIMEOUT_MS)}
     `;
     this.logger.warn(
       `Outbox event ${record.id} delivery failed (${attemptCount} attempts): ${message}`,
@@ -304,10 +326,10 @@ export class NotificationOutboxService
     if (
       typeof invitationId !== "string" ||
       typeof recipientId !== "string" ||
-      status !== "ACCEPTED" &&
-      status !== "DECLINED" &&
-      status !== "CANCELLED" &&
-      status !== "EXPIRED"
+      (status !== "ACCEPTED" &&
+        status !== "DECLINED" &&
+        status !== "CANCELLED" &&
+        status !== "EXPIRED")
     ) {
       throw new Error("Invalid project invitation status payload");
     }

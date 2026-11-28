@@ -51,7 +51,7 @@ export interface UpdateScheduledMeetingParams extends MeetingModeratorParams {
   dto: UpdateScheduledMeetingDto;
 }
 
-export interface CancelScheduledMeetingParams extends MeetingModeratorParams {}
+export type CancelScheduledMeetingParams = MeetingModeratorParams;
 
 export type RespondScheduledMeetingInvitationParams = MeetingModeratorParams;
 

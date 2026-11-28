@@ -1,5 +1,4 @@
 export enum S3_UPLOAD_TYPE {
-  AVATAR = 'avatar',
   CHAT_MEDIA = 'chat-media',
   DOCUMENT = 'document',
 }

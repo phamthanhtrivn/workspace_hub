@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // Egress must hydrate without depending on the development React debug stream.
+    reactDebugChannel: false,
   },
   images: {
     remotePatterns: [
@@ -13,10 +15,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "d2wa17ppbvmagw.cloudfront.net",
       },
     ],
   },

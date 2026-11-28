@@ -1,5 +1,8 @@
+import { confirmAvatarUpload } from '../api/user-setting.api';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { store, useAppSelector } from "@/store/store";
+import { canApplyAccountTheme } from "../utils/theme-preference";
 import {
   getAvatarPresignedUrl,
   getBulkProfilesByEmails,
@@ -15,6 +18,7 @@ import {
 } from "../api/user-setting.api";
 import {
   USER_SETTING_STALE_TIME_MS,
+  USER_SETTING_SAVE_ERROR,
   UserSettingMutationKey,
   UserSettingQueryKey,
 } from "../types/settings.enums";
@@ -23,31 +27,36 @@ import {
   UpdateUserSettingsRequest,
   UploadAvatarRequest,
   UserProfile,
-  UserSettings,
 } from "../types/user-setting.types";
 
 export const userSettingKeys = {
   profile: [UserSettingQueryKey.PROFILE] as const,
-  settings: [UserSettingQueryKey.SETTINGS] as const,
+  settings: (userId: string | null) =>
+    [UserSettingQueryKey.SETTINGS, userId] as const,
   sessions: [UserSettingQueryKey.SESSIONS] as const,
   bulkProfilesByEmails: (emails: string[]) =>
     [UserSettingQueryKey.BULK_PROFILES_BY_EMAILS, emails] as const,
 };
 
-export const useUserProfileQuery = () =>
+export const useUserProfileQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: userSettingKeys.profile,
     queryFn: getUserProfile,
     staleTime: USER_SETTING_STALE_TIME_MS,
+    enabled: options?.enabled ?? true,
   });
 
-export const useUserSettingsQuery = (options?: { enabled?: boolean }) =>
-  useQuery({
-    queryKey: userSettingKeys.settings,
+export const useUserSettingsQuery = (options?: { enabled?: boolean }) => {
+  const userId = useAppSelector((state) => state.auth.userId);
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
+
+  return useQuery({
+    queryKey: userSettingKeys.settings(userId),
     queryFn: getUserSettings,
-    enabled: options?.enabled ?? true,
+    enabled: !!userId && !!accessToken && (options?.enabled ?? true),
     staleTime: USER_SETTING_STALE_TIME_MS,
   });
+};
 
 export const useUserSessionsQuery = () =>
   useQuery({
@@ -71,6 +80,8 @@ export const useUpdateUserProfileMutation = () => {
     mutationKey: [UserSettingMutationKey.UPDATE_PROFILE],
     mutationFn: updateUserProfile,
     onSuccess: (response) => {
+      const currentEmail = store.getState().auth.email;
+      if (!response.success || !currentEmail || response.data.email.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) return;
       queryClient.setQueryData(userSettingKeys.profile, response);
       queryClient.invalidateQueries({ queryKey: userSettingKeys.profile });
     },
@@ -79,47 +90,35 @@ export const useUpdateUserProfileMutation = () => {
 
 export const useUpdateUserSettingsMutation = () => {
   const queryClient = useQueryClient();
+  const userId = useAppSelector((state) => state.auth.userId);
 
   return useMutation({
     mutationKey: [UserSettingMutationKey.UPDATE_SETTINGS],
-    mutationFn: updateUserSettings,
-    onMutate: async (payload: UpdateUserSettingsRequest) => {
-      await queryClient.cancelQueries({ queryKey: userSettingKeys.settings });
-
-      const previousSettings =
-        queryClient.getQueryData<ApiResponse<UserSettings>>(
-          userSettingKeys.settings,
-        );
-
-      queryClient.setQueryData<ApiResponse<UserSettings>>(
-        userSettingKeys.settings,
-        (current) =>
-          current
-            ? {
-                ...current,
-                data: {
-                  ...current.data,
-                  ...payload,
-                },
-              }
-            : current,
-      );
-
-      return { previousSettings };
+    mutationFn: async (payload: UpdateUserSettingsRequest) => {
+      const response = await updateUserSettings(payload);
+      if (!response.success) {
+        throw new Error(response.message || USER_SETTING_SAVE_ERROR);
+      }
+      return response;
     },
-    onError: (_error, _payload, context) => {
-      if (context?.previousSettings) {
-        queryClient.setQueryData(
-          userSettingKeys.settings,
-          context.previousSettings,
-        );
+    onMutate: async () => {
+      const queryKey = userSettingKeys.settings(userId);
+      await queryClient.cancelQueries({ queryKey });
+      return { userId, queryKey };
+    },
+    onSuccess: (response, _payload, context) => {
+      // A mutation may finish after an account switch. Do not seed the new session.
+      if (
+        context &&
+        canApplyAccountTheme(context.userId, store.getState().auth.userId, response.data.theme)
+      ) {
+        queryClient.setQueryData(context.queryKey, response);
       }
     },
-    onSuccess: (response) => {
-      queryClient.setQueryData(userSettingKeys.settings, response);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: userSettingKeys.settings });
+    onSettled: (_response, _error, _payload, context) => {
+      if (context && context.userId === store.getState().auth.userId) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+      }
     },
   });
 };
@@ -137,16 +136,14 @@ export const useRevokeUserSessionMutation = () => {
 };
 
 export const useUploadAvatarMutation = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationKey: [UserSettingMutationKey.UPLOAD_AVATAR],
     mutationFn: async ({
       file,
       currentProfile,
     }: UploadAvatarRequest): Promise<ApiResponse<UserProfile>> => {
-      const presignResponse = await getAvatarPresignedUrl(file.name, file.type);
-      const { presignedUrl, fileUrl } = presignResponse.data;
+      const presignResponse = await getAvatarPresignedUrl(file.name, file.type, file.size);
+      const { presignedUrl, uploadId } = presignResponse.data;
 
       await axios.put(presignedUrl, file, {
         headers: {
@@ -154,6 +151,8 @@ export const useUploadAvatarMutation = () => {
         },
       });
 
+      const confirmed = await confirmAvatarUpload(uploadId);
+      const fileUrl = confirmed.data.fileUrl;
       return {
         ...presignResponse,
         data: {
@@ -167,21 +166,7 @@ export const useUploadAvatarMutation = () => {
         },
       };
     },
-    onSuccess: (response) => {
-      queryClient.setQueryData<ApiResponse<UserProfile>>(
-        userSettingKeys.profile,
-        (current) =>
-          current
-            ? {
-                ...current,
-                data: {
-                  ...current.data,
-                  avatarUrl: response.data.avatarUrl,
-                },
-              }
-            : response,
-      );
-    },
+
   });
 };
 

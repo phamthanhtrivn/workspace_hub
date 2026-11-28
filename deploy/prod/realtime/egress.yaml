@@ -2,5 +2,15 @@
   "log_level": "info",
   "redis": {"address": "RENDER_AT_DEPLOYMENT"},
   "health_port": 9090,
-  "prometheus_port": 9091
+  "prometheus_port": 9091,
+  "backup": {"prefix": "/backup"},
+  "storage": {
+    "s3": {
+      "bucket": "RENDER_AT_DEPLOYMENT",
+      "region": "RENDER_AT_DEPLOYMENT",
+      "max_retries": 5,
+      "min_retry_delay": "500ms",
+      "max_retry_delay": "10s"
+    }
+  }
 }

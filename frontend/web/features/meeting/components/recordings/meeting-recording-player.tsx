@@ -1,5 +1,7 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
@@ -7,6 +9,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { MeetingRecordingSummary } from "./meeting-recording-summary";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function MeetingRecordingPlayer({
   recording,
@@ -51,6 +55,7 @@ export function MeetingRecordingPlayer({
         const result = await refetch();
         if (result.isError || !result.data) {
           setPlaybackIssue(true);
+
           return;
         }
         access = result.data;
@@ -73,6 +78,7 @@ export function MeetingRecordingPlayer({
       },
       remaining > 30_000 ? remaining - 15_000 : Math.max(1000, remaining / 2),
     );
+
     return () => window.clearTimeout(timer);
   }, [query.data, refetch]);
 
@@ -88,23 +94,28 @@ export function MeetingRecordingPlayer({
       }}
     >
       <DialogContent
-        className="max-w-4xl p-5"
+        className="max-h-[90vh] max-w-4xl overflow-y-auto p-5"
         aria-labelledby="recording-player-title"
       >
         <DialogTitle id="recording-player-title" className="pr-10">
           {recording.title}
         </DialogTitle>
-        {query.isLoading ? (
-          <p className="py-12 text-center">Loading recording…</p>
-        ) : query.isError ? (
+        {query.isLoading && !current ? (
+          <LoadingState
+            label="Loading recording…"
+            layout="centered"
+            className="py-12 text-center"
+          />
+        ) : query.isError && !current ? (
           <div role="alert" className="py-8">
             <p>Recording unavailable or access has been revoked.</p>
             <MeetingButton className="mt-3" onClick={() => void refresh()}>
+              <RefreshCw className="size-4" aria-hidden="true" />
               Try again
             </MeetingButton>
           </div>
         ) : (
-          query.data && (
+          current && (
             <>
               <video
                 ref={video}
@@ -112,7 +123,7 @@ export function MeetingRecordingPlayer({
                 controls
                 playsInline
                 preload="metadata"
-                className="mt-4 aspect-video w-full rounded-md bg-black"
+                className="mt-4 aspect-video w-full rounded-md bg-overlay"
                 onLoadedMetadata={() => {
                   if (video.current) {
                     if (!playback && query.data) setPlayback(query.data);
@@ -157,6 +168,7 @@ export function MeetingRecordingPlayer({
                       void refresh();
                     }}
                   >
+                    <RefreshCw className="size-4" aria-hidden="true" />
                     Refresh access
                   </MeetingButton>
                 </div>
@@ -164,6 +176,10 @@ export function MeetingRecordingPlayer({
             </>
           )
         )}
+        <MeetingRecordingSummary
+          key={recording.id}
+          recordingId={recording.id}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1,19 +1,18 @@
-import React from "react";
-import Image from "next/image";
-import {
-  User,
-  Image as ImageIcon,
-  FileText,
-  Video,
-  BarChart2,
-} from "lucide-react";
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { UserAvatar } from "@/components/common/user-avatar";
+
+import { Button } from "@/components/ui/button";
+
+import { Image as ImageIcon, FileText, Video, BarChart2 } from "lucide-react";
 import { UserProfileSnapshotResponse } from "../../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../../utils/message-formatter";
-import { RenderableChatMessage } from "../../message/chat-message.types";
+import { ChatMessageResponse } from "../../../types/chat.types";
 
 interface SearchResultItemProps {
-  message: RenderableChatMessage;
+  message: ChatMessageResponse;
   currentUserId: string | null;
   memberProfiles: Record<string, UserProfileSnapshotResponse>;
   isDirect: boolean;
@@ -27,6 +26,7 @@ export default function SearchResultItem({
   isDirect,
   onClick,
 }: SearchResultItemProps) {
+  useAccountTimezone();
   const profile = message.senderProfile || memberProfiles[message.senderId];
   const isMe = message.senderId === currentUserId;
   const fullName = isMe
@@ -37,13 +37,13 @@ export default function SearchResultItem({
   const renderSnippet = () => {
     if (message.recalled) {
       return (
-        <span className="italic text-gray-500">
+        <span className="italic text-muted-foreground">
           This message was recalled
         </span>
       );
     }
     if (message.type === "SYSTEM") {
-      return <span className="italic text-gray-500">{message.content}</span>;
+      return <span className="italic text-muted-foreground">{message.content}</span>;
     }
     if (message.type === "POLL") {
       return (
@@ -108,35 +108,31 @@ export default function SearchResultItem({
   };
 
   return (
-    <div
+    <div data-ui-interaction-exception="Pointer row delegation; the named Open message button is the keyboard equivalent."
       onClick={() => onClick(message.id)}
-      className="cursor-pointer hover:bg-gray-100 p-3 rounded-xl transition flex gap-3 items-start"
+      className="w-full text-left cursor-pointer hover:bg-muted p-3 rounded-panel transition flex gap-3 items-start"
     >
-      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt={fullName}
-            width={40}
-            height={40}
-            className="rounded-full object-cover w-full h-full"
-          />
-        ) : (
-          <User size={20} className="text-gray-400" />
-        )}
-      </div>
+      <Button variant="unstyled" type="button" aria-label={`Open message from ${fullName}`} onClick={event => { event.stopPropagation(); onClick(message.id); }} className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted">
+        <UserAvatar
+          src={avatarUrl}
+          alt={fullName}
+          width={40}
+          height={40}
+          className="rounded-full object-cover w-full h-full"
+        />
+      </Button>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="flex justify-between items-baseline mb-1">
-          <span className="font-semibold text-sm text-gray-900 truncate mr-2">
+          <span className="font-semibold text-sm text-foreground truncate mr-2">
             {fullName}
           </span>
-          <span className="text-[11px] text-gray-400 whitespace-nowrap flex-shrink-0">
+          <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
             {formatDateTime(message.createdAt)}
           </span>
         </div>
 
-        <div className="text-sm text-gray-600 truncate">{renderSnippet()}</div>
+        <div className="text-sm text-muted-foreground truncate">{renderSnippet()}</div>
       </div>
     </div>
   );

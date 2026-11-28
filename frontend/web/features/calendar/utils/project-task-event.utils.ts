@@ -1,3 +1,4 @@
+import { readableTextOnColor } from "@/lib/color";
 import type { EventInput } from "@fullcalendar/core";
 import type { Project, Task } from "@/features/project/types/project";
 import { taskDateKey } from "@/features/project/utils/task-dates";
@@ -21,7 +22,7 @@ export function mapProjectTaskToCalendarEvent(
   project: Project,
 ): EventInput | null {
   if (
-    task.archived ||
+    task.deletedAt ||
     task.projectId !== project.id ||
     !task.startDate ||
     !task.dueDate
@@ -55,7 +56,7 @@ export function mapProjectTaskToCalendarEvent(
     allDay: task.allDay,
     backgroundColor: project.color,
     borderColor: project.color,
-    textColor: "#ffffff",
+    textColor: readableTextOnColor(project.color),
     editable: false,
     startEditable: false,
     durationEditable: false,
@@ -87,7 +88,7 @@ export function mapProjectTasksToDomainCalendarEvents(
   if (!project) return [];
   return tasks.flatMap((task) => {
     if (
-      task.archived ||
+      task.deletedAt ||
       task.projectId !== project.id ||
       !task.startDate ||
       !task.dueDate
@@ -147,6 +148,7 @@ export function mapProjectTasksToDomainCalendarEvents(
         updatedAt: task.updatedAt,
         extendedProps: {
           projectTask: task,
+          project,
           projectId: project.id,
           projectColor: project.color,
           completedAt: task.completedAt,

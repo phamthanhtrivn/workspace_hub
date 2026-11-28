@@ -1,5 +1,8 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { readableTextOnColor } from "@/lib/color";
+
 import {
   Calendar,
   Check,
@@ -15,11 +18,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
+  getTaskDueDate,
   groupCalendarTasks,
   TaskStatusFilter,
 } from "../../utils/calendar-tasks.utils";
-import { cleanTaskDescription } from "../../utils/calendar-event.utils";
-import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
+import {
+  CalendarTaskFocusButton,
+  ProjectTaskFocusButton,
+} from "@/features/pomodoro/components/task-focus-button";
+import type { Project, Task } from "@/features/project/types/project";
 
 interface CalendarTaskListProps {
   tasks: CalendarEvent[];
@@ -40,14 +47,15 @@ export function CalendarTaskList({
   onToggleTask,
   onSelectTask,
 }: CalendarTaskListProps) {
+  const accountTimezone = useAccountTimezone();
   const [completedOpen, setCompletedOpen] = useState(false);
   const grouped = useMemo(
     () =>
       groupCalendarTasks(tasks, undefined, {
         allUpcoming: true,
         allOverdue: true,
-      }),
-    [tasks],
+      }, accountTimezone),
+    [tasks, accountTimezone],
   );
   const pendingCount =
     grouped.overdue.length + grouped.today.length + grouped.upcoming.length;
@@ -69,7 +77,7 @@ export function CalendarTaskList({
     if (grouped.completed.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-          <p className="text-xs font-semibold text-slate-500">
+          <p className="text-xs font-semibold text-muted-foreground">
             No completed tasks
           </p>
         </div>
@@ -118,13 +126,13 @@ export function CalendarTaskList({
 
       {pendingCount === 0 && grouped.completed.length > 0 && (
         <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-success-soft text-success-content">
             <Check className="h-5 w-5 stroke-[2.5]" />
           </div>
-          <p className="mt-2 text-xs font-semibold text-slate-700">
+          <p className="mt-2 text-xs font-semibold text-foreground">
             All caught up!
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             You have no pending tasks right now
           </p>
         </div>
@@ -133,12 +141,12 @@ export function CalendarTaskList({
       {showCompleted &&
         statusFilter === "all" &&
         grouped.completed.length > 0 && (
-          <div className="border-t border-slate-100 pt-2">
+          <div className="border-t border-border pt-2">
             <Button
               type="button"
               variant="ghost"
               onClick={() => setCompletedOpen((current) => !current)}
-              className="flex h-auto w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
+              className="flex h-auto w-full cursor-pointer items-center justify-between rounded-control px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted"
             >
               <span className="flex items-center gap-1.5">
                 {completedOpen ? (
@@ -173,22 +181,22 @@ function TaskSection({
   children: ReactNode;
 }) {
   const badgeClasses = {
-    danger: "text-red-600 bg-red-50",
-    primary: "text-blue-600 bg-blue-50",
-    neutral: "text-slate-600 bg-slate-100",
+    danger: "text-destructive-content bg-destructive-soft",
+    primary: "text-info-content bg-info-soft",
+    neutral: "text-muted-foreground bg-muted",
   }[tone];
   const titleColor = {
-    danger: "text-red-600",
-    primary: "text-blue-600",
-    neutral: "text-slate-500",
+    danger: "text-destructive-content",
+    primary: "text-info-content",
+    neutral: "text-muted-foreground",
   }[tone];
 
   return (
     <section className="space-y-1.5">
       <div className="flex items-center gap-2 px-2 py-1">
-        <h3 className={`text-xs font-bold ${titleColor}`}>{title}</h3>
+        <h3 className={`text-xs font-semibold ${titleColor}`}>{title}</h3>
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${badgeClasses}`}
+          className={`rounded-full px-1.5 py-0.5 text-xs font-semibold ${badgeClasses}`}
         >
           {count}
         </span>
@@ -215,17 +223,23 @@ function TaskRowItem({
   onToggle?: () => void;
   onSelect: () => void;
 }) {
+  useAccountTimezone();
   const completed = Boolean(task.completedAt);
   const taskColor = task.color || task.calendar?.color || color;
-  const dateLabel = formatTaskDueDate(task.startAt, task.allDay, locale);
+  const dueDate = getTaskDueDate(task);
+  const dateLabel = Number.isNaN(dueDate.getTime())
+    ? ""
+    : formatTaskDueDate(dueDate.toISOString(), task.allDay, locale, undefined, task.allDay ? task.timeZone : undefined);
   const isRecurring = Boolean(task.recurrenceRule || task.recurrenceParentId);
+  const projectTask = task.extendedProps?.projectTask as Task | undefined;
+  const project = task.extendedProps?.project as Project | undefined;
 
   return (
-    <div className="group relative flex items-start gap-2.5 rounded-lg border border-transparent p-2 transition-colors hover:border-slate-200/80 hover:bg-slate-50/90">
+    <div className="group relative flex items-center gap-2.5 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-background">
       {readOnly ? (
         <span
-          className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md"
-          style={{ backgroundColor: `${taskColor}18`, color: taskColor }}
+          className="grid h-5 w-5 shrink-0 place-items-center rounded-md"
+          style={{ backgroundColor: `${taskColor}18`, color: "var(--foreground)" }}
           aria-hidden="true"
         >
           <FolderKanban className="h-3.5 w-3.5" />
@@ -235,10 +249,11 @@ function TaskRowItem({
           checked={completed}
           onCheckedChange={() => onToggle?.()}
           onClick={(event) => event.stopPropagation()}
-          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          className="h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-ring"
           style={{
-            borderColor: completed ? taskColor : "#cbd5e1",
+            borderColor: "var(--input)",
             backgroundColor: completed ? taskColor : "transparent",
+            color: completed ? readableTextOnColor(taskColor) : "var(--foreground)",
           }}
           aria-label={task.title}
         />
@@ -247,14 +262,14 @@ function TaskRowItem({
       <Button
         type="button"
         variant="ghost"
-        className="h-auto min-w-0 flex-1 cursor-pointer justify-start rounded-none p-0 text-left hover:bg-transparent"
+        className="flex h-auto min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-none p-0 text-left hover:bg-transparent"
         onClick={onSelect}
       >
         <span
-          className={`block truncate text-sm font-medium leading-snug ${
+          className={`min-w-0 flex-1 truncate text-sm font-medium leading-5 ${
             completed
-              ? "line-through text-slate-400"
-              : "text-slate-700 group-hover:text-slate-900"
+              ? "line-through text-muted-foreground"
+              : "text-foreground group-hover:text-foreground"
           }`}
           title={task.title}
         >
@@ -263,39 +278,39 @@ function TaskRowItem({
 
         {dateLabel && (
           <span
-            className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] ${
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-4 ${
               completed
-                ? "border-slate-200 bg-slate-50 text-slate-400"
+                ? "border-border bg-background text-muted-foreground"
                 : isOverdue
-                  ? "border-red-200 bg-red-50/60 font-medium text-red-600"
-                  : "border-slate-200 bg-white font-medium text-blue-600"
+                  ? "border-border bg-destructive-soft/60 font-medium text-destructive-content"
+                  : "border-border bg-card font-medium text-info-content"
             }`}
           >
             {isOverdue && !completed ? (
-              <Clock className="h-3 w-3 shrink-0 text-red-500" />
+              <Clock className="h-3 w-3 shrink-0 text-destructive-content" />
             ) : task.allDay ? (
-              <Calendar className="h-3 w-3 shrink-0 text-slate-400" />
+              <Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />
             ) : (
               <Clock
                 className={`h-3 w-3 shrink-0 ${
-                  completed ? "text-slate-400" : "text-blue-500"
+                  completed ? "text-muted-foreground" : "text-info-content"
                 }`}
               />
             )}
             {dateLabel}
             {isRecurring && (
-              <Repeat className="ml-0.5 h-2.5 w-2.5 shrink-0 text-blue-500" />
+              <Repeat className="ml-0.5 h-2.5 w-2.5 shrink-0 text-info-content" />
             )}
           </span>
         )}
-
-        {task.description && cleanTaskDescription(task.description) && (
-          <span className="mt-1 block line-clamp-1 text-xs text-slate-400">
-            {cleanTaskDescription(task.description)}
-          </span>
-        )}
       </Button>
-      {!readOnly && <CalendarTaskFocusButton event={task} compact />}
+      {readOnly ? (
+        projectTask ? (
+          <ProjectTaskFocusButton task={projectTask} project={project} compact />
+        ) : null
+      ) : (
+        <CalendarTaskFocusButton event={task} compact />
+      )}
     </div>
   );
 }

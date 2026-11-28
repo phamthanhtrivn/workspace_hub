@@ -1,0 +1,76 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+import { config } from "../../config/env.config";
+import { rows } from "../../infrastructure/database/database";
+import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
+import { meetingSource } from "./source";
+import { MeetingSummaryReadiness } from "./availability";
+
+@Injectable()
+export class MeetingSummaryService {
+  private readonly readiness = new MeetingSummaryReadiness(
+    async () =>
+      (await meetingSummaryQueue.client).get(
+        "wh-notebook:meeting-summary-worker-heartbeat",
+      ),
+    config.MEETING_STT_URL,
+    config.MEETING_STT_SERVICE_KEY,
+  );
+
+  async status(id: string) {
+    const [summary] = await rows(
+      `SELECT status,stage,content,error,updated_at AS "updatedAt",
+      jsonb_array_length(transcript) AS "transcribedChunks" FROM notebook_ai.meeting_summaries WHERE recording_id=$1`,
+      [id],
+    );
+
+    return {
+      ...(summary ?? { status: "NOT_CREATED" }),
+      available: await this.readiness.check(),
+    };
+  }
+
+  async start(id: string, actorId: string) {
+    if (!(await this.readiness.check()))
+      throw new ServiceUnavailableException(
+        "Meeting summary worker is unavailable",
+      );
+    const source = await meetingSource(id, actorId, AbortSignal.timeout(15000));
+    const runId = randomUUID();
+    const [created] = await rows(
+      `INSERT INTO notebook_ai.meeting_summaries
+      (recording_id,run_id,actor_id,revision,status) VALUES($1,$2,$3,$4,'QUEUED')
+      ON CONFLICT(recording_id) DO UPDATE SET run_id=$2,actor_id=$3,revision=$4,status='QUEUED',
+      stage='QUEUED',content=NULL,error=NULL,updated_at=now(),
+      transcript=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.transcript ELSE '[]'::jsonb END,
+      partials=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.partials ELSE '[]'::jsonb END
+      ,transcript_complete=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.transcript_complete ELSE false END
+      WHERE meeting_summaries.status='FAILED' OR
+        (meeting_summaries.status='COMPLETED' AND meeting_summaries.revision<>$4)
+      RETURNING run_id`,
+      [id, runId, actorId, source.revision],
+    );
+    if (created) {
+      try {
+        await meetingSummaryQueue.add(
+          "meeting-summary",
+          { recordingId: id, runId },
+          {
+            jobId: `meeting-${runId}`,
+            attempts: 1,
+          },
+        );
+      } catch {
+        await rows(
+          `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',error=$3,updated_at=now()
+          WHERE recording_id=$1 AND run_id=$2 AND status='QUEUED'`,
+          [id, runId, AI_UI_MESSAGES.PROCESSING_QUEUE_FAILED],
+        );
+        throw new ServiceUnavailableException("Meeting queue unavailable");
+      }
+    }
+
+    return this.status(id);
+  }
+}

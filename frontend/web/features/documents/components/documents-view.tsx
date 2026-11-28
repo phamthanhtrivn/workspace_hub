@@ -1,123 +1,182 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useRef, useState } from "react";
 import DocumentExplorer from "./document-explorer";
+import { DocumentNotificationTarget } from "./document-notification-target";
 import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DOCUMENT_QUERY_PARAMS } from "../types/documents.constants";
 import { documentsApi } from "../api/documents.api";
+import { useAppSelector } from "@/store/store";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import {
+  canonicalizeDocumentFolderQuery,
+  DOCUMENTS_PATH,
+  documentFolderAccessKey,
+  getDocumentView,
+  getDocumentViewUrl,
+  parseDocumentView,
+} from "../utils/document-navigation";
+
+type PathEntry = { id: string | null; name: string };
 
 function DocumentsView() {
-  const [activeView, setActiveView] = useState<DocumentViewType>(
-    DocumentViewType.MY_FILES,
+  return (
+    <DownloadQueueProvider>
+      <DocumentsLocation />
+    </DownloadQueueProvider>
   );
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+}
 
-  const [path, setPath] = useState<{ id: string | null; name: string }[]>([
-    { id: null, name: NavigationLabel.ROOT },
-  ]);
-
-  const searchParams = useSearchParams();
-
+function DocumentsLocation() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const userId = useAppSelector((state) => state.auth.userId);
+  const view = params.get(DOCUMENT_QUERY_PARAMS.VIEW);
+  const initialView = parseDocumentView(view);
+  const folderId = params.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID);
+  const resolveView =
+    !!folderId &&
+    (initialView === DocumentViewType.MY_FILES ||
+      initialView === DocumentViewType.SHARED);
+  const access = useQuery({
+    queryKey: documentFolderAccessKey(userId, folderId),
+    queryFn: () => documentsApi.getAccessibleItem(folderId!),
+    enabled: !!userId && resolveView,
+    staleTime: 0,
+    retry: false,
+  });
+  const query = params.toString();
+  const canonicalQuery = canonicalizeDocumentFolderQuery(
+    query,
+    resolveView ? access.data?.userRole : undefined,
+  );
   useEffect(() => {
-    const viewParam = searchParams.get(DOCUMENT_QUERY_PARAMS.VIEW);
-    const folderIdParam = searchParams.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID);
+    if (canonicalQuery !== query)
+      router.replace(
+        `${DOCUMENTS_PATH}${canonicalQuery ? `?${canonicalQuery}` : ""}${window.location.hash}`,
+        { scroll: false },
+      );
+  }, [canonicalQuery, query, router]);
+  if (resolveView && (access.isPending || access.error)) {
+    return (
+      <QueryFeedback
+        label="folder access"
+        pending={access.isPending && !access.error}
+        error={!!access.error}
+        retrying={access.isFetching}
+        onRetry={() => access.refetch()}
+      />
+    );
+  }
+  const resolvedView =
+    resolveView && access.data
+      ? getDocumentView(access.data.userRole)
+      : initialView;
 
-    let activeV = DocumentViewType.MY_FILES;
-    if (viewParam === DocumentViewType.SHARED) {
-      activeV = DocumentViewType.SHARED;
-    } else if (viewParam === DocumentViewType.STARRED) {
-      activeV = DocumentViewType.STARRED;
-    } else if (viewParam === DocumentViewType.TRASH) {
-      activeV = DocumentViewType.TRASH;
-    }
+  return (
+    <DocumentsWorkspace
+      key={`${canonicalQuery}:${resolvedView}`}
+      initialView={resolvedView}
+      initialFolderId={folderId}
+    />
+  );
+}
 
-    if (viewParam) {
-      setActiveView(activeV);
-    }
-
-    if (folderIdParam) {
-      setCurrentFolderId(folderIdParam);
-      const rootLabel =
-        activeV === DocumentViewType.STARRED
-          ? NavigationLabel.STARRED
-          : activeV === DocumentViewType.SHARED
-            ? NavigationLabel.SHARED
-            : activeV === DocumentViewType.TRASH
-              ? NavigationLabel.TRASH
-              : NavigationLabel.ROOT;
-
-      documentsApi
-        .getBreadcrumbs(folderIdParam)
-        .then((breadcrumbs) => {
-          setPath([{ id: null, name: rootLabel }, ...breadcrumbs]);
-        })
-        .catch((err) => {
-          console.error("Failed to load breadcrumbs", err);
-          setPath([
-            { id: null, name: rootLabel },
-            { id: folderIdParam, name: "Folder" },
-          ]);
-        });
-    }
-  }, [searchParams]);
-
-  const handleNavigate = (
-    folderId: string | null,
-    folderName?: string,
-    viewContext?: DocumentViewType,
+function DocumentsWorkspace({
+  initialView,
+  initialFolderId,
+}: {
+  initialView: DocumentViewType;
+  initialFolderId: string | null;
+}) {
+  const router = useRouter();
+  const activeView = initialView;
+  const currentFolderId = initialFolderId;
+  const explorerActionsRef = useRef<{
+    openCreateFolder: () => void;
+    uploadFiles: (files: FileList) => void;
+  } | null>(null);
+  const rootLabel =
+    activeView === DocumentViewType.RECENT
+      ? NavigationLabel.RECENT
+      : activeView === DocumentViewType.STARRED
+        ? NavigationLabel.STARRED
+        : activeView === DocumentViewType.SHARED
+          ? NavigationLabel.SHARED
+          : activeView === DocumentViewType.TRASH
+            ? NavigationLabel.TRASH
+            : NavigationLabel.ROOT;
+  const [navigationPath, setNavigationPath] = useState<PathEntry[] | null>(
+    null,
+  );
+  const breadcrumbs = useQuery({
+    queryKey: ["documents", "breadcrumbs", initialFolderId],
+    queryFn: () => documentsApi.getBreadcrumbs(initialFolderId!),
+    enabled: !!initialFolderId,
+  });
+  const initialPath: PathEntry[] = [
+    { id: null, name: rootLabel },
+    ...(initialFolderId
+      ? (breadcrumbs.data ?? [{ id: initialFolderId, name: "Folder" }])
+      : []),
+  ];
+  const path = navigationPath ?? initialPath;
+  const setPath: React.Dispatch<React.SetStateAction<PathEntry[]>> = (
+    update,
   ) => {
-    setCurrentFolderId(folderId);
-    const activeV = viewContext !== undefined ? viewContext : activeView;
+    setNavigationPath((previous) =>
+      typeof update === "function" ? update(previous ?? initialPath) : update,
+    );
+  };
 
-    if (folderId === null) {
-      const rootLabel =
-        activeV === DocumentViewType.STARRED
-          ? NavigationLabel.STARRED
-          : activeV === DocumentViewType.SHARED
-            ? NavigationLabel.SHARED
-            : activeV === DocumentViewType.TRASH
-              ? NavigationLabel.TRASH
-              : NavigationLabel.ROOT;
-      setPath([{ id: null, name: rootLabel }]);
-    } else if (folderName) {
-      const exists = path.some((p) => p.id === folderId);
-      if (!exists) {
-        setPath([...path, { id: folderId, name: folderName }]);
-      }
-    }
+  const handleNavigate = (folderId: string | null) => {
+    router.push(getDocumentViewUrl(activeView, folderId), { scroll: false });
   };
 
   const handleViewChange = (view: DocumentViewType) => {
-    setActiveView(view);
-    handleNavigate(null, undefined, view);
+    router.push(getDocumentViewUrl(view), { scroll: false });
   };
 
   return (
-    <DownloadQueueProvider>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
+    <div className="@container/documents h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
+      <div className="flex h-full min-h-0 min-w-0 flex-col @min-[960px]/documents:flex-row">
         {/* Navigation Sidebar */}
         <DocumentsSidebar
           activeView={activeView}
+          currentFolderId={currentFolderId}
           onViewChange={handleViewChange}
+          onSelectFolder={(folderId) =>
+            router.push(
+              getDocumentViewUrl(DocumentViewType.MY_FILES, folderId),
+              { scroll: false },
+            )
+          }
+          onUploadFiles={(files) =>
+            explorerActionsRef.current?.uploadFiles(files)
+          }
+          onCreateFolder={() => explorerActionsRef.current?.openCreateFolder()}
         />
 
         {/* Document Explorer Main Canvas */}
-        <section className="flex min-w-0 flex-1 flex-col min-h-0 h-full overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col min-h-0 h-full rounded-lg border border-slate-100 bg-white p-6 shadow-xs overflow-hidden">
+        <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+          <DocumentNotificationTarget />
+          <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
             <DocumentExplorer
               currentFolderId={currentFolderId}
               onNavigate={handleNavigate}
               activeView={activeView}
               path={path}
               setPath={setPath}
+              actionsRef={explorerActionsRef}
             />
           </div>
         </section>
       </div>
-    </DownloadQueueProvider>
+    </div>
   );
 }
 

@@ -1,13 +1,20 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
+import React, { useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
-import { DocumentItem } from "../../types/documents.types";
+import type { DocumentPreviewItem } from "../../types/documents.types";
 import { PreviewFileType } from "../../types/documents.enums";
 import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
-import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
-import { PreviewContent, PreviewIcon } from "./preview-content";
+import { PreviewContent } from "./preview-content";
+import { DocumentIcon } from "../common/document-icon";
+import { toast } from "sonner";
 import { Download } from "lucide-react";
 import {
   Dialog,
@@ -17,32 +24,32 @@ import {
 } from "@/components/ui/dialog";
 import { DocumentsIconButton } from "../ui/documents-icon-button";
 
-interface FilePreviewModalProps {
+interface FilePreviewModalProps<T extends DocumentPreviewItem> {
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
-  item: DocumentItem | null;
+  item: T | null;
   versionId?: string;
-  onDownload?: (item: DocumentItem) => void;
-  onOpenDetails?: (item: DocumentItem) => void;
+  onDownload?: (item: T) => void;
+  onOpenDetails?: (item: T) => void;
 }
 
-export function FilePreviewModal({
+export function FilePreviewModal<T extends DocumentPreviewItem>({
   open,
   isOpen,
   onClose,
   item,
   versionId,
   onDownload,
-}: FilePreviewModalProps) {
+}: FilePreviewModalProps<T>) {
   const isModalOpen = open ?? isOpen ?? false;
-  const [textContent, setTextContent] = useState<string | null>(null);
-  const [loadingText, setLoadingText] = useState(false);
 
   const {
     data: previewUrl,
     isLoading: isUrlLoading,
     error,
+    refetch,
+    isFetching,
   } = useQuery({
     queryKey: ["document-preview", item?.id, versionId],
     queryFn: () =>
@@ -55,52 +62,38 @@ export function FilePreviewModal({
 
   const previewType = useMemo(() => {
     if (!item) return PreviewFileType.UNKNOWN;
+
     return getPreviewFileType(item.mimeType, item.name);
   }, [item]);
 
   const isText = previewType === PreviewFileType.TEXT;
 
-  useEffect(() => {
-    if (isModalOpen && isText && previewUrl) {
-      setLoadingText(true);
-      setTextContent(null);
-      fetch(previewUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load text content");
-          return res.text();
-        })
-        .then((text) => {
-          if (text.length > MAX_TEXT_PREVIEW_SIZE) {
-            setTextContent(
-              text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                "\n\n... [Content too long, please download to view full file] ..."
-            );
-          } else {
-            setTextContent(text);
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          setTextContent("Could not load text file content.");
-        })
-        .finally(() => {
-          setLoadingText(false);
-        });
-    } else {
-      setTextContent(null);
+  const textQuery = useQuery({
+    queryKey: ["document-text-preview", item?.id, versionId, previewUrl],
+    enabled: isModalOpen && isText && !!previewUrl,
+    queryFn: ({ signal }) => documentsApi.getTextPreview(previewUrl!, signal),
+  });
+  const loadingText = isModalOpen && isText && textQuery.isFetching;
+  const textContent = isModalOpen && isText ? (textQuery.data ?? null) : null;
+  const previewError = error ?? (isText ? textQuery.error : null);
+  const retryPreview = async () => {
+    const result = await refetch();
+    if (isText && result.isSuccess && result.data === previewUrl) {
+      await textQuery.refetch();
     }
-  }, [isModalOpen, isText, previewUrl]);
+  };
 
   const handleDownload = useCallback(async () => {
     if (onDownload && item) {
       onDownload(item);
+
       return;
     }
     if (item) {
       try {
         const downloadUrl = await documentsApi.getDownloadUrl(
           item.id,
-          versionId
+          versionId,
         );
         const link = document.createElement("a");
         link.href = downloadUrl;
@@ -108,7 +101,13 @@ export function FilePreviewModal({
         link.click();
         document.body.removeChild(link);
       } catch (err) {
-        console.error("Failed to generate download URL", err);
+        logActionError("Failed to generate download URL", err);
+        toast.error(
+          getActionErrorMessage(
+            err,
+            "Could not download this file. Please try again.",
+          ),
+        );
       }
     }
   }, [item, versionId, onDownload]);
@@ -116,18 +115,25 @@ export function FilePreviewModal({
   if (!isModalOpen || !item) return null;
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-4xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left pr-6">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 text-blue-600 border border-slate-100">
-              <PreviewIcon previewType={previewType} />
-            </div>
+    <Dialog
+      open={isModalOpen}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+    >
+      <DialogContent
+        className={`${dialogLayout.surface} max-w-4xl border-border bg-card p-6 text-foreground rounded-dialog`}
+      >
+        <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 text-left pr-6">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <DocumentIcon
+              item={item}
+              iconSize={22}
+              className="h-10 w-10 rounded-panel border border-border"
+            />
             <div className="min-w-0">
-              <DialogTitle className="text-base font-black text-slate-800 truncate max-w-lg">
+              <DialogTitle className="text-base font-semibold text-foreground truncate max-w-lg">
                 {item.name}
               </DialogTitle>
-              <p className="mt-0.5 text-xs text-slate-400 font-bold">
+              <p className="mt-0.5 text-xs text-muted-foreground font-semibold">
                 {formatBytes(item.sizeBytes)}
               </p>
             </div>
@@ -141,15 +147,21 @@ export function FilePreviewModal({
           ) : null}
         </DialogHeader>
 
-        <div className="mt-4 max-h-[75vh] overflow-auto rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+        <div
+          className={`${dialogLayout.body} mt-4 h-[min(65dvh,640px)] overflow-auto rounded-panel bg-background p-4 border border-border`}
+        >
           <PreviewContent
+            key={`${item.id}:${versionId ?? "current"}`}
+            fitToContainer
             item={item}
             previewType={previewType}
             previewUrl={previewUrl}
             textContent={textContent}
             isUrlLoading={isUrlLoading}
             loadingText={loadingText}
-            error={error}
+            error={previewError}
+            onRetry={retryPreview}
+            retrying={isFetching || textQuery.isFetching}
             handleDownload={handleDownload}
           />
         </div>
@@ -158,4 +170,4 @@ export function FilePreviewModal({
   );
 }
 
-export default React.memo(FilePreviewModal);
+export default React.memo(FilePreviewModal) as typeof FilePreviewModal;

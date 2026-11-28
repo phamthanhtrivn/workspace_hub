@@ -1,8 +1,10 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useCallback, useMemo, useState } from "react";
 import type { Task } from "@/features/project/types/project";
 import { taskDateKey } from "@/features/project/utils/task-dates";
+import { formatInTimezone, getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
 
 export interface CalendarGridDay {
   date: Date;
@@ -35,9 +37,9 @@ export function dateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function isTaskOnDate(task: Task, day: string): boolean {
-  const start = taskDateKey(task.startDate || task.dueDate, task.allDay);
-  const end = taskDateKey(task.dueDate || task.startDate, task.allDay);
+export function isTaskOnDate(task: Task, day: string, timeZone = getDisplayTimezone()): boolean {
+  const start = taskDateKey(task.startDate || task.dueDate, task.allDay, timeZone);
+  const end = taskDateKey(task.dueDate || task.startDate, task.allDay, timeZone);
   if (!start || !end) return false;
   return start <= day && day <= end;
 }
@@ -47,13 +49,14 @@ export function getInitialMonth(tasks: Task[]): Date {
   const value = firstDatedTask?.startDate || firstDatedTask?.dueDate;
   return value
     ? new Date(`${taskDateKey(value, firstDatedTask?.allDay)}T00:00:00`)
-    : new Date();
+    : new Date(`${zonedDateKey()}T00:00:00`);
 }
 
 export function useCalendarGrid({
   tasks,
   locale,
 }: UseCalendarGridParams): UseCalendarGridReturn {
+  const accountTimezone = useAccountTimezone();
   const [currentMonth, setCurrentMonth] = useState(() =>
     getInitialMonth(tasks),
   );
@@ -66,8 +69,8 @@ export function useCalendarGrid({
   }, []);
 
   const goToToday = useCallback(() => {
-    setCurrentMonth(new Date());
-  }, []);
+    setCurrentMonth(new Date(`${zonedDateKey(new Date(), accountTimezone)}T00:00:00`));
+  }, [accountTimezone]);
 
   const monthLabel = useMemo(() => {
     return currentMonth.toLocaleDateString(locale, {
@@ -76,7 +79,7 @@ export function useCalendarGrid({
     });
   }, [currentMonth, locale]);
 
-  const activeTasks = useMemo(() => tasks.filter((t) => !t.archived), [tasks]);
+  const activeTasks = useMemo(() => tasks.filter((t) => !t.deletedAt), [tasks]);
 
   const unscheduledTasks = useMemo(
     () => activeTasks.filter((task) => !task.startDate && !task.dueDate),
@@ -99,7 +102,7 @@ export function useCalendarGrid({
     const totalDays = mondayOffset + daysInMonth;
     const totalWeeks = Math.ceil(totalDays / 7);
     const totalGridDays = totalWeeks * 7;
-    const todayKey = dateKey(new Date());
+    const todayKey = zonedDateKey(new Date(), accountTimezone);
 
     return Array.from({ length: totalGridDays }, (_, index) => {
       const date = new Date(
@@ -110,7 +113,7 @@ export function useCalendarGrid({
       const key = dateKey(date);
       const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
       const dayTasks = isCurrentMonth
-        ? activeTasks.filter((task) => isTaskOnDate(task, key))
+        ? activeTasks.filter((task) => isTaskOnDate(task, key, accountTimezone))
         : [];
 
       return {
@@ -121,17 +124,17 @@ export function useCalendarGrid({
         tasks: dayTasks,
       };
     });
-  }, [currentMonth, activeTasks]);
+  }, [currentMonth, activeTasks, accountTimezone]);
 
   const formatTaskTime = useCallback(
     (value: string | undefined) => {
       if (!value || value.length < 16) return "";
-      return new Date(value).toLocaleTimeString(locale, {
+      return formatInTimezone(value, locale, {
         hour: "2-digit",
         minute: "2-digit",
-      });
+      }, accountTimezone);
     },
-    [locale],
+    [locale, accountTimezone],
   );
 
   return {

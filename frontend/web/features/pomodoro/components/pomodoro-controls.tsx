@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, Square } from "lucide-react";
+import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface PomodoroControlsProps {
   onResume: () => void;
   onReset: () => void;
   onSkip: () => void;
+  onStop: () => void;
 }
 
 export const PomodoroControls = React.memo(function PomodoroControls({
@@ -27,30 +29,31 @@ export const PomodoroControls = React.memo(function PomodoroControls({
   onResume,
   onReset,
   onSkip,
+  onStop,
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
-  const isFocus = mode === "FOCUS";
   const modeTheme = POMODORO_MODE_THEMES[mode] ?? POMODORO_MODE_THEMES.FOCUS;
   const startLabel =
     mode === "FOCUS"
-      ? "START FOCUS"
+      ? "Start focus"
       : mode === "SHORT_BREAK"
-        ? "START SHORT BREAK"
-        : "START LONG BREAK";
+        ? "Start short break"
+        : "Start long break";
 
   return (
-    <div className="flex items-center justify-center">
-      <div className="flex items-center gap-1 sm:gap-3 p-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-lg shadow-slate-200/40 backdrop-blur-md">
+    <div className="flex w-full min-w-0 max-w-sm flex-col items-center justify-center gap-3">
+      <div className="flex w-full min-w-0 items-center justify-center gap-3.5">
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={onReset}
           disabled={disabled}
-          title="Reset session"
-          className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
+          title={copy.resetHint}
+          aria-label="Reset session"
+          className="size-12 shrink-0 rounded-control border-border bg-card text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
         >
-          <RotateCcw className="size-4.5" />
+          <RotateCcw aria-hidden="true" className="size-5" />
         </Button>
 
         {!isRunning ? (
@@ -59,38 +62,53 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={status === "IDLE" ? onStart : onResume}
             disabled={disabled}
             className={cn(
-              "h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
+              "h-12 min-w-0 flex-1 gap-2.5 whitespace-normal rounded-control px-6 text-sm font-semibold leading-snug transition-all duration-150 active:scale-[0.99] motion-reduce:transition-none",
               modeTheme.startButtonClass,
-              isFocus && status === "IDLE" && "hover:shadow-blue-900/35",
             )}
           >
-            <Play className="mr-2 size-4.5 fill-current" />
-            {status === "IDLE" ? startLabel : "RESUME"}
+            <Play aria-hidden="true" className="size-4 fill-current" />
+            {status === "IDLE" ? startLabel : "Resume"}
           </Button>
         ) : (
           <Button
             type="button"
             onClick={onPause}
             disabled={disabled}
-            className="h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
+            className={cn(
+              "h-12 min-w-0 flex-1 gap-2.5 whitespace-normal rounded-control px-6 text-sm font-semibold leading-snug transition-all duration-150 active:scale-[0.99] motion-reduce:transition-none",
+              modeTheme.startButtonClass,
+            )}
           >
-            <Pause className="mr-2 size-4.5 fill-current" />
-            PAUSE
+            <Pause aria-hidden="true" className="size-4 fill-current" />
+            Pause
           </Button>
         )}
 
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={onSkip}
           disabled={disabled}
-          title="Skip session"
-          className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
+          title={copy.skipHint}
+          aria-label="Skip session"
+          className="size-12 shrink-0 rounded-control border-border bg-card text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground motion-reduce:transition-none"
         >
-          <SkipForward className="size-4.5" />
+          <SkipForward aria-hidden="true" className="size-5" />
         </Button>
       </div>
+      {status !== "IDLE" && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled}
+          onClick={onStop}
+          className="h-9 gap-2 rounded-xl text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Square aria-hidden="true" className="size-3.5" />
+          {copy.stop}
+        </Button>
+      )}
     </div>
   );
 });

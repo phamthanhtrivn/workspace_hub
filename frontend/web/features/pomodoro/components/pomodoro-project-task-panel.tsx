@@ -1,14 +1,15 @@
 "use client";
 
-import { FolderKanban } from "lucide-react";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import type { Project, Task } from "@/features/project/types/project";
-import { ProjectTaskFocusButton } from "./task-focus-button";
+import { PomodoroProjectTaskItem } from "./pomodoro-project-task-item";
 import { PomodoroTaskEmptyState, PomodoroTaskFilterControls, type PomodoroTaskFilters } from "./pomodoro-task-filters";
 import { isProjectFocusEligible } from "../utils/focus-task";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PomodoroProjectTaskPanelProps {
   tasks: { task: Task; project: Project }[];
@@ -24,6 +25,7 @@ interface PomodoroProjectTaskPanelProps {
 
 export function PomodoroProjectTaskPanel({ tasks, userId, filters, onFiltersChange, projectId, onProjectChange,
   isLoading, isError, onRetry }: PomodoroProjectTaskPanelProps) {
+  useAccountTimezone();
   const { busy, isReady } = usePomodoroSessionActions();
   const eligible = tasks.filter(({ task }) => isProjectFocusEligible(task, userId));
   const projects = [...new Map(eligible.map(({ project }) => [project.id, project])).values()];
@@ -37,22 +39,16 @@ export function PomodoroProjectTaskPanel({ tasks, userId, filters, onFiltersChan
 
   return (
     <div className="space-y-4">
-      <div><h4 className="text-sm font-semibold text-slate-800">Assigned Project tasks</h4>
-        <p className="mt-1 text-xs text-slate-500">Focus on work assigned to you in an active project.</p></div>
+      <div><h4 className="text-sm font-semibold text-foreground">Assigned Project tasks</h4>
+        <p className="mt-1 text-xs text-muted-foreground">Focus on work assigned to you in an active project.</p></div>
       <PomodoroTaskFilterControls sourceLabel="Project" filters={filters} onChange={onFiltersChange} />
       <CustomSelect ariaLabel="Filter by project" value={selectedProjectId} onChange={onProjectChange} disabled={busy || !isReady || isLoading}
         options={[{ value: "", label: "All projects" }, ...projects.map((project) => ({ value: project.id, label: project.name }))]} />
-      {isLoading && <p role="status" className="text-xs text-slate-500">Loading Project tasks…</p>}
-      {isError && <p role="alert" className="text-xs text-rose-600">Unable to load Project tasks. <Button type="button" variant="link" size="sm" onClick={onRetry}>Retry</Button></p>}
+      {isLoading && <LoadingState label="Loading Project tasks…" className="text-xs text-muted-foreground" />}
+      {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load Project tasks. <Button type="button" variant="link" size="sm" onClick={onRetry}>Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Project" filters={filters} onChange={onFiltersChange} />}
-      {matching.length > 0 && <ul className="max-h-64 divide-y divide-slate-100 overflow-y-auto">
-        {matching.map(({ task, project }) => <li key={task.id} className="flex items-center gap-2 py-3">
-          <FolderKanban className="size-4 shrink-0" style={{ color: project.color }} />
-          <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-slate-800">{task.title}</p>
-            <p className="mt-0.5 truncate text-[11px] text-slate-500">{project.name} · {task.status === "TODO" ? "To do" : "In progress"} · {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : task.startDate ? new Date(task.startDate).toLocaleDateString() : "Unscheduled"}</p>
-          </div>
-          <ProjectTaskFocusButton task={task} project={project} />
-        </li>)}
+      {matching.length > 0 && <ul aria-label="Project tasks" className="max-h-72 space-y-2 overflow-y-auto p-1">
+        {matching.map(({ task, project }) => <PomodoroProjectTaskItem key={task.id} task={task} project={project} />)}
       </ul>}
     </div>
   );

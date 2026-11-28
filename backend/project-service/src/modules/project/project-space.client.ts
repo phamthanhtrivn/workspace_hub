@@ -12,6 +12,7 @@ export interface EnsureProjectSpaceMember {
 export interface EnsureProjectSpaceRequest {
   projectId: string;
   name: string;
+  syncRevision?: string;
   ownerId: string;
   members: EnsureProjectSpaceMember[];
 }
@@ -51,8 +52,9 @@ export class ProjectSpaceClient {
   ): Promise<ProjectSpaceResponse> {
     const response = await this.http.request<ApiResponse<ProjectSpaceResponse>>({
       service: 'communication-service',
-      url: `${this.config.communicationServiceUrl}/api/spaces/project`,
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project`,
       method: 'POST',
+      headers: this.internalHeaders(),
       body: payload,
     });
     return response.data;
@@ -138,6 +140,7 @@ export class ProjectSpaceClient {
     status?: string,
     priority?: string,
     dueDate?: string,
+    version?: string,
   ): Promise<{
     spaceId: string;
     channelId: string;
@@ -158,12 +161,12 @@ export class ProjectSpaceClient {
       url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}/task-thread`,
       method: 'POST',
       headers: this.internalHeaders(),
-      body: { taskId, taskTitle, actorId, channelId, status, priority, dueDate },
+      body: { taskId, taskTitle, actorId, channelId, status, priority, dueDate, version },
     });
     return response.data;
   }
 
   private internalHeaders(): Record<string, string> {
-    return { 'x-internal-service-key': this.config.internalServiceKey };
+    return { 'x-internal-service-key': this.config.communicationServiceKey };
   }
 }

@@ -1,0 +1,11 @@
+fastapi==0.157.0
+uvicorn==0.54.0
+pydantic-settings==2.16.1
+docling==2.141.0
+llama-index-core==0.14.25
+qdrant-client==1.19.1
+httpx==0.28.1
+sentence-transformers==6.2.0
+pypdf==6.21.1
+pypdfium2==5.14.0
+pillow==12.3.0

@@ -1,25 +1,35 @@
-import { User, Users } from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
+
+import type { MentionMemberOption } from "../../utils/mention-member-utils";
+import { Bot, Users } from "lucide-react";
+import { AI_BOT } from "../../constants/chat-identity";
 import React from "react";
+import { Button } from "@/components/ui/button";
 
 interface MentionDropdownProps {
   query: string | null;
-  members: any[];
+  id: string;
+  members: MentionMemberOption[];
   selectedIndex: number;
-  onSelect: (user: any) => void;
+  onSelect: (user: MentionMemberOption) => void;
 }
 
 export default React.memo(function MentionDropdown({
   query,
+  id,
   members,
   selectedIndex,
   onSelect,
 }: MentionDropdownProps) {
+  React.useEffect(() => {
+    document.getElementById(`${id}-option-${selectedIndex}`)?.scrollIntoView({ block: "nearest" });
+  }, [id, selectedIndex]);
   if (query === null || members.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-white border border-gray-200 shadow-xl rounded-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
+    <div id={id} role="listbox" aria-label="Mention suggestions" className="absolute bottom-full left-0 mb-2 w-64 max-w-full max-h-[min(12rem,40dvh)] overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
       {members.map((user, idx) => (
-        <button
+        <Button variant="unstyled" type="button" role="option" id={`${id}-option-${idx}`} aria-selected={idx === selectedIndex} tabIndex={-1} onMouseDown={event => event.preventDefault()}
           key={user.id}
           onClick={(e) => {
             e.preventDefault();
@@ -27,25 +37,23 @@ export default React.memo(function MentionDropdown({
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors ${
             idx === selectedIndex
-              ? "bg-blue-50 text-blue-700"
-              : "text-gray-700 hover:bg-gray-100"
+              ? "bg-info-soft text-info-content"
+              : "text-foreground hover:bg-muted"
           }`}
         >
-          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs flex-shrink-0 overflow-hidden">
-            {user.id === "all" ? (
-              <Users size={15} className="text-blue-600" />
-            ) : user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
+          <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info-content font-medium text-xs flex-shrink-0 overflow-hidden">
+            {user.isGroup ? (
+              <Users size={15} className="text-info-content" />
+            ) : user.id === AI_BOT.mentionId ? (
+              <Bot size={15} aria-hidden="true" />
+            ) : <UserAvatar
+                src={user?.avatarUrl}
+                alt={user?.name}
                 className="w-full h-full object-cover"
-              />
-            ) : (
-              <User size={15} className="text-gray-400" />
-            )}
+              />}
           </div>
           <span className="truncate">{user.name}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );

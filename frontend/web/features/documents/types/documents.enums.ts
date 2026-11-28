@@ -5,6 +5,7 @@ export enum DocumentItemType {
 
 export enum DocumentViewType {
   MY_FILES = "MY_FILES",
+  RECENT = "RECENT",
   SHARED = "SHARED",
   STARRED = "STARRED",
   TRASH = "TRASH",
@@ -33,10 +34,14 @@ export enum DocumentSortBy {
 
 export enum UploadState {
   IDLE = "IDLE",
+  QUEUED = "QUEUED",
+  AWAITING_OVERWRITE = "AWAITING_OVERWRITE",
   INITIATING = "INITIATING",
   UPLOADING = "UPLOADING",
   CONFIRMING = "CONFIRMING",
   SUCCESS = "SUCCESS",
+  PARTIAL = "PARTIAL",
+  SKIPPED = "SKIPPED",
   ERROR = "ERROR",
 }
 
@@ -80,6 +85,7 @@ export enum DocumentTypeDescription {
 
 export enum NavigationLabel {
   ROOT = "My Files",
+  RECENT = "Recent",
   CURRENT_FOLDER = "Current Folder",
   STARRED = "Starred",
   SHARED = "Shared",

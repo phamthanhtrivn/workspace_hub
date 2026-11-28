@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { featureSyncRequest } from "@/lib/api-error-policy";
 import {
   ProjectRole,
   ProjectStatus,
@@ -7,6 +8,8 @@ import {
   type ProjectSetting,
 } from "@/features/project/types/project";
 import type { PaginationMeta } from "./pagination";
+import type { ProjectAccessState } from "../types/project-access-sync";
+export type { ProjectAccessState } from "../types/project-access-sync";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -18,6 +21,7 @@ interface ApiResponse<T> {
 }
 
 interface ProjectApiModel {
+  accessSync?: ProjectAccessState;
   id: string;
   name: string;
   color?: string | null;
@@ -125,6 +129,7 @@ function normalizeProject(project: ProjectApiModel): Project {
 
   return {
     id: project.id,
+    accessSync: project.accessSync,
     name: project.name,
     color: project.color || "#6366f1",
     icon: project.icon || "📁",
@@ -242,11 +247,34 @@ export async function getProjects(
   };
 }
 
+const projectDetailPath = (projectId: string) => `/api/projects/${projectId}`;
+
 export async function getProject(projectId: string): Promise<Project> {
   const response = await api.get<ApiResponse<ProjectApiModel>>(
-    `/api/projects/${projectId}`,
+    projectDetailPath(projectId),
   );
   return normalizeProject(unwrap(response));
+}
+
+export type AccessibleProjectIdentity = Pick<ProjectApiModel, "id" | "name" | "icon" | "color">;
+
+export async function getAccessibleProjectIdentity(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<AccessibleProjectIdentity | null> {
+  const response = await api.get<ApiResponse<AccessibleProjectIdentity>>(
+    projectDetailPath(projectId),
+    {
+      ...featureSyncRequest(signal),
+      // Historical notifications remain readable after losing project access.
+      validateStatus: (status) => status >= 200 && status < 300 || status === 403 || status === 404,
+    },
+  );
+  if (response.status === 403 || response.status === 404) return null;
+  const project = unwrap(response);
+  if (project.id !== projectId) throw new Error("Project identity does not match the notification");
+
+  return project;
 }
 
 export async function createProject(
@@ -367,3 +395,6 @@ export async function getUserProfiles(
     return new Map();
   }
 }
+
+export const getProjectAccessState = async (projectId: string) => (await api.get<{ data: ProjectAccessState }>(`/api/projects/${projectId}/access-sync`)).data.data;
+export const retryProjectAccessSync = (projectId: string) => api.post(`/api/projects/${projectId}/access-sync/retry`);

@@ -22,14 +22,14 @@ export function PriorityDistributionBar({
           key={item.label}
           className="grid grid-cols-[70px_1fr_28px] items-center gap-3 text-xs"
         >
-          <span className="text-slate-600">{item.label}</span>
-          <div className="h-5 rounded-sm bg-slate-100">
+          <span className="text-muted-foreground">{item.label}</span>
+          <div className="h-5 rounded-sm bg-muted">
             <div
               className={`h-5 rounded-sm ${item.color}`}
               style={{ width: `${(item.value / safeMax) * 100}%` }}
             />
           </div>
-          <strong className="text-right text-slate-700">{item.value}</strong>
+          <strong className="text-right text-foreground">{item.value}</strong>
         </div>
       ))}
     </div>

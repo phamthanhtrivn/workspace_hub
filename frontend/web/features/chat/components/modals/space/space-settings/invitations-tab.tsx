@@ -1,5 +1,14 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { formatInTimezone } from "@/lib/timezone";
 import { SpaceInvitation } from "@/features/chat/types/chat.types";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { RefreshCw, UserPlus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
+
 
 interface InvitationsTabProps {
   invitations: SpaceInvitation[];
@@ -18,24 +27,25 @@ export function InvitationsTab({
   onInvite,
   onResend,
 }: InvitationsTabProps) {
+  useAccountTimezone();
   const header = (
     <div className="mb-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <h3 className="text-sm font-bold text-slate-900">
+        <h3 className="text-sm font-semibold text-foreground">
           Invitations
         </h3>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           Manage pending space invitations and invite new members.
         </p>
       </div>
-      <button
+      <Button variant="default"
         type="button"
         onClick={onInvite}
-        className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-control px-3 py-2 text-xs font-semibold transition"
       >
         <UserPlus size={14} />
         Invite Members
-      </button>
+      </Button>
     </div>
   );
 
@@ -43,9 +53,7 @@ export function InvitationsTab({
     return (
       <>
         {header}
-        <div className="py-8 text-center text-xs text-slate-400">
-          Loading invitations...
-        </div>
+        <LoadingState label="Loading invitations..." layout="centered" className="py-8 text-center text-xs text-muted-foreground" />
       </>
     );
   }
@@ -54,7 +62,7 @@ export function InvitationsTab({
     return (
       <>
         {header}
-        <div className="py-8 text-center text-xs text-slate-400">
+        <div className="py-8 text-center text-xs text-muted-foreground">
           No pending invitations
         </div>
       </>
@@ -68,37 +76,37 @@ export function InvitationsTab({
         {invitations.map((invitation) => (
           <div
             key={invitation.id}
-            className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2"
+            className="flex items-center justify-between rounded-panel border border-border px-3 py-2"
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-800">
+              <p className="truncate text-sm font-semibold text-foreground">
                 {invitation.invitee?.fullName ||
                   invitation.invitee?.email ||
                   invitation.invitedUserId}
               </p>
-              <p className="text-xs text-slate-400">
-                {`Invited on ${new Date(invitation.createdAt).toLocaleDateString("en-US")}`}
+              <p className="text-xs text-muted-foreground">
+                {`Invited on ${formatInTimezone(new Date(invitation.createdAt), "en-US", { year: "numeric", month: "numeric", day: "numeric" })}`}
               </p>
             </div>
             <div className="flex items-center gap-1">
-              <button
+              <IconButton label="Resend Invitation" showTooltip={false} size="icon-sm"
                 type="button"
                 title="Resend Invitation"
                 disabled={isMutating}
                 onClick={() => onResend(invitation.id)}
-                className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer"
+                className="p-2 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw size={16} />
-              </button>
-              <button
+              </IconButton>
+              <IconButton label="Cancel Invitation" showTooltip={false} size="icon-sm"
                 type="button"
                 title="Cancel Invitation"
                 disabled={isMutating}
                 onClick={() => onCancel(invitation.id)}
-                className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+                className="p-2 rounded-control text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft disabled:opacity-50 cursor-pointer"
               >
                 <X size={16} />
-              </button>
+              </IconButton>
             </div>
           </div>
         ))}

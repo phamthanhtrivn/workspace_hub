@@ -8,6 +8,8 @@ import {
   Post,
   Put,
   Query,
+  Param,
+  Header,
 } from '@nestjs/common';
 import { CreatePomodoroSessionDto } from './dto/create-pomodoro-session.dto';
 import { ClearPomodoroTimerStateDto } from './dto/clear-pomodoro-timer-state.dto';
@@ -18,12 +20,27 @@ import { SavePomodoroConfigDto } from './dto/save-pomodoro-config.dto';
 import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
 import { PomodoroService } from './pomodoro.service';
 import { SavePomodoroAmbientPreferencesDto } from './dto/save-pomodoro-ambient-preferences.dto';
-import { AMBIENT_PREFERENCES_MESSAGES, AMBIENT_PREFERENCES_ROUTE } from './constants/pomodoro-ambient.constants';
-import { POMODORO_AUDIO_MESSAGES, POMODORO_AUDIO_ROUTE } from './constants/pomodoro-audio.constants';
+import {
+  AMBIENT_PREFERENCES_MESSAGES,
+  AMBIENT_PREFERENCES_ROUTE,
+} from './constants/pomodoro-ambient.constants';
+import {
+  POMODORO_AUDIO_MESSAGES,
+  POMODORO_AUDIO_ROUTE,
+  POMODORO_AUDIO_ACCESS_ROUTE,
+} from './constants/pomodoro-audio.constants';
+import { PomodoroAudioAccessService } from './pomodoro-audio-access.service';
 
 @Controller('api/calendar/pomodoro')
 export class PomodoroController {
-  constructor(private readonly service: PomodoroService) {}
+  constructor(private readonly service: PomodoroService, private readonly audioAccess: PomodoroAudioAccessService) {}
+
+  @Get(POMODORO_AUDIO_ACCESS_ROUTE)
+  @Header('Cache-Control', 'no-store')
+  getAudioAccess(@Headers('x-user-id') userId: string, @Param('id') id: string) {
+    this.requireUser(userId);
+    return this.audioAccess.getAccessUrl(id);
+  }
 
   @Get('config')
   async getConfig(@Headers('x-user-id') userId: string) {
@@ -49,7 +66,10 @@ export class PomodoroController {
   @Get(POMODORO_AUDIO_ROUTE)
   async getAudios(@Headers('x-user-id') userId: string) {
     this.requireUser(userId);
-    return { message: POMODORO_AUDIO_MESSAGES.retrieved, data: await this.service.getAudios() };
+    return {
+      message: POMODORO_AUDIO_MESSAGES.retrieved,
+      data: await this.service.getAudios(),
+    };
   }
 
   @Get(AMBIENT_PREFERENCES_ROUTE)

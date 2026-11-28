@@ -7,10 +7,10 @@ NestJS + Prisma service for WorkspaceHub calendars, events, attendees, recurring
 - Stores recurring events as queryable occurrences and supports `THIS`, `THIS_AND_FOLLOWING`, and `ALL` update/cancel scopes.
 - Dispatches due reminders to `calendar-reminder-events`; Notification Service delivers `ALERT`, `PUSH`, or `EMAIL`.
 - Enforces private/public visibility and returns per-user event permissions.
-- Verifies project and document access through their owning services.
+- Verifies document access through Document Service; project-task fields remain snapshots, not a live Project authorization integration.
 - Keeps read-only project-task presentation fields for a future integration, but does not currently consume Project events.
-- Validates date/UUID filters and paginates event range queries.
-- Owns Pomodoro preferences, completed sessions, daily statistics, and optional cross-device timer state.
+- Validates date/UUID filters, paginates event range queries, and serves `GET /api/calendar/events/today-summary` (`eventsTodayCount`, `tasksDueTodayCount`, `totalTodayCount`) for account-timezone root badge counts.
+- Owns Pomodoro preferences, completed sessions (including optional `notes`), daily statistics, and optional cross-device timer state.
 
 ## Calendar Pomodoro API
 
@@ -28,13 +28,17 @@ All routes use the `/api/calendar/pomodoro` prefix and the authenticated `x-user
 
 Session POST requires `sessionType`, `status`, ISO `startedAt`/`endedAt`, `plannedSeconds`, and `actualSeconds`. `eventId` and `taskId` are optional. An event must belong to the caller's calendar. The response also includes `durationMinutes` for the existing Pomodoro history UI. Task and project titles are optional snapshots; their IDs are not foreign keys to Project DB.
 
-Daily endpoints use `Asia/Ho_Chi_Minh` by default. Pass an IANA `timeZone` to use the viewer's calendar zone. Session timestamps remain stored as UTC instants.
+Daily endpoints use `Asia/Ho_Chi_Minh` by default. The web passes the user's account IANA `timeZone` for daily statistics and session queries. Session timestamps remain stored as UTC instants.
 
-The current Pomodoro page still uses browser storage and `/api/pomodoros` points at Project service. Its API client must be adapted to these Calendar routes before that page will synchronize with Calendar. The Calendar event detail uses these routes directly.
+The web Pomodoro API client uses these Calendar routes for saved sessions, daily statistics and timer synchronization. Browser storage retains local timer/ambient state where supported; it does not replace the service session history.
+
+## Timezone behavior
+
+The web displays Calendar in the signed-in user's account timezone. Timed form input converts from that zone to UTC before submission. New recurring series accept an optional validated IANA `timeZone`, captured from the account setting; subsequent edits preserve the series zone while it remains in the same calendar. All-day boundaries retain the original event/series/calendar dates, including after another viewer changes timezone or drags the entry. Existing UTC timestamps and schema fields are retained; no timezone migration is needed. See [account timezone](../../docs/features/timezones.md).
 
 ## Local configuration
 
-Copy `.env.example` to `.env` when running the service outside Docker. Apply schema changes with migrations:
+Keep the existing private .env with localhost infrastructure/service URLs. Apply reviewed migrations explicitly:
 
 ```sh
 npm ci
@@ -43,7 +47,9 @@ npx prisma migrate deploy
 npm run start:dev
 ```
 
-The shared Docker Compose stack does not publish port `8086` to the host; Calendar is reached through Kong. It uses `calendar_db`, which is created when the Postgres volume is initialized.
+Calendar runs on the host at port 8086, backed by calendar_db. Kong forwards public calls. USER_SERVICE_URL and DOCUMENT_SERVICE_URL override localhost defaults in every environment. See [local setup](../../docs/development/local-setup.md).
+
+Document attachments use `POST /internal/document-access/resolve` with the actor and up to 50 distinct document IDs per batch. Set a dedicated `CALENDAR_DOCUMENT_SERVICE_KEY` (at least 32 random characters) in both Calendar and Document Service. The receiver still checks resource permissions, archived state and file type. No public fallback, permission cache or automatic retry; missing/mismatched credentials fail closed with 503 at Calendar. From repository root, `node backend/scripts/prepare-local-security-env.mjs` previews local env preparation; add `--write` to apply it. See [service credentials](../../docs/development/local-setup.md#authentication-and-service-credentials); restart both services after configuration changes.
 
 ## Kafka topics
 

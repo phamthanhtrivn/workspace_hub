@@ -1,5 +1,16 @@
-import { IsBoolean, IsNumber, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
-import { AMBIENT_TRACK_ID_PATTERN, MAX_AMBIENT_TRACK_ID_LENGTH } from '../constants/pomodoro-ambient.constants';
+import {
+  IsBoolean,
+  IsNumber,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import {
+  AMBIENT_TRACK_ID_PATTERN,
+  MAX_AMBIENT_TRACK_ID_LENGTH,
+} from '../constants/pomodoro-ambient.constants';
 
 export class SavePomodoroAmbientPreferencesDto {
   @IsString()

@@ -1,0 +1,40 @@
+.landing-page :is(a, button) {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: var(--landing-feedback-duration);
+  transition-timing-function: var(--landing-motion-ease);
+}
+
+.landing-page .landing-action > svg {
+  transition: transform var(--landing-feedback-duration) var(--landing-motion-ease);
+}
+
+.landing-page .landing-action:is(:hover, :focus-visible) > svg {
+  transform: translateX(2px);
+}
+
+.landing-page .landing-action-down:is(:hover, :focus-visible) > svg {
+  transform: translateY(2px);
+}
+
+.landing-page .landing-faq-icon {
+  transition: transform var(--landing-accordion-duration) var(--landing-motion-ease);
+}
+
+.landing-page .landing-faq-panel {
+  height: var(--collapsible-panel-height);
+  opacity: 1;
+  transition:
+    height var(--landing-accordion-duration) var(--landing-motion-ease),
+    opacity var(--landing-accordion-duration) var(--landing-motion-ease);
+}
+
+.landing-page .landing-faq-panel:is([data-starting-style], [data-ending-style]) {
+  height: 0;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page .landing-action:is(:hover, :focus-visible) > svg {
+    transform: none;
+  }
+}

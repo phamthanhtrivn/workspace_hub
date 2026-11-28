@@ -11,17 +11,17 @@ export interface Response<T> {
   success: boolean;
   message: string;
   data: T;
-  pagination?: any;
-  errors: any;
+  pagination?: unknown;
+  errors: unknown;
   timestamp: string;
 }
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
+export class ResponseInterceptor implements NestInterceptor<unknown, Response<unknown>> {
   intercept(
     context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<Response<T>> {
+    next: CallHandler<unknown>,
+  ): Observable<Response<unknown>> {
     return next.handle().pipe(
       map((res) => {
         // If the response is already in the ApiResponse format, return it directly
@@ -31,12 +31,12 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           "success" in res &&
           "timestamp" in res
         ) {
-          return res;
+          return res as Response<unknown>;
         }
 
         let message = "Success";
         let data = res;
-        let pagination = undefined;
+        let pagination: unknown;
 
         // If the controller returned an object with message and data
         if (
@@ -45,14 +45,14 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           "message" in res &&
           "data" in res
         ) {
-          message = res.message;
+          if (typeof res.message === "string") message = res.message;
           data = res.data;
           if ("pagination" in res) {
             pagination = res.pagination;
           }
         }
 
-        const responseObj: any = {
+        const responseObj: Response<unknown> = {
           success: true,
           message: message,
           data: data,

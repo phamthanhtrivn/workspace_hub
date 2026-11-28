@@ -1,6 +1,7 @@
 "use client";
 
 import type { CalendarRecurrencePreset } from "../../utils/calendar-recurrence.utils";
+import { formatRecurrenceRuleSummary } from "../../utils/calendar-recurrence.utils";
 import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { CalendarTimeFields, QuickRow, type CalendarTimeFieldsProps } from "./calendar-time-fields";
 import { CalendarSelect } from "./calendar-select";
@@ -13,17 +14,21 @@ interface QuickCreateTimeSectionProps extends CalendarTimeFieldsProps {
   recurrencePreset: CalendarRecurrencePreset;
   recurrenceOptions: Array<{ value: string; label: string }>;
   onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
+  showRecurrence?: boolean;
+  recurrenceDisabled?: boolean;
+  recurrenceRule?: string | null;
 }
 
 export function QuickCreateTimeSection({ kind, recurrencePreset, recurrenceOptions,
-  onRecurrenceChange, ...timeProps }: QuickCreateTimeSectionProps) {
+  onRecurrenceChange, showRecurrence = true, recurrenceDisabled = false, recurrenceRule, ...timeProps }: QuickCreateTimeSectionProps) {
   return <div className="space-y-2">
-    <CalendarTimeFields {...timeProps} showTimeZone={kind === "event"} />
-    <QuickRow icon={null}>
-      <CalendarSelect value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
+    <CalendarTimeFields {...timeProps} showTimeZone={kind === "event"} allowPastStart />
+    {showRecurrence && <QuickRow icon={null}>
+      {recurrenceDisabled && recurrenceRule ? <p aria-label={copy.recurrence} className="rounded-panel border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">{formatRecurrenceRuleSummary(recurrenceRule, { startAt: timeProps.form.getValues("startAt") })}</p> :
+      <CalendarSelect disabled={timeProps.disabled || recurrenceDisabled} value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
         onChange={(value) => onRecurrenceChange(value as CalendarRecurrencePreset)} alignItemWithTrigger={false}
-        triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 data-[state=open]:bg-white"
-        popupClassName="min-w-[15.5rem]" />
-    </QuickRow>
+        triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-sm font-semibold text-muted-foreground hover:bg-accent/70 data-[state=open]:bg-card"
+        popupClassName="min-w-[15.5rem]" />}
+    </QuickRow>}
   </div>;
 }

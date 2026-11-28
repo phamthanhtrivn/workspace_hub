@@ -1,5 +1,6 @@
 "use client";
 
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ChannelChatInput, {
   ChannelChatInputRef,
@@ -17,6 +18,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import CreatePollModal from "../modals/message/create-poll-modal";
 import CreateNoteModal from "../modals/message/create-note-modal";
 import TypingIndicator from "../message/typing-indicator";
+import AiTypingIndicator from "../message/ai-typing-indicator";
+import { useAiTypingIndicator } from "../../hooks/message/useAiTypingIndicator";
 import {
   setHighlightMessageId,
   setActiveConversation,
@@ -31,6 +34,7 @@ import {
 } from "../../types/chat.types";
 import {
   ChatSocketMessagePayload,
+  ChatSocketMessageUpdatePayload,
   ChatSocketMemberPayload,
   ChatSocketRoleUpdatedPayload,
   ChatSocketSettingUpdatedPayload,
@@ -56,6 +60,7 @@ import { useChatTypingIndicator } from "../../hooks/message/useChatTypingIndicat
 import { useChatMessageList } from "../../hooks/message/useChatMessageList";
 import { useChatMessageActions } from "../../hooks/message/useChatMessageActions";
 import { upsertMessageById } from "../../utils/message-state-utils";
+import { mergeChatMessageUpdate } from "../../utils/message-update-cache";
 import { getDirectMessageInputNotice } from "../../utils/direct-message-permission";
 import {
   cleanupRemovedSpaceCaches,
@@ -190,23 +195,21 @@ export default function ChatArea({
   });
 
   // ─── Member profiles ───────────────────────────────────────────────────────
-  const messageSenderIds = useMemo(() => {
+  const messageMentionIds = useMemo(() => {
     const ids = new Set<string>();
     allMessages.forEach((message: ChatMessageResponse) => {
-      if (message.senderId) ids.add(message.senderId);
-      message.reactions?.forEach((reaction) => {
-        if (reaction.userId) ids.add(String(reaction.userId));
-      });
+      message.mentions?.forEach(id => ids.add(id));
+
     });
     return Array.from(ids);
   }, [allMessages]);
 
-  const activeMemberProfiles = useChatMemberProfiles(messageSenderIds);
+  const activeMemberProfiles = useChatMemberProfiles(messageMentionIds, { resolveMissing: true });
   const memberProfiles = useMemo(() => {
     const profiles = { ...activeMemberProfiles };
     allMessages.forEach((message: ChatMessageResponse) => {
       if (message.senderId && message.senderProfile) {
-        profiles[message.senderId] = message.senderProfile;
+        profiles[message.senderId] = { ...message.senderProfile, mentionNames: profiles[message.senderId]?.mentionNames };
       }
     });
     return profiles;
@@ -224,6 +227,8 @@ export default function ChatArea({
     memberProfiles,
     activeConversation?.id,
   );
+
+  const aiTyping = useAiTypingIndicator(activeConversation?.id, activeChatType);
 
   // ─── Editing state ────────────────────────────────────────────────────────
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
@@ -284,14 +289,13 @@ export default function ChatArea({
       medias?: SendSocketMessageMedia[],
       mentions?: string[],
     ) => {
-      await handleSendMessageAction(
+      return handleSendMessageAction(
         content,
         medias,
         mentions,
         editingMessage,
         () => {
-          setEditingMessage(null);
-          chatInputRef.current?.setMessage("");
+          setEditingMessage((current) => current?.id === editingMessage?.id ? null : current);
         },
       );
     },
@@ -369,19 +373,23 @@ export default function ChatArea({
       (auth.accessToken ? socketService.connect(auth.accessToken) : null);
 
     if (socket && activeConversation?.id) {
-      if (isDirectConversation) {
-        socket.emit(ChatEvent.JOIN_DIRECT_CONVERSATION, {
-          conversationId: activeConversation.id,
-          chatId: activeConversation.id,
-          chatType: ChatContextType.DIRECT_MESSAGE,
-        });
-      } else {
-        socket.emit(ChatEvent.JOIN_CONVERSATION, {
-          channelId: activeConversation.id,
-          chatId: activeConversation.id,
-          chatType: ChatContextType.CHANNEL,
-        });
-      }
+      const joinActiveRoom = () => {
+        if (isDirectConversation) {
+          socket.emit(ChatEvent.JOIN_DIRECT_CONVERSATION, {
+            conversationId: activeConversation.id,
+            chatId: activeConversation.id,
+            chatType: ChatContextType.DIRECT_MESSAGE,
+          });
+        } else {
+          socket.emit(ChatEvent.JOIN_CONVERSATION, {
+            channelId: activeConversation.id,
+            chatId: activeConversation.id,
+            chatType: ChatContextType.CHANNEL,
+          });
+        }
+      };
+      socket.on("connect", joinActiveRoom);
+      if (socket.connected) joinActiveRoom();
 
       const getEventChannelId = (payload: Record<string, unknown>) =>
         (payload?.channelId ?? payload?.conversationId) as string | undefined;
@@ -515,12 +523,14 @@ export default function ChatArea({
         }
       };
 
-      const handleMessageUpdated = (msg: ChatSocketMessagePayload) => {
+      const handleMessageUpdated = (msg: ChatSocketMessageUpdatePayload) => {
         if (
           getEventChannelId(msg as Record<string, unknown>) ===
           activeConversation.id
         ) {
-          updateMessageInState(msg.id, () => msg);
+          updateMessageInState(msg.id, (message) =>
+            mergeChatMessageUpdate(message, msg),
+          );
         }
       };
 
@@ -636,10 +646,10 @@ export default function ChatArea({
           data.affectedUserIds?.includes(auth?.userId ?? "");
         const affectsActiveConversation =
           (data.channelId ?? data.conversationId) === activeConversation.id ||
-          (data.spaceId && data.spaceId === activeSpaceId);
+          (data.leftSpace && data.spaceId && data.spaceId === activeSpaceId);
 
         if (affectsActiveConversation) {
-          if (data.spaceId && data.userId) {
+          if (data.leftSpace && data.spaceId && data.userId) {
             removeSpaceMemberFromCaches(queryClient, data.spaceId, data.userId);
           }
 
@@ -664,7 +674,7 @@ export default function ChatArea({
               queryClient.invalidateQueries({
                 queryKey: chatKeys.allChannels(),
               });
-              toast.success("Left channel successfully");
+              toast.message("You no longer have access to this channel");
             }
           } else {
             queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
@@ -752,6 +762,7 @@ export default function ChatArea({
       socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
 
       return () => {
+        socket.off("connect", joinActiveRoom);
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
         socket.off(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
@@ -801,7 +812,7 @@ export default function ChatArea({
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col bg-white h-full min-h-0 relative">
+    <div className="flex-1 flex min-w-0 flex-col bg-card h-full min-h-0 relative">
       {/* Header */}
       <ChatHeader
         onToggleRightPanel={onToggleRightPanel}
@@ -812,7 +823,7 @@ export default function ChatArea({
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#f8fafc] space-y-1 relative flex flex-col-reverse [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full"
+        className="flex-1 min-h-0 overflow-y-auto p-4 bg-background space-y-1 relative flex flex-col-reverse"
       >
         <div
           ref={(el) => {
@@ -833,7 +844,7 @@ export default function ChatArea({
           activeChatType={activeChatType}
           memberProfiles={memberProfiles}
           readReceipts={readReceipts}
-          spaceCreatorId={spaceDetail?.createdBy}
+          spaceCreatorId={activeConversation && "spaceId" in activeConversation && isPrivateChannel(activeConversation) ? activeConversation.ownerId ?? undefined : spaceDetail?.createdBy}
           conversationMembers={activeConversation?.members}
           onReact={(messageId, emoji, action) => {
             const reactionAction =
@@ -885,18 +896,21 @@ export default function ChatArea({
         />
       )}
 
+      <AiTypingIndicator active={aiTyping} />
+
       {/* Typing Indicator */}
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
 
       {/* Input Area */}
       {isDirectConversation && directInputMessage ? (
-        <div className="w-full border-t border-gray-200 bg-white p-3" role="status">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-600">
+        <div className="w-full border-t border-border bg-card p-3" role="status">
+          <div className="rounded-panel border border-border bg-background p-3 text-center text-sm text-muted-foreground">
             {directInputMessage}
           </div>
         </div>
       ) : isDirectConversation ? (
         <DirectMessageInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onTypingChange={handleTypingChange}
@@ -905,6 +919,7 @@ export default function ChatArea({
         />
       ) : (
         <ChannelChatInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onCreatePoll={() => setIsPollModalOpen(true)}

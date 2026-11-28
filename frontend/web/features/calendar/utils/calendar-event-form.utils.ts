@@ -1,4 +1,5 @@
 import { CalendarEventEditorValues } from "../schemas/calendar-event-form.schema";
+import { getDisplayTimezone, zonedDateKey } from "@/lib/timezone";
 import {
   CALENDAR_COLOR_CHOICES,
 } from "../types/calendar.constants";
@@ -20,6 +21,7 @@ import {
 } from "./calendar-date.utils";
 
 interface CalendarEventFormDefaultsInput {
+  calendarTimeZone?: string;
   calendarId: string;
   draft?: CalendarEventDraft | null;
   event?: CalendarEvent | null;
@@ -41,9 +43,7 @@ function getDefaultEnd(
   if (event?.endAt) return new Date(event.endAt);
   if (draft?.endAt) return draft.endAt;
 
-  const endAt = new Date(startAt);
-  endAt.setHours(endAt.getHours() + 1);
-  return endAt;
+  return new Date(startAt.getTime() + 60 * 60_000);
 }
 
 function getEditableAttendees(
@@ -78,31 +78,32 @@ export function createCalendarEventFormDefaults({
   calendarId,
   draft,
   event,
+  calendarTimeZone,
 }: CalendarEventFormDefaultsInput): CalendarEventFormDefaults {
   const defaultStart = event?.startAt
     ? new Date(event.startAt)
     : draft?.startAt ?? new Date();
   const defaultEnd = getDefaultEnd(defaultStart, draft, event);
+  const timeZone = event?.allDay ? event.timeZone || calendarTimeZone || getDisplayTimezone() : getDisplayTimezone();
   const allDay = Boolean(
     event?.allDay ||
       (event && isAllDayDateTimeRange(defaultStart, defaultEnd)) ||
       draft?.allDay,
   );
 
-  let initialStartAt = toDateTimeLocal(defaultStart);
-  let initialEndAt = toDateTimeLocal(defaultEnd);
+  let initialStartAt = toDateTimeLocal(defaultStart, timeZone);
+  let initialEndAt = toDateTimeLocal(defaultEnd, timeZone);
 
   if (allDay) {
     const startDateStr = getDateInputValue(initialStartAt);
     let endDateStr = getDateInputValue(initialEndAt);
 
     if (
-      defaultEnd.getHours() === 0 &&
-      defaultEnd.getMinutes() === 0 &&
+      initialEndAt.endsWith("T00:00") &&
       defaultEnd.getTime() > defaultStart.getTime()
     ) {
       const adjusted = new Date(defaultEnd.getTime() - 1);
-      endDateStr = getDateInputValue(toDateTimeLocal(adjusted));
+      endDateStr = zonedDateKey(adjusted, timeZone);
     }
 
     initialStartAt = composeDateTimeLocal(startDateStr, "00:00");

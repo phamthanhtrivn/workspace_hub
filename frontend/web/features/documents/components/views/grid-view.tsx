@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import type { DocumentMultiSelection } from "../../types/document-bulk.types";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentViewType } from "../../types/documents.enums";
 import { GridViewCard } from "./grid-view-card";
@@ -8,6 +9,7 @@ import { GridViewCard } from "./grid-view-card";
 interface GridViewProps {
   items: DocumentItem[];
   activeView: DocumentViewType;
+  selection?: DocumentMultiSelection;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -32,6 +34,7 @@ interface GridViewProps {
 function GridView({
   items,
   activeView,
+  selection,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -53,11 +56,12 @@ function GridView({
   isProjectDocuments = false,
 }: GridViewProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-200">
+    <div className="grid min-w-0 grid-cols-1 gap-4 p-1 animate-in fade-in duration-200 @min-[480px]/document-items:grid-cols-2 @min-[760px]/document-items:grid-cols-3 @min-[1040px]/document-items:grid-cols-4">
       {items.map((item) => (
         <GridViewCard
           key={item.id}
           item={item}
+          selection={selection}
           selectedItemId={selectedItemId}
           onSelect={onSelectItem}
           onFolderClick={onOpenItem}

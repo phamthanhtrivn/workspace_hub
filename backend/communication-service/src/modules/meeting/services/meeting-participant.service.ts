@@ -122,6 +122,8 @@ export class MeetingParticipantService {
         handRaisedAt: null,
         canRecord: false,
         recordGrantedBy: null,
+        recordingRequestId: null,
+        recordingRequestState: null,
       },
     });
 
@@ -205,11 +207,14 @@ export class MeetingParticipantService {
       where: { id: targetParticipant.id },
       data: {
         status: MeetingParticipantStatus.REMOVED,
+        requiresReadmission: true,
         leftAt: now,
         lastSeenAt: now,
         handRaisedAt: null,
         canRecord: false,
         recordGrantedBy: null,
+        recordingRequestId: null,
+        recordingRequestState: null,
       },
     });
 
@@ -305,7 +310,13 @@ export class MeetingParticipantService {
 
     const updatedParticipant = await this.prisma.meetingParticipant.update({
       where: { id: targetParticipant.id },
-      data: { role: dto.role, canRecord: false, recordGrantedBy: null },
+      data: {
+        role: dto.role,
+        canRecord: false,
+        recordGrantedBy: null,
+        recordingRequestId: null,
+        recordingRequestState: null,
+      },
     });
 
     await this.prisma.meetingEvent.create({

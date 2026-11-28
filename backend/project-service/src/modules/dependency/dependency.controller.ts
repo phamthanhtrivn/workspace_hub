@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -14,11 +15,13 @@ export class DependencyController {
   }
 
   @Post('tasks/:successorTaskId/dependencies')
+  @ProjectChange('DEPENDENCY', 'CREATED')
   async create(@CurrentUserId() userId: string, @Param('successorTaskId', new ParseUUIDPipe()) successorTaskId: string, @Body() dto: CreateDependencyDto) {
     return ApiResponse.success(await this.dependencies.create(userId, successorTaskId, dto), 'Task dependency created successfully');
   }
 
   @Delete('tasks/:successorTaskId/dependencies/:predecessorTaskId')
+  @ProjectChange('DEPENDENCY', 'DELETED')
   async remove(@CurrentUserId() userId: string, @Param('successorTaskId', new ParseUUIDPipe()) successorTaskId: string, @Param('predecessorTaskId', new ParseUUIDPipe()) predecessorTaskId: string) {
     return ApiResponse.success(await this.dependencies.remove(userId, successorTaskId, predecessorTaskId), 'Task dependency removed successfully');
   }

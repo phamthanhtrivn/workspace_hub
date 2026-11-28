@@ -1,92 +1,97 @@
 "use client";
 
 import React from "react";
-import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
-import { UploadState } from "../../types/documents.enums";
+import { Button } from "@/components/ui/button";
+import { UploadCloud } from "lucide-react";
+import { VERSION_MESSAGES } from "../../types/document-version.constants";
 
 interface VersionUploaderProps {
-  uploadState: UploadState;
-  uploadProgress: number;
-  uploadingFileName: string;
+  isUploading: boolean;
+  disabled?: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onTriggerFileSelect: () => void;
+  onFilesDropped: (files: File[]) => void;
 }
 
 export function VersionUploader({
-  uploadState,
-  uploadProgress,
-  uploadingFileName,
+  isUploading,
+  disabled = false,
   fileInputRef,
   onFileChange,
   onTriggerFileSelect,
+  onFilesDropped,
 }: VersionUploaderProps) {
-  const uploadStatusMessages: Partial<Record<UploadState, string>> = {
-    [UploadState.INITIATING]: "Initiating upload...",
-    [UploadState.UPLOADING]: "Uploading to storage...",
-    [UploadState.CONFIRMING]: "Confirming new version...",
-    [UploadState.SUCCESS]: "Version uploaded successfully!",
-    [UploadState.ERROR]: "An upload error occurred",
+  const [isDragging, setIsDragging] = React.useState(false);
+  const depth = React.useRef(0);
+  const unavailable = disabled || isUploading;
+  const resetDrag = () => {
+    depth.current = 0;
+    setIsDragging(false);
   };
-  const statusMessage = uploadStatusMessages[uploadState];
 
   return (
-    <div className="mb-6">
+    <div
+      role="region"
+      aria-label="Version upload drop zone"
+      className="mb-6 space-y-3"
+      onDragEnter={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (
+          unavailable ||
+          !Array.from(event.dataTransfer.types).includes("Files")
+        )
+          return;
+        depth.current += 1;
+        setIsDragging(true);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = unavailable ? "none" : "copy";
+      }}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        depth.current = Math.max(0, depth.current - 1);
+        if (!depth.current) resetDrag();
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        resetDrag();
+        if (!unavailable) onFilesDropped(Array.from(event.dataTransfer.files));
+      }}
+    >
       <input
         type="file"
         ref={fileInputRef}
         onChange={onFileChange}
+        disabled={unavailable}
         className="hidden"
       />
-      {uploadState === UploadState.IDLE ? (
-        <div
-          onClick={onTriggerFileSelect}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-6 hover:bg-slate-50/50 hover:border-blue-400 cursor-pointer transition-all duration-200 group"
-        >
-          <div className="p-3 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-blue-50 group-hover:text-blue-500 transition-all duration-200 mb-3">
-            <UploadCloud size={24} />
-          </div>
-          <span className="text-sm font-black text-slate-700">
-            Upload new version
-          </span>
-          <span className="text-xs text-slate-400 font-bold mt-1">
-            Old versions will be kept safely in history
-          </span>
+      <Button
+        variant="unstyled"
+        type="button"
+        disabled={unavailable}
+        onClick={onTriggerFileSelect}
+        className={`relative focus-visible:z-10 group flex w-full flex-col items-center justify-center rounded-panel border-2 border-dashed p-6 text-left transition-colors duration-200 hover:border-info-outline hover:bg-background motion-reduce:transition-none ${isDragging ? "border-info-outline bg-info-soft" : "border-border"}`}
+      >
+        <div className="mb-3 rounded-panel bg-background p-3 text-muted-foreground transition-colors duration-200 group-hover:bg-info-soft group-hover:text-info-content motion-reduce:transition-none">
+          <UploadCloud size={24} aria-hidden="true" />
         </div>
-      ) : (
-        <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/30">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 min-w-0">
-              {uploadState === UploadState.SUCCESS ? (
-                <CheckCircle2
-                  size={16}
-                  className="text-green-500 shrink-0"
-                />
-              ) : (
-                <Loader2
-                  size={16}
-                  className="text-blue-500 animate-spin shrink-0"
-                />
-              )}
-              <span className="text-xs font-black text-slate-700 truncate max-w-xs">
-                {uploadingFileName}
-              </span>
-            </div>
-            <span className="text-xs font-black text-slate-500">
-              {uploadProgress}%
-            </span>
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-            <div
-              className="bg-blue-500 h-full rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </div>
-          <p className="text-[10px] text-slate-400 font-bold mt-2">
-            {statusMessage}
-          </p>
-        </div>
-      )}
+        <span className="text-sm font-semibold text-foreground">
+          {isUploading
+            ? "Uploading version…"
+            : isDragging
+              ? "Drop file to upload a version"
+              : "Upload new version"}
+        </span>
+        <span className="mt-1 text-xs font-semibold text-muted-foreground">
+          {VERSION_MESSAGES.dropHelp}
+        </span>
+      </Button>
     </div>
   );
 }

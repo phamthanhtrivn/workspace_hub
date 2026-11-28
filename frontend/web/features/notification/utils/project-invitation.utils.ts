@@ -1,16 +1,17 @@
+import { getDisplayTimezone } from "@/lib/timezone";
 import type {
   Notification,
   ProjectInvitationMetadata,
 } from "../types/notification.types";
 
-const expiryDateFormatter = new Intl.DateTimeFormat("en-US", {
+const expiryDateFormatter = () => new Intl.DateTimeFormat("en-US", { timeZone: getDisplayTimezone(),
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
 });
 
 export function formatProjectInvitationExpiryDate(date: string): string {
-  return expiryDateFormatter.format(new Date(date));
+  return expiryDateFormatter().format(new Date(date));
 }
 
 export function getProjectInvitationMetadata(
@@ -22,7 +23,7 @@ export function getProjectInvitationMetadata(
 export function getProjectColor(value?: string | null): string {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
     ? value
-    : "#0052CC";
+    : "var(--primary)";
 }
 
 export function getProjectInviterInitials(name: string): string {

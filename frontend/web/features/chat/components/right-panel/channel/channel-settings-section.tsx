@@ -1,8 +1,11 @@
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 import { Settings } from "lucide-react";
 import { ChannelResponse } from "../../../types/chat.types";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../../api/chat.api";
 import { chatKeys } from "../../../types/chat.constant";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelSettingsSectionProps {
   activeChannel: ChannelResponse;
@@ -29,21 +32,21 @@ export default function ChannelSettingsSection({
     (member) => member.userId === currentUserId,
   );
   const isSpaceAdmin = currentMember?.role === "ADMIN";
-  const canOpenSettings = isSpaceAdmin || isChannelCreator || isOwner;
+  const canOpenSettings = isPrivateChannel(activeChannel) ? isPrivateChannelOwner(activeChannel, currentUserId) : isSpaceAdmin || isChannelCreator || isOwner;
 
   return canOpenSettings ? (
     <div>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onOpenSettings}
-        className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-background"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <Settings size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <Settings size={18} className="text-muted-foreground" />
           Channel Settings
         </div>
-      </button>
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      </Button>
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   ) : null;
 }

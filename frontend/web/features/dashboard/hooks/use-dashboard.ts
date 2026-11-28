@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Temporal } from "temporal-polyfill";
 import { useAppSelector } from "@/store/store";
-import { useUserSettingsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 import { getCalendarEvents } from "@/features/calendar/api/calendar.api";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { usePomodoroSessionActions } from "@/features/pomodoro/components/pomodoro-session-provider";
+import { useDashboardCompletedTasks } from "./use-dashboard-completed-tasks";
 import {
   getDashboardDayMeetings,
   getDashboardFocusSessions,
@@ -43,13 +44,13 @@ export function useDashboard() {
     "All",
   );
   const auth = useAppSelector((state) => state.auth);
-  const settings = useUserSettingsQuery({ enabled: Boolean(auth.userId) });
   const now = useDashboardClock();
-  const zone = settings.data?.data.timezone || "Asia/Ho_Chi_Minh";
+  const zone = useAccountTimezone();
   const today = now ? dateInZone(now, zone) : "";
   const ready = Boolean(auth.userId && today);
   const bounds = today ? dayBounds(today, zone) : { startAt: "", endAt: "" };
   const actions = usePomodoroSessionActions();
+  const completedTasks = useDashboardCompletedTasks(auth.userId);
   const personal = useQuery({
     queryKey: [
       ...calendarKeys.all,
@@ -139,8 +140,9 @@ export function useDashboard() {
     meetings,
     dayMeetings,
     focus,
+    completedTasks,
     tasks,
-    upcoming: upcoming.slice(0, 3),
+    upcoming: upcoming.slice(0, 5),
     taskFilter,
     setTaskFilter,
     dayItems: today

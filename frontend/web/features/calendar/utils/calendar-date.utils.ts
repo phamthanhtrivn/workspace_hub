@@ -1,22 +1,21 @@
 import { CalendarEvent } from "../types/calendar.types";
 import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
 import { formatReminderOptionLabel } from "./calendar-reminder.utils";
+import { Temporal } from "temporal-polyfill";
+import { fromZonedDateTimeInput, getDisplayTimezone, toZonedDateTimeInput, zonedDateKey } from "@/lib/timezone";
 
-export function toDateTimeLocal(value: Date | string): string {
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(date.getTime())) return "";
-
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+export function toDateTimeLocal(value: Date | string, timeZone = getDisplayTimezone()): string {
+  return toZonedDateTimeInput(value, timeZone);
 }
 
-export function fromDateTimeLocal(value: string): string {
-  return new Date(value).toISOString();
+export function fromDateTimeLocal(value: string, timeZone = getDisplayTimezone(), originalInstant?: string | null): string {
+  return fromZonedDateTimeInput(value, timeZone, originalInstant);
 }
 
 export function isAllDayDateTimeRange(
   startValue: Date | string,
   endValue: Date | string,
+  timeZone = getDisplayTimezone(),
 ): boolean {
   const start =
     typeof startValue === "string" ? new Date(startValue) : startValue;
@@ -31,11 +30,9 @@ export function isAllDayDateTimeRange(
   }
 
   return (
-    start.getHours() === 0 &&
-    start.getMinutes() === 0 &&
-    start.getSeconds() === 0 &&
-    end.getHours() === 23 &&
-    end.getMinutes() === 59
+    toDateTimeLocal(start, timeZone).endsWith("T00:00") &&
+    start.getUTCSeconds() === 0 &&
+    toDateTimeLocal(end, timeZone).endsWith("T23:59")
   );
 }
 
@@ -52,6 +49,7 @@ export function formatLocalDateKey(value: Date | string): string {
 export function getExclusiveAllDayEndDateKey(
   endValue: Date | string,
   startValue?: Date | string,
+  timeZone = getDisplayTimezone(),
 ): string {
   const end = typeof endValue === "string" ? new Date(endValue) : new Date(endValue);
   if (Number.isNaN(end.getTime())) return "";
@@ -64,30 +62,24 @@ export function getExclusiveAllDayEndDateKey(
 
   // If start is provided and end <= start, ensure at least 1 full day from start
   if (start && !Number.isNaN(start.getTime()) && end.getTime() <= start.getTime()) {
-    const nextDay = new Date(start);
-    nextDay.setDate(nextDay.getDate() + 1);
-    nextDay.setHours(0, 0, 0, 0);
-    return formatLocalDateKey(nextDay);
+    return Temporal.PlainDate.from(zonedDateKey(start, timeZone)).add({ days: 1 }).toString();
   }
 
   // If end is already at midnight (00:00:00.000) and strictly after start,
   // it is already an exclusive boundary from FullCalendar (e.g. 17/9 00:00 for a 16/9 event).
   // Adding +1 day to it would push the event into an extra day.
   const isMidnight =
-    end.getHours() === 0 &&
-    end.getMinutes() === 0 &&
-    end.getSeconds() === 0 &&
+    toDateTimeLocal(end, timeZone).endsWith("T00:00") &&
+    end.getUTCSeconds() === 0 &&
     end.getMilliseconds() === 0;
 
   if (isMidnight) {
-    return formatLocalDateKey(end);
+    return zonedDateKey(end, timeZone);
   }
 
   // Otherwise, end represents an inclusive time on the event's final day (e.g. 23:59:59).
   // Advance by 1 day to yield FullCalendar's exclusive boundary.
-  end.setDate(end.getDate() + 1);
-  end.setHours(0, 0, 0, 0);
-  return formatLocalDateKey(end);
+  return Temporal.PlainDate.from(zonedDateKey(end, timeZone)).add({ days: 1 }).toString();
 }
 
 export function getDateInputValue(value: string): string {
@@ -103,17 +95,13 @@ export function composeDateTimeLocal(date: string, time: string): string {
 }
 
 export function addMinutesToDateTimeLocal(value: string, minutes: number): string {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  date.setMinutes(date.getMinutes() + minutes);
-  return toDateTimeLocal(date);
+  try { return Temporal.PlainDateTime.from(value).add({ minutes }).toString({ smallestUnit: "minute" }); }
+  catch { return value; }
 }
 
 export function ensureMinimumEventEndAt(startAt: string, endAt: string): string {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
+  const start = new Date(`${startAt}Z`);
+  const end = new Date(`${endAt}Z`);
 
   if (
     Number.isNaN(start.getTime()) ||
@@ -130,8 +118,8 @@ export function ensureMinimumEventEndAt(startAt: string, endAt: string): string 
 }
 
 export function hasMinimumEventDuration(startAt: string, endAt: string): boolean {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
+  const start = new Date(`${startAt}Z`);
+  const end = new Date(`${endAt}Z`);
 
   return (
     !Number.isNaN(start.getTime()) &&
@@ -147,20 +135,19 @@ export function formatCalendarEventRange(
   const start = new Date(event.startAt);
   const end = new Date(event.endAt);
   const isVi = locale.toLowerCase().startsWith("vi");
+  const timeZone = event.allDay ? event.timeZone || event.calendar?.timeZone || getDisplayTimezone() : getDisplayTimezone();
 
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
     return "";
   }
 
-  const sameDay =
-    start.getFullYear() === end.getFullYear() &&
-    start.getMonth() === end.getMonth() &&
-    start.getDate() === end.getDate();
+  const sameDay = zonedDateKey(start, timeZone) === zonedDateKey(end, timeZone);
 
-  const isCurrentYear = start.getFullYear() === new Date().getFullYear();
+  const isCurrentYear = zonedDateKey(start, timeZone).slice(0, 4) === zonedDateKey(new Date(), timeZone).slice(0, 4);
 
   if (sameDay) {
     const datePart = start.toLocaleDateString(locale, {
+      timeZone,
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -172,11 +159,13 @@ export function formatCalendarEventRange(
     }
 
     const timeStart = start.toLocaleTimeString(locale, {
+      timeZone,
       hour: "numeric",
       minute: "2-digit",
       hour12: !isVi,
     });
     const timeEnd = end.toLocaleTimeString(locale, {
+      timeZone,
       hour: "numeric",
       minute: "2-digit",
       hour12: !isVi,
@@ -186,10 +175,12 @@ export function formatCalendarEventRange(
   }
 
   const startStr = start.toLocaleString(locale, {
+    timeZone,
     dateStyle: "medium",
     ...(event.allDay ? {} : { timeStyle: "short" }),
   });
   const endStr = end.toLocaleString(locale, {
+    timeZone,
     dateStyle: "medium",
     ...(event.allDay ? {} : { timeStyle: "short" }),
   });

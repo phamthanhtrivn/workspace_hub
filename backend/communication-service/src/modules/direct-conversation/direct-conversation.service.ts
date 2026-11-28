@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { SpaceRole } from '@prisma/client';
+import { Prisma, SpaceRole } from '@prisma/client';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
@@ -249,7 +249,7 @@ export class DirectConversationService {
         data: { muted },
       });
 
-    await this.chatSocketPublisher.publishConversationMuteUpdated(
+    this.chatSocketPublisher.publishConversationMuteUpdated(
       userId,
       CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
@@ -294,11 +294,11 @@ export class DirectConversationService {
     return updatedParticipant;
   }
 
-  private async mapDirectConversation(
-    conversation: any,
-    _userId: string,
-    unreadCount = 0,
-  ) {
+  private async mapDirectConversation<
+    T extends Prisma.DirectConversationGetPayload<{
+      include: { participants: true };
+    }> & { messages?: Array<{ senderId: string }> },
+  >(conversation: T, _userId: string, unreadCount = 0) {
     const members = conversation.participants.map((participant) => ({
       ...participant,
       role: SpaceRole.MEMBER,

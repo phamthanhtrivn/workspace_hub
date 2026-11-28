@@ -10,6 +10,7 @@ import vn.workspacehub.user.enums.UserStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import vn.workspacehub.user.util.EmailUtils;
 
 @Entity
 @Table(
@@ -24,12 +25,20 @@ import java.util.UUID;
 @Builder
 @ToString(exclude = {"profile", "accountSetting", "oauthAccounts", "refreshTokens"})
 public class User {
+    @PrePersist
+    @PreUpdate
+    void normalizeEmail() {
+        email = EmailUtils.normalize(email);
+    }
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
 
     @Column(name = "password_hash")
     private String passwordHash;

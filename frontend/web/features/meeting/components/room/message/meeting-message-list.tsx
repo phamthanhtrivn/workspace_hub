@@ -1,5 +1,6 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { useEffect } from "react";
 import { formatDividerTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import type {
 } from "../../../types/meeting.types";
 import { MeetingMessageItem } from "./meeting-message-item";
 import { MeetingMessageTimeDivider } from "./meeting-message-time-divider";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const GROUP_MESSAGES_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -20,7 +22,6 @@ interface MeetingMessageListProps {
   loadOlderRef: (node?: Element | null) => void;
   currentUserId?: string | null;
   profilesByUserId: Record<string, MeetingParticipantProfile>;
-  readReceipts: Record<string, string>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -35,12 +36,12 @@ export function MeetingMessageList({
   loadOlderRef,
   currentUserId,
   profilesByUserId,
-  readReceipts,
   onReact,
   onEdit,
   onRecall,
   onReadMessage,
 }: MeetingMessageListProps) {
+  useAccountTimezone();
   useEffect(() => {
     const newestMessage = messages[messages.length - 1];
     if (!newestMessage || newestMessage.senderId === currentUserId) return;
@@ -49,15 +50,13 @@ export function MeetingMessageList({
 
   if (isLoading) {
     return (
-      <div className="grid flex-1 place-items-center text-sm font-bold text-slate-500">
-        Loading...
-      </div>
+      <LoadingState label="Loading..." className="grid flex-1 place-items-center text-sm font-semibold text-muted-foreground" />
     );
   }
 
   if (messages.length === 0) {
     return (
-      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-bold leading-6 text-slate-500 mt-6">
+      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-semibold leading-6 text-muted-foreground mt-6">
         No meeting messages yet. Say hello when you are ready.
       </div>
     );
@@ -68,17 +67,16 @@ export function MeetingMessageList({
       {hasNextPage && (
         <div
           ref={loadOlderRef}
-          className="grid h-8 place-items-center text-xs font-bold text-slate-500"
+          className="grid h-8 place-items-center text-xs font-semibold text-muted-foreground"
         >
           {isFetchingNextPage
-            ? "Loading older messages..."
+            ? <LoadingState label="Loading older messages..." size={14} className="text-xs" />
             : null}
         </div>
       )}
 
       {messages.map((message, index) => {
         const previousMessage = messages[index - 1];
-        const nextMessage = messages[index + 1];
         const previousTime = previousMessage
           ? new Date(previousMessage.createdAt).getTime()
           : 0;
@@ -91,20 +89,10 @@ export function MeetingMessageList({
           !previousMessage ||
           previousMessage.senderId !== message.senderId ||
           currentTime - previousTime > GROUP_MESSAGES_THRESHOLD_MS;
-        const nextTime = nextMessage
-          ? new Date(nextMessage.createdAt).getTime()
-          : 0;
-        const showSenderName =
-          !nextMessage ||
-          nextMessage.senderId !== message.senderId ||
-          nextTime - currentTime > GROUP_MESSAGES_THRESHOLD_MS;
+        const showSenderName = showAvatar;
         const hasSenderChanged =
           Boolean(previousMessage) &&
           previousMessage?.senderId !== message.senderId;
-        const readBy = Object.keys(readReceipts || {}).filter(
-          (userId) =>
-            readReceipts[userId] === message.id && userId !== currentUserId,
-        );
 
         return (
           <div
@@ -119,14 +107,12 @@ export function MeetingMessageList({
               message={message}
               currentUserId={currentUserId}
               profile={
-                message.senderProfile ||
                 profilesByUserId[message.senderId] ||
+                message.senderProfile ||
                 null
               }
               showAvatar={showAvatar}
               showSenderName={showSenderName}
-              readBy={readBy}
-              profilesByUserId={profilesByUserId}
               onReact={onReact}
               onEdit={onEdit}
               onRecall={onRecall}

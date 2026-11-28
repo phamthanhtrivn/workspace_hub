@@ -1,12 +1,16 @@
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { useState } from "react";
-import { ArrowLeft, Globe, Hash, Info, Search, User, Video } from "lucide-react";
+import { ArrowLeft, Globe, Hash, Lock, Info, Search, User, Video } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
+import PrivateChannelMembersModal from "../modals/channel/private-channel-members-modal";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -41,6 +45,10 @@ export default function ChannelChatHeader({
   const isDefaultChannel =
     !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
 
+  const privateChannel = activeChannel && "spaceId" in activeChannel && isPrivateChannel(activeChannel)
+    ? activeChannel
+    : null;
+
   const handleStartMeeting = () => {
     if (activeChannel?.id) {
       createMeeting({
@@ -56,70 +64,79 @@ export default function ChannelChatHeader({
   };
 
   return (
-    <div className="py-2 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
+    <div className="min-w-0 shrink-0 py-2 px-3 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
-          <button
-            className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+          <Button variant="unstyled" aria-label="Back"
+            className="@min-[720px]/messages:hidden shrink-0 p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
-          </button>
+          </Button>
         )}
 
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-5 h-5 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0">
+          <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center font-semibold overflow-hidden shrink-0">
             {isDefaultChannel ? (
-              <Globe size={20} className="text-gray-400" />
+              <Globe size={20} className="text-muted-foreground" />
+            ) : privateChannel ? (
+              <Lock size={20} className="text-muted-foreground" aria-label="Private channel" />
             ) : (
-              <Hash size={20} className="text-gray-400" />
+              <Hash size={20} className="text-muted-foreground" />
             )}
           </div>
 
-          <h2 className="font-semibold text-gray-800 truncate">
+          <h2 className="font-semibold text-foreground truncate">
             {displayName}
           </h2>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setIsMembersModalOpen(true)}
             disabled={!activeChannel?.id}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex cursor-pointer items-center gap-1 rounded-control bg-accent px-2 py-1 text-xs text-muted-foreground transition hover:bg-border disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={`Members (${memberCount})`}
           >
             <span>
               <User className="w-3 h-3" />
             </span>{" "}
             <span>{memberCount}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-gray-500">
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+      <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
+        <Button variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
-        </button>
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+        </Button>
+        <Button loading={isCreating} variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeChannel?.id}
           title="Start instant meeting"
         >
           <Video size={20} />
-        </button>
-        <div className="w-px h-6 bg-gray-200 mx-1" />
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+        </Button>
+        <div className="w-px h-6 bg-accent mx-1" />
+        <Button variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onToggleRightPanel}
           title="Channel info"
         >
           <Info size={20} />
-        </button>
+        </Button>
       </div>
-      {activeChannel?.id ? (
+      {privateChannel ? (
+        <PrivateChannelMembersModal
+          key={privateChannel.id}
+          channel={privateChannel}
+          isOpen={isMembersModalOpen}
+          onClose={() => setIsMembersModalOpen(false)}
+        />
+      ) : activeChannel?.id ? (
         <ChannelMembersModal
           channelId={activeChannel.id}
           fallbackMemberCount={memberCount}

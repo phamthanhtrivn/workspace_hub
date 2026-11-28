@@ -15,11 +15,20 @@ const CATEGORY_TYPES: Record<
 > = {
   PROJECT: [
     NotificationType.PROJECT_INVITATION,
+    NotificationType.PROJECT_INVITATION_ACCEPTED,
+    NotificationType.PROJECT_INVITATION_DECLINED,
+    NotificationType.PROJECT_PERMISSIONS_UPDATED,
+    NotificationType.PROJECT_MEMBER_REMOVED,
+    NotificationType.PROJECT_TASK_UNASSIGNED,
+    NotificationType.PROJECT_TASK_DELETED,
     NotificationType.PROJECT_TASK_ASSIGNED,
     NotificationType.PROJECT_TASK_UPDATED,
     NotificationType.PROJECT_SPRINT_STARTED,
   ],
   CHAT: [
+    NotificationType.CHANNEL_MEMBER_ADDED,
+    NotificationType.CHANNEL_MEMBER_REMOVED,
+    NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED,
     NotificationType.SPACE_INVITATION,
     NotificationType.SPACE_INVITATION_ACCEPTED,
     NotificationType.SPACE_INVITATION_DECLINED,
@@ -74,7 +83,10 @@ export function getNotificationCategoryWhere(
   if (category === "ALL") return {};
   if (category === "DOCUMENT") {
     return {
-      link: { startsWith: "/documents" },
+      OR: [
+        { type: { in: [NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED] } },
+        { link: { startsWith: "/documents" } },
+      ],
     };
   }
   return {
@@ -85,6 +97,7 @@ export function getNotificationCategoryWhere(
 }
 
 export interface PushNotificationPayload {
+  tag?: string;
   title: string;
   content: string;
   link?: string;

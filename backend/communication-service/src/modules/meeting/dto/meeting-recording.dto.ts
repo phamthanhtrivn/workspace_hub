@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -11,18 +12,36 @@ import {
   MaxLength,
   Min,
   MinLength,
+  Matches,
 } from 'class-validator';
 import { MeetingRecordingStatus } from '@prisma/client';
 
 export class StartMeetingRecordingDto {
   @IsOptional()
-  @IsIn(['speaker', 'grid'])
-  layout?: 'speaker' | 'grid';
+  @IsIn(['speaker', 'grid', 'screen'])
+  layout?: 'speaker' | 'grid' | 'screen';
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^TR_[A-Za-z0-9]+$/)
+  @MaxLength(80)
+  captureTrackSid?: string;
+}
+
+export class RecordingSettingsDto extends StartMeetingRecordingDto {
+  @IsOptional()
+  @IsBoolean()
+  autoRecord?: boolean;
 }
 
 export class RecordingPermissionDto {
   @IsBoolean()
   canRecord: boolean;
+}
+
+export class RecordingRequestDecisionDto {
+  @IsBoolean()
+  approve: boolean;
 }
 
 export class ShareRecordingDto {
@@ -47,6 +66,15 @@ export class RenameRecordingDto {
 }
 
 export class ListRecordingsDto {
+  @IsOptional()
+  @IsDateString({ strict: true })
+  fromDate?: string;
+
+  /** Exclusive upper timestamp; clients convert inclusive calendar dates in their timezone. */
+  @IsOptional()
+  @IsDateString({ strict: true })
+  toDate?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

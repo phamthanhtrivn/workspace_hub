@@ -1,4 +1,4 @@
-import { IsIn, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsUUID } from 'class-validator';
 import { ProjectChangeAction } from '../../socket/project-socket.types';
 
 export class InternalDocumentEventDto {

@@ -1,13 +1,18 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Provider } from "react-redux";
 import { store, useAppDispatch } from "./store";
-import { setCredentials, clearCredentials } from "./auth/auth-slice";
+import { setCredentials } from "./auth/auth-slice";
 import "@/lib/interceptors";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
-import axios from "axios";
+import { endSession, isAuthenticationFailure } from "@/features/auth/api/session-recovery";
+import { clearCopiedMessage } from "@/features/chat/utils/message-clipboard";
+import { socketService } from "@/features/chat/api/chat-socket.service";
+import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { projectSocketService } from "@/features/project/api/project-socket.service";
 import {
   getLoginRedirectPath,
   getReturnToFromSearch,
@@ -17,6 +22,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/register",
   "/forgot-password",
+  "/verify-email",
   "/",
   "/documents/shared",
 ];
@@ -39,10 +45,31 @@ function getCurrentSearch() {
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const [isInitializing, setIsInitializing] = useState(true);
   const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    let userId = store.getState().auth.userId;
+    const unsubscribe = store.subscribe(() => {
+      const nextUserId = store.getState().auth.userId;
+      if (nextUserId !== userId) {
+        socketService.disconnect();
+        notificationSocketService.disconnect();
+        projectSocketService.disconnect();
+        void queryClient.cancelQueries();
+        queryClient.clear();
+        clearCopiedMessage();
+        userId = nextUserId;
+      }
+    });
+    return () => {
+      unsubscribe();
+      clearCopiedMessage();
+    };
+  }, [queryClient]);
 
   useEffect(() => {
     const replaceIfNeeded = (targetPath: string) => {
@@ -52,6 +79,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     };
 
     const initializeAuth = async () => {
+      const initialSession = store.getState().auth;
       const currentToken = store.getState().auth.accessToken;
       const currentSearch = getCurrentSearch();
       const safeReturnTo = getReturnToFromSearch(currentSearch);
@@ -76,6 +104,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         const response = await refreshApi();
         const data = response.data;
 
+        if (store.getState().auth !== initialSession) return;
+
         if (!data || !data.accessToken) {
           throw new Error("Chưa đăng nhập");
         }
@@ -94,22 +124,17 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         if (shouldRedirectAuthenticatedUser(pathname)) {
           replaceIfNeeded(safeReturnTo ?? "/dashboard");
         }
-      } catch {
-        dispatch(clearCredentials());
-
-        if (!isPublicPath(pathname)) {
-          try {
-            await axios.post(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
-              {},
-              { withCredentials: true },
-            );
-          } catch {
-            // Ignore logout error
+      } catch (error) {
+        if (store.getState().auth !== initialSession) return;
+        if (!isAuthenticationFailure(error)) {
+          // A temporary refresh outage must not revoke an existing local session
+          // or erase the refresh cookie needed to restore it later.
+          if (!currentToken && !isPublicPath(pathname)) {
+            replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
           }
-
-          replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
+          return;
         }
+        await endSession(initialSession);
       } finally {
         hasInitialized.current = true;
         setIsInitializing(false);
@@ -121,8 +146,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   if (isInitializing) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#f5f9fb]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[var(--color-primary)]"></div>
+      <div role="status" aria-label="Loading your workspace" className="flex h-screen items-center justify-center bg-background">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-[var(--color-primary)]"></div>
       </div>
     );
   }

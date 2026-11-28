@@ -16,7 +16,7 @@ export function PomodoroFocusSwitchConfirmation() {
     </DialogHeader>
     <DialogFooter>
       <Button type="button" variant="outline" disabled={busy} onClick={cancelFocusSwitch}>Keep current session</Button>
-      <Button type="button" disabled={busy} onClick={() => void confirmFocusSwitch()}>{busy ? "Saving…" : "Save & switch task"}</Button>
+      <Button loading={busy} type="button" disabled={busy} onClick={() => void confirmFocusSwitch()}>{busy ? "Saving…" : "Save & switch task"}</Button>
     </DialogFooter>
   </div>;
 }

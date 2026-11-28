@@ -1,8 +1,8 @@
 "use client";
 
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
 import {
   getMeetingParticipantViewPreferences,
@@ -129,7 +129,7 @@ export function useMeetingParticipantViewPreferences(joinToken: string) {
         queryClient.setQueryData(queryKey, context.previousPreferences);
       }
 
-      toast.error("Could not update participant view preference");
+      showMeetingActionError(_error, "Could not update participant view preference");
     },
     onSuccess: (response) => {
       queryClient.setQueryData(queryKey, response);

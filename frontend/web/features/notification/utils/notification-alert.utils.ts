@@ -1,4 +1,3 @@
-export const DEFAULT_DOCUMENT_TITLE = "WorkspaceHub";
 export const NOTIFICATION_SOUND_SRC = "/assets/sounds/chat_notification.mp3";
 
 export function playNotificationSound() {
@@ -9,8 +8,4 @@ export function playNotificationSound() {
       error,
     );
   });
-}
-
-export function getFlashingTitle(count: number, message: string) {
-  return `(${count}) ${message}`;
 }

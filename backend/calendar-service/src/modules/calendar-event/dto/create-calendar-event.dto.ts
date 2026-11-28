@@ -1,9 +1,11 @@
+import { CalendarConferenceDto } from './calendar-conference.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
+  IsTimeZone,
   IsEnum,
   IsOptional,
   IsString,
@@ -18,6 +20,15 @@ import { CalendarEventAttendeeDto } from './calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 
 export class CreateCalendarEventDto {
+  @IsOptional()
+  @IsTimeZone()
+  timeZone?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CalendarConferenceDto)
+  conference?: CalendarConferenceDto;
+
   @IsUUID()
   calendarId: string;
 

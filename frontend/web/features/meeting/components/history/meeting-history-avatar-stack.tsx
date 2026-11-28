@@ -1,6 +1,7 @@
 "use client";
 
-import { AvatarFallback } from "../common/avatar-fallback";
+import { MeetingUserAvatar } from "../common/meeting-user-avatar";
+
 import type { MeetingParticipantResponse } from "../../types/meeting.types";
 
 interface MeetingHistoryAvatarStackProps {
@@ -28,24 +29,14 @@ export function MeetingHistoryAvatarStack({
         const displayName = getParticipantName(participant);
         const avatarUrl = participant.profile?.avatarUrl;
 
-        return avatarUrl ? (
-          <span
+        return (
+          <MeetingUserAvatar
             key={participant.id}
-            aria-label={displayName}
-            role="img"
-            className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-[#15192a]"
-            style={{
-              backgroundImage: `url("${avatarUrl}")`,
-              marginLeft: index === 0 ? 0 : -10,
-              zIndex: participants.length - index,
-            }}
-          />
-        ) : (
-          <AvatarFallback
-            key={participant.id}
-            label={displayName}
-            className="h-9 w-9 bg-slate-200 ring-1 ring-[#15192a]"
-            iconClassName="h-4 w-4"
+            userId={participant.userId}
+            src={avatarUrl}
+            alt={displayName}
+            title={displayName}
+            className="h-9 w-9 shrink-0 rounded-full ring-1 ring-ring"
             style={{
               marginLeft: index === 0 ? 0 : -10,
               zIndex: participants.length - index,
@@ -55,7 +46,7 @@ export function MeetingHistoryAvatarStack({
       })}
       {overflowCount > 0 ? (
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#273266] text-xs font-black text-white ring-2 ring-[#15192a]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-xs font-semibold text-foreground ring-2 ring-ring"
           style={{ marginLeft: -10 }}
         >
           +{overflowCount}

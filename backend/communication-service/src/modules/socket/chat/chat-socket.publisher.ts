@@ -1,10 +1,8 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_REACTION_ACTION,
 } from '../../../common/types/chat.enums';
-import { MessageType } from '@prisma/client';
-import { MessageService } from '../../message/message.service';
 import { SocketEventEmitter } from '../services/socket-event-emitter';
 import { ChatEvent } from './chat-socket.events';
 import { ChatSocketRoomResolver } from './chat-socket-room-resolver';
@@ -25,9 +23,12 @@ export class ChatSocketPublisher {
   constructor(
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly roomResolver: ChatSocketRoomResolver,
-    @Inject(forwardRef(() => MessageService))
-    private readonly messageService: MessageService,
   ) {}
+
+  assertReady(): void {
+    if (!this.socketEventEmitter.getServer())
+      throw new Error('Socket server not initialized');
+  }
 
   publishToRooms<TPayload>(
     rooms: string | string[],
@@ -35,6 +36,20 @@ export class ChatSocketPublisher {
     payload: TPayload,
   ): void {
     this.socketEventEmitter.emitToRooms(rooms, event, payload);
+  }
+
+  async publishAiTyping(payload: {
+    requestId: string;
+    chatId: string;
+    chatType: 'CHANNEL' | 'DIRECT_MESSAGE';
+    threadParentId: string | null;
+    isTyping: boolean;
+  }): Promise<void> {
+    const rooms =
+      payload.chatType === 'CHANNEL'
+        ? await this.roomResolver.getChannelTargetRooms(payload.chatId)
+        : await this.roomResolver.getDirectTargetRooms(payload.chatId);
+    this.publishToRooms(rooms, ChatEvent.AI_TYPING, payload);
   }
 
   async publishChannelMessageCreated(
@@ -46,7 +61,8 @@ export class ChatSocketPublisher {
       noteData?: unknown;
     },
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.NEW_MESSAGE, message);
 
     if (options?.medias && options.medias.length > 0) {
@@ -104,15 +120,42 @@ export class ChatSocketPublisher {
     channelId: string,
     message: ChatSocketMessage,
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_UPDATED, message);
+  }
+
+  async publishDocumentAccessUpdated(
+    documentIds: string[],
+    targets: Array<{ channelId: string } | { conversationId: string }>,
+  ): Promise<void> {
+    for (const target of targets) {
+      if ('channelId' in target) {
+        const rooms = await this.roomResolver.getChannelTargetRooms(
+          target.channelId,
+        );
+        this.publishToRooms(rooms, ChatEvent.DOCUMENT_ACCESS_UPDATED, {
+          channelId: target.channelId,
+          documentIds,
+        });
+      } else {
+        const rooms = await this.roomResolver.getDirectTargetRooms(
+          target.conversationId,
+        );
+        this.publishToRooms(rooms, ChatEvent.DOCUMENT_ACCESS_UPDATED, {
+          conversationId: target.conversationId,
+          documentIds,
+        });
+      }
+    }
   }
 
   async publishChannelMessagePinned(
     channelId: string,
     message: ChatSocketMessage,
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_PINNED, message);
   }
 
@@ -120,7 +163,8 @@ export class ChatSocketPublisher {
     channelId: string,
     message: ChatSocketMessage,
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_UNPINNED, message);
   }
 
@@ -143,7 +187,8 @@ export class ChatSocketPublisher {
     channelId: string,
     payload: { messageId: string; userId: string; readAt?: Date | null },
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_READ, {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
@@ -179,7 +224,8 @@ export class ChatSocketPublisher {
       action: string;
     },
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.REACTION_UPDATED, {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
@@ -211,7 +257,8 @@ export class ChatSocketPublisher {
     channelId: string,
     message: ChatSocketMessage,
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_MOVED, {
       ...message,
       chatId: channelId,
@@ -241,12 +288,12 @@ export class ChatSocketPublisher {
     });
   }
 
-  async publishConversationMuteUpdated(
+  publishConversationMuteUpdated(
     userId: string,
     chatType: CHAT_CONTEXT_TYPE,
     chatId: string,
     muted: boolean,
-  ): Promise<void> {
+  ): void {
     this.publishToRooms(userId, ChatEvent.CONVERSATION_MUTE_UPDATED, {
       chatId,
       chatType,
@@ -261,35 +308,17 @@ export class ChatSocketPublisher {
     this.publishToRooms(targetRooms, ChatEvent.JOIN_CONVERSATION, payload);
   }
 
-  async sendSystemMessage(
-    channelId: string,
-    userId: string,
-    content: string,
-  ): Promise<ChatSocketMessage> {
-    const message = await this.messageService.createMessage(
-      channelId,
-      userId,
-      content,
-      MessageType.SYSTEM,
-    );
-
-    const messageWithUrls = {
-      ...message,
-      chatId: channelId,
-      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-      medias: [],
-    };
-
-    await this.publishChannelMessageCreated(channelId, messageWithUrls);
-    return messageWithUrls;
-  }
-
   async publishChannelSettingUpdated(
     channelId: string,
     payload: ChatSocketPayload,
   ): Promise<void> {
-    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
-    this.publishToRooms(targetRooms, ChatEvent.CHANNEL_SETTING_UPDATED, payload);
+    const targetRooms =
+      await this.roomResolver.getChannelTargetRooms(channelId);
+    this.publishToRooms(
+      targetRooms,
+      ChatEvent.CHANNEL_SETTING_UPDATED,
+      payload,
+    );
   }
 
   publishMemberRoleUpdated(
@@ -329,5 +358,9 @@ export class ChatSocketPublisher {
 
   leaveRoom(room: string): void {
     this.socketEventEmitter.leaveRoom(room);
+  }
+
+  removeUserFromChannel(userId: string, channelId: string): void {
+    this.socketEventEmitter.removeUserFromRoom(userId, channelId);
   }
 }

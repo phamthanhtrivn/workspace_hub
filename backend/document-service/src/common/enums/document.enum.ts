@@ -8,4 +8,3 @@ export enum DocumentSortBy {
   LATEST = 'LATEST',
   OLDEST = 'OLDEST',
 }
-

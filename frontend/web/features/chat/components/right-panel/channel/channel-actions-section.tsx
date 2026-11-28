@@ -1,4 +1,7 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 
 import { LogOut, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +21,9 @@ import { ChannelResponse, SpaceRole } from "../../../types/chat.types";
 import { getErrorMessage } from "../../../types/space-settings/space-settings.types";
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
 import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { canLeaveSpaceChannel } from "../../../utils/channel-membership-permissions";
+
 
 interface ChannelActionsSectionProps {
   activeChannel: ChannelResponse;
@@ -50,8 +56,12 @@ export default function ChannelActionsSection({
 
   const canDeleteChannel =
     !activeChannel.isDefault &&
-    (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
-  const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
+    (isPrivateChannel(activeChannel) ? isPrivateChannelOwner(activeChannel, currentUserId) : (isAdmin || (isCreator && allowMemberDeleteOwnChannel)));
+  const canLeaveChannel = canLeaveSpaceChannel(
+    activeChannel,
+    currentUserId,
+    spaceDetail,
+  );
   const actionLabel = activeChannel.isDefault
     ? "Leave Space"
     : "Leave Channel";
@@ -87,10 +97,10 @@ export default function ChannelActionsSection({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to leave channel",
-        ),
+        )),
       ),
   });
 
@@ -102,19 +112,20 @@ export default function ChannelActionsSection({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to delete channel",
-        ),
+        )),
       ),
   });
 
   const confirmLeaveChannel = async () => {
+    if (!canLeaveChannel) return;
     const confirmed = await confirmAction({
       title: `${actionLabel}?`,
       description: activeChannel.isDefault
         ? "Leaving the default channel will also remove you from this space."
-        : "Are you sure you want to leave this channel?",
+        : isPrivateChannelOwner(activeChannel, currentUserId) ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted." : "Are you sure you want to leave this channel?",
       variant: "warning",
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",
@@ -144,40 +155,40 @@ export default function ChannelActionsSection({
 
   return (
     <>
-      <div className="shrink-0 border-t border-gray-100 bg-white p-4">
+      <div className="shrink-0 border-t border-border bg-card p-4">
         {canDeleteChannel ? (
           <div className="flex flex-col gap-2">
             {canLeaveChannel && (
-              <button
+              <Button loading={leaveMutation.isPending} variant="unstyled"
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
-                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive-content transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut size={15} />
                 Leave Channel
-              </button>
+              </Button>
             )}
-            <button
+            <Button loading={deleteMutation.isPending} variant="destructive"
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
-              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 size={15} />
               Delete Channel
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button loading={leaveMutation.isPending} variant="unstyled"
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive-content transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LogOut size={15} />
             {actionLabel}
-          </button>
+          </Button>
         )}
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />

@@ -4,3 +4,8 @@ Dockerfile* text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.py text eol=lf
+backend/user-service/src/main/resources/db/migration/*.sql text eol=lf
+
+# Generated thesis preview bundles include third-party development code.
+docs/thesis/interfaces/assets/system*.js linguist-generated=true -whitespace
+docs/thesis/interfaces/assets/system.css linguist-generated=true

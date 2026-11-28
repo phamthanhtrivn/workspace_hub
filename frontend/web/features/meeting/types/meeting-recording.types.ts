@@ -1,6 +1,22 @@
 export type RecordingStatus =
-  "STARTING" | "RECORDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "DELETED";
-export type RecordingLayout = "speaker" | "grid";
+  | "STARTING"
+  | "RECORDING"
+  | "PAUSING"
+  | "PAUSED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "DELETED";
+export type RecordingLayout = "speaker" | "grid" | "screen";
+export interface RecordingCommandResult {
+  id: string;
+  status: RecordingStatus;
+}
+export type RecordingTemplateLayout = RecordingLayout | `app:TR_${string}`;
+export interface RecordingSettings {
+  autoRecord: boolean;
+  layout: RecordingLayout;
+}
 
 export interface MeetingRecording {
   id: string;
@@ -22,10 +38,18 @@ export interface MeetingRecording {
 }
 
 export interface RecordingRoomStatus {
+  needsRecordingPermission?: boolean;
+  canRequestRecording?: boolean;
+  recordingRequest?: RecordingPermissionRequest | null;
+  recordingRequests?: RecordingPermissionRequest[];
   meetingId: string;
   ownerId: string;
   recordingAvailable: boolean;
   unavailableReason: string | null;
+  unavailableCode?: "RECORDING_UNAVAILABLE" | "RECORDING_NOT_CONFIGURED" | null;
+  settings: RecordingSettings;
+  pauseAvailable: boolean;
+  customLayoutsAvailable: boolean;
   recording: {
     id: string;
     status: RecordingStatus;
@@ -33,12 +57,26 @@ export interface RecordingRoomStatus {
     stoppedAt: string | null;
     stopRequestedAt: string | null;
     version: number;
+    layout: RecordingLayout;
+    recordedSeconds: number;
+    segmentStartedAt: string | null;
   } | null;
   capabilities: {
     canStart: boolean;
     canStop: boolean;
     canGrantRecord: boolean;
+    canPause: boolean;
+    canResume: boolean;
   };
+}
+
+export interface RecordingPermissionRequest {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  requestedAt: string;
+  expiresAt: string;
+  userId?: string;
+  displayName?: string;
 }
 
 export interface RecordingPage {
@@ -49,13 +87,21 @@ export interface RecordingPage {
 }
 
 export interface RecordingPermission {
-  profile?: { fullName: string | null; email: string | null } | null;
+  profile?: {
+    fullName: string | null;
+    email: string | null;
+    avatarUrl?: string | null;
+  } | null;
   userId: string;
   canDownload: boolean;
 }
 
 export interface RecordingQuery {
+  fromDate?: string;
+  /** Exclusive upper timestamp, derived from the end of the selected local date. */
+  toDate?: string;
   page?: number;
+  limit?: number;
   search?: string;
   scope?: "owned" | "shared" | "all";
   status?: RecordingStatus;

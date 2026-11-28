@@ -1,39 +1,33 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState, type BaseSyntheticEvent } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  createScheduledMeeting,
-  updateScheduledMeeting,
-  cancelScheduledMeeting,
-} from "@/features/meeting/api/meeting.api";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
   CalendarEventEditorValues,
-  calendarEventFormSchema,
+  createCalendarEventFormSchema,
 } from "../schemas/calendar-event-form.schema";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../types/calendar.constants";
-import { useAppSelector } from "@/store/store";
 import {
-  AttendeeResponseStatus,
+
   CalendarEvent,
   CalendarEventAttendeePayload,
   CalendarEventDraft,
   CalendarEventFormValues,
+  EventSourceType,
   RecurrenceScope,
   WorkspaceCalendar,
 } from "../types/calendar.types";
 import { fromDateTimeLocal } from "../utils/calendar-date.utils";
 import { createCalendarEventFormDefaults } from "../utils/calendar-event-form.utils";
-import {
-  buildCalendarMeetingUrl,
-  isWorkspaceMeetingUrl,
-  parseCalendarMeetingJoinToken,
-} from "../utils/calendar-conference.utils";
 import { useCalendarEventTime } from "./use-calendar-event-time";
 import { useCalendarRecurrence } from "./use-calendar-recurrence";
+import { getDisplayTimezone } from "@/lib/timezone";
 
 interface UseCalendarEventFormInput {
   calendars: WorkspaceCalendar[];
@@ -42,36 +36,13 @@ interface UseCalendarEventFormInput {
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
 }
 
-function getValidScheduledMeetingRange(startAtIso: string, endAtIso: string) {
-  const now = Date.now();
-  let startMs = new Date(startAtIso).getTime();
-  let endMs = new Date(endAtIso).getTime();
-
-  if (Number.isNaN(startMs)) startMs = now;
-  if (Number.isNaN(endMs)) endMs = startMs + 30 * 60 * 1000;
-
-  // Meeting backend requires startAt > now (in the future)
-  if (startMs <= now) {
-    startMs = now + 60 * 1000; // 1 minute in the future
-  }
-
-  // Ensure endAt > startAt
-  if (endMs <= startMs) {
-    endMs = startMs + 30 * 60 * 1000; // 30 minutes duration minimum
-  }
-
-  return {
-    scheduledStartAt: new Date(startMs).toISOString(),
-    scheduledEndAt: new Date(endMs).toISOString(),
-  };
-}
-
 export function useCalendarEventForm({
   calendars,
   draft,
   event,
   onSubmit,
 }: UseCalendarEventFormInput) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const defaultCalendar =
     calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ??
@@ -79,13 +50,14 @@ export function useCalendarEventForm({
   const [defaults] = useState(() =>
     createCalendarEventFormDefaults({
       calendarId: defaultCalendar?.id ?? "",
+      calendarTimeZone: defaultCalendar?.timeZone,
       draft,
       event,
     }),
   );
 
   const form = useForm<CalendarEventEditorValues>({
-    resolver: zodResolver(calendarEventFormSchema),
+    resolver: zodResolver(createCalendarEventFormSchema(event ? "edit" : "create")),
     defaultValues: defaults.values,
   });
   
@@ -97,25 +69,42 @@ export function useCalendarEventForm({
     defaults.showCustomEventColor,
   );
   const [hasConference, setHasConference] = useState<boolean>(() =>
-    isWorkspaceMeetingUrl(defaults.values.location),
+    Boolean(event?.conference?.enabled),
   );
   const [pendingRecurrenceValues, setPendingRecurrenceValues] =
     useState<CalendarEventEditorValues | null>(null);
   const savingRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
-  const time = useCalendarEventTime(form);
+  const time = useCalendarEventTime(form, event ? "edit" : "create");
   const recurrence = useCalendarRecurrence(
     time.startAt,
     defaults.defaultStart,
     event,
   );
+  const isRecurring = Boolean(event?.recurrenceRule || event?.recurrenceParentId);
 
-  const watchStartAt = form.watch("startAt");
+  const watchStartAt = time.startAt;
+  const conferenceStartTimestamp = (() => {
+    try { return Date.parse(fromDateTimeLocal(watchStartAt || defaults.values.startAt)); }
+    catch { return Number.NaN; }
+  })();
+  const refreshScheduleToday = time.refreshToday;
+  const refreshToday = useCallback(() => {
+    const nextNow = Date.now();
+    // Focus can bubble repeatedly from a date picker. Only rerender when its
+    // time classification changes, rather than on every focus timestamp.
+    setNow(previous =>
+      (conferenceStartTimestamp <= previous) === (conferenceStartTimestamp <= nextNow)
+        ? previous
+        : nextNow,
+    );
+    return refreshScheduleToday();
+  }, [conferenceStartTimestamp, refreshScheduleToday]);
   const isPastEvent =
-    new Date(
-      fromDateTimeLocal(watchStartAt || defaults.values.startAt),
-    ).getTime() <= Date.now();
+    conferenceStartTimestamp <= now &&
+    !recurrence.getRecurrenceRule(watchStartAt || defaults.values.startAt);
 
   const handleToggleConference = (enabled: boolean) => {
     if (enabled && isPastEvent) {
@@ -123,107 +112,38 @@ export function useCalendarEventForm({
       return;
     }
     setHasConference(enabled);
-    if (!enabled && isWorkspaceMeetingUrl(form.getValues("location"))) {
-      form.setValue("location", "", { shouldDirty: true });
-    }
+
   };
 
-  const currentUserId = useAppSelector((state) => state.auth.userId);
+
 
   const persistValidForm = async (values: CalendarEventEditorValues) => {
-    let finalLocation = values.location.trim() || null;
-    const hostId = event?.createdBy || currentUserId;
-    const acceptedAttendeeUserIds = attendees
-      .filter(
-        (a) =>
-          a.responseStatus === AttendeeResponseStatus.ACCEPTED ||
-          a.userId === hostId,
-      )
-      .map((a) => a.userId);
-    const existingMeetingToken =
-      parseCalendarMeetingJoinToken(finalLocation) ||
-      parseCalendarMeetingJoinToken(event?.location) ||
-      parseCalendarMeetingJoinToken(defaults.values.location);
-    const eventStartMs = new Date(fromDateTimeLocal(values.startAt)).getTime();
-    const isPast = eventStartMs <= Date.now();
-
-    if (isPast) {
-      if (existingMeetingToken) {
-        try {
-          await cancelScheduledMeeting(existingMeetingToken);
-        } catch {
-          // ignore
-        }
-        finalLocation = null;
-        setHasConference(false);
-        toast.info(
-          "Video conference is no longer available for past events and has been canceled.",
-        );
-      } else if (hasConference) {
-        setHasConference(false);
-        toast.error("Cannot add video conference to past events");
-      }
-    } else {
-      const meetingRange = getValidScheduledMeetingRange(
-        fromDateTimeLocal(values.startAt),
-        fromDateTimeLocal(values.endAt),
-      );
-
-      const eventTag = event?.id
-        ? `[Calendar Event:${event.id}]`
-        : "[Calendar Event]";
-      const calendarMeetingDesc = values.description.trim()
-        ? values.description.trim().includes("[Calendar Event")
-          ? values.description.trim()
-          : `${values.description.trim()}\n${eventTag}`
-        : eventTag;
-
-      if (hasConference && !existingMeetingToken) {
-        try {
-          const meetingRes = await createScheduledMeeting({
-            title: values.title.trim() || "Event Meeting",
-            scheduledStartAt: meetingRange.scheduledStartAt,
-            scheduledEndAt: meetingRange.scheduledEndAt,
-            description: calendarMeetingDesc,
-            inviteeIds: acceptedAttendeeUserIds,
-          });
-          if (meetingRes.data?.joinToken) {
-            finalLocation = buildCalendarMeetingUrl(meetingRes.data.joinToken);
-          }
-        } catch {
-          toast.error("Failed to create video conference meeting");
-        }
-      } else if (existingMeetingToken) {
-        if (hasConference) {
-          try {
-            await updateScheduledMeeting(existingMeetingToken, {
-              title: values.title.trim() || "Event Meeting",
-              scheduledStartAt: meetingRange.scheduledStartAt,
-              scheduledEndAt: meetingRange.scheduledEndAt,
-              description: calendarMeetingDesc,
-              inviteeIds: acceptedAttendeeUserIds,
-            });
-          } catch {
-            // Non-fatal
-          }
-        } else {
-          try {
-            await cancelScheduledMeeting(existingMeetingToken);
-          } catch {
-            // Non-fatal
-          }
-          finalLocation = null;
-        }
-      }
+    const hasRecurrence = Boolean(recurrence.getRecurrenceRule(values.startAt));
+    const startIsPast =
+      new Date(fromDateTimeLocal(values.startAt)).getTime() <= Date.now();
+    if (
+      hasConference &&
+      startIsPast &&
+      !hasRecurrence &&
+      values.sourceType !== EventSourceType.TASK &&
+      !event?.conference?.enabled
+    ) {
+      toast.error("Cannot add video conference to past events");
+      return;
     }
 
+    const finalLocation = values.location.trim() || null;
+    const selectedCalendar = calendars.find(calendar => calendar.id === values.calendarId);
+    const storageZone = values.allDay ? event?.timeZone || selectedCalendar?.timeZone || getDisplayTimezone() : getDisplayTimezone();
     await onSubmit({
+      conference: { enabled: values.sourceType !== EventSourceType.TASK && hasConference },
       calendarId: values.calendarId,
       title: values.title.trim(),
       description: values.description.trim() || null,
       location: finalLocation,
-      startAt: fromDateTimeLocal(values.startAt),
-      endAt: fromDateTimeLocal(values.endAt),
+      startAt: fromDateTimeLocal(values.startAt, storageZone, event?.startAt),
+      endAt: fromDateTimeLocal(values.endAt, storageZone, event?.endAt),
+      timeZone: storageZone,
       allDay: values.allDay,
       color: values.useEventColor ? values.color : null,
       recurrenceRule: recurrence.getRecurrenceRule(values.startAt),
@@ -264,7 +184,10 @@ export function useCalendarEventForm({
     errors: FieldErrors<CalendarEventEditorValues>,
   ) => {
     const message =
+      errors.reminders?.find?.((reminder) => reminder?.minutesBefore?.message)
+        ?.minutesBefore?.message ||
       errors.endAt?.message ||
+      errors.startAt?.message ||
       errors.title?.message ||
       errors.calendarId?.message;
     toast.error(typeof message === "string" ? message : copy.requiredFields);
@@ -296,11 +219,13 @@ export function useCalendarEventForm({
   return {
     ...time,
     ...recurrence,
+    refreshToday,
     attendees,
     documentIds,
     enableEventColor,
     form,
     hasConference,
+    isRecurring,
     isSaving,
     pendingRecurrenceValues,
     confirmRecurrenceScope,
@@ -311,7 +236,8 @@ export function useCalendarEventForm({
     setHasConference: handleToggleConference,
     setShowCustomEventColor,
     showCustomEventColor,
-    submit: form.handleSubmit(submitWithRecurrenceScope, submitInvalidForm),
+    submit: (event?: BaseSyntheticEvent) =>
+      form.handleSubmit(submitWithRecurrenceScope, submitInvalidForm)(event),
   };
 }
 

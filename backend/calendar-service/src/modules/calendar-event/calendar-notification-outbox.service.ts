@@ -19,6 +19,7 @@ interface OutboxRecord {
 }
 
 interface EventInvitationPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -26,6 +27,7 @@ interface EventInvitationPayload {
 }
 
 interface AttendeeResponsePayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -34,6 +36,7 @@ interface AttendeeResponsePayload {
 }
 
 interface EventCancellationPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -41,6 +44,7 @@ interface EventCancellationPayload {
 }
 
 interface AttendeeRemovalPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -48,6 +52,7 @@ interface AttendeeRemovalPayload {
 }
 
 interface EventUpdatePayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -104,6 +109,7 @@ export class CalendarNotificationOutboxService
   async enqueueEventInvitations(
     database: OutboxDatabase,
     params: {
+      deliveryId?: string;
       eventTitle: string;
       eventId: string;
       creatorId: string;
@@ -132,6 +138,7 @@ export class CalendarNotificationOutboxService
   async enqueueEventCancellation(
     database: OutboxDatabase,
     params: {
+      deliveryId?: string;
       eventTitle: string;
       eventId: string;
       cancellerId: string;
@@ -160,6 +167,7 @@ export class CalendarNotificationOutboxService
   async enqueueAttendeeRemoval(
     database: OutboxDatabase,
     params: {
+      deliveryId?: string;
       eventTitle: string;
       eventId: string;
       removerId: string;
@@ -188,6 +196,7 @@ export class CalendarNotificationOutboxService
   async enqueueEventUpdate(
     database: OutboxDatabase,
     params: {
+      deliveryId?: string;
       eventTitle: string;
       eventId: string;
       updaterId: string;
@@ -267,25 +276,30 @@ export class CalendarNotificationOutboxService
   private async deliver(record: OutboxRecord): Promise<void> {
     try {
       if (record.eventType === EVENT_INVITATION) {
-        await this.deliverEventInvitation(
-          this.toEventInvitation(record.payload),
-        );
+        await this.deliverEventInvitation({
+          ...this.toEventInvitation(record.payload),
+          deliveryId: record.id,
+        });
       } else if (record.eventType === ATTENDEE_RESPONSE) {
-        await this.deliverAttendeeResponse(
-          this.toAttendeeResponse(record.payload),
-        );
+        await this.deliverAttendeeResponse({
+          ...this.toAttendeeResponse(record.payload),
+          deliveryId: record.id,
+        });
       } else if (record.eventType === EVENT_CANCELLATION) {
-        await this.deliverEventCancellation(
-          this.toEventCancellation(record.payload),
-        );
+        await this.deliverEventCancellation({
+          ...this.toEventCancellation(record.payload),
+          deliveryId: record.id,
+        });
       } else if (record.eventType === ATTENDEE_REMOVED) {
-        await this.deliverAttendeeRemoval(
-          this.toAttendeeRemoval(record.payload),
-        );
+        await this.deliverAttendeeRemoval({
+          ...this.toAttendeeRemoval(record.payload),
+          deliveryId: record.id,
+        });
       } else if (record.eventType === EVENT_UPDATE) {
-        await this.deliverEventUpdate(
-          this.toEventUpdate(record.payload),
-        );
+        await this.deliverEventUpdate({
+          ...this.toEventUpdate(record.payload),
+          deliveryId: record.id,
+        });
       } else {
         throw new Error(
           `Unsupported calendar outbox event: ${record.eventType}`,
@@ -341,9 +355,7 @@ export class CalendarNotificationOutboxService
     });
   }
 
-  private async deliverEventUpdate(
-    payload: EventUpdatePayload,
-  ): Promise<void> {
+  private async deliverEventUpdate(payload: EventUpdatePayload): Promise<void> {
     const profile = await this.getProfile(payload.updaterId);
     await this.notifications.notifyEventUpdate({
       ...payload,
@@ -458,7 +470,9 @@ export class CalendarNotificationOutboxService
     };
   }
 
-  private toEventCancellation(value: Prisma.JsonValue): EventCancellationPayload {
+  private toEventCancellation(
+    value: Prisma.JsonValue,
+  ): EventCancellationPayload {
     const payload = this.objectPayload(value);
     const { eventTitle, eventId, recipientId, cancellerId } = payload;
     if (

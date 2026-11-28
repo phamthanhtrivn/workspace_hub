@@ -4,7 +4,7 @@ import { TaskStatus } from '../project/project.enums';
 import { GetProjectTasksQueryDto } from './dto/get-project-tasks-query.dto';
 
 export const taskInclude = {
-  _count: { select: { children: { where: { archived: false, deletedAt: null } } } },
+  _count: { select: { children: { where: { deletedAt: null } } } },
   checklists: { orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }] },
   assignees: { orderBy: { assignedAt: 'asc' } },
   documentAttachments: { orderBy: { createdAt: 'desc' } },
@@ -70,7 +70,6 @@ export function buildProjectTaskWhere(
 
   return {
     projectId,
-    archived: false,
     deletedAt: null,
     ...(query.status ? { status: query.status } : {}),
     ...(query.priority ? { priority: query.priority } : {}),

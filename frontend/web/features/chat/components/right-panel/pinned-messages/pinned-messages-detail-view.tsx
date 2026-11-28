@@ -1,5 +1,15 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
+
+import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
+import { QueryFeedback } from "@/components/common/query-feedback";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, Pin, Search } from "lucide-react";
+import { ArrowLeft, Filter, Pin } from "lucide-react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
@@ -14,6 +24,10 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -22,16 +36,12 @@ interface PinnedMessagesDetailViewProps {
   onJumpToMessage: (messageId: string) => void;
 }
 
-function getPinnedPreviewText(message: any) {
+function getPinnedPreviewText(message: ChatMessageResponse) {
   if (message.content) return message.content;
   if (message.medias?.length) return "Attachment";
   if (message.poll) return "Poll";
   if (message.note) return "Note";
   return "Message";
-}
-
-function getInitial(name?: string | null) {
-  return (name?.trim()?.charAt(0) || "U").toUpperCase();
 }
 
 export default function PinnedMessagesDetailView({
@@ -40,6 +50,7 @@ export default function PinnedMessagesDetailView({
   onBack,
   onJumpToMessage,
 }: PinnedMessagesDetailViewProps) {
+  useAccountTimezone();
   const queryClient = useQueryClient();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
@@ -59,13 +70,13 @@ export default function PinnedMessagesDetailView({
   const conversationMemberIds = useMemo(
     () =>
       activeConversation?.members
-        ?.map((member: any) => member.userId)
+        ?.map((member) => member.userId)
         .filter(Boolean) || [],
     [activeConversation?.members],
   );
   const memberProfiles = useChatMemberProfiles(conversationMemberIds);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
       queryKey: [
         ...chatKeys.pinnedMessagesDetail(
@@ -109,7 +120,7 @@ export default function PinnedMessagesDetailView({
   const senderOptions = useMemo(() => {
     if (!isDirect || !activeConversation?.members) return [];
     return activeConversation.members
-      .map((member: any) => {
+      .map((member) => {
         const profile = memberProfiles[member.userId] || member.profile;
         return {
           id: member.userId,
@@ -117,26 +128,26 @@ export default function PinnedMessagesDetailView({
             member.userId === currentUserId
               ? "You"
               : profile?.fullName ||
-                member.fullName ||
+                member.profile?.fullName ||
                 "User",
         };
       })
       .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
-  }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
+  }, [activeConversation, currentUserId, isDirect, memberProfiles]);
 
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
       await unpinDirectPinnedMessage(conversationId, messageId);
       queryClient.setQueryData(
         chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId),
-        (oldData: any) => {
+        (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
           if (!oldData) return oldData;
           return {
             ...oldData,
-            pages: oldData.pages.map((page: any) => ({
+            pages: oldData.pages.map((page) => ({
               ...page,
               messages: page.messages.filter(
-                (message: any) => message.id !== messageId,
+                (message) => message.id !== messageId,
               ),
             })),
           };
@@ -147,21 +158,21 @@ export default function PinnedMessagesDetailView({
 
     try {
       await unpinChannelMessage(messageId);
-    } catch {
-      toast.error("Failed to unpin message");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to unpin message"));
       return;
     }
 
     queryClient.setQueryData(
       chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
-      (oldData: any) => {
+      (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
             messages: page.messages.filter(
-              (message: any) => message.id !== messageId,
+              (message) => message.id !== messageId,
             ),
           })),
         };
@@ -176,44 +187,41 @@ export default function PinnedMessagesDetailView({
   };
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3">
-        <button
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
+        <Button variant="unstyled" aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={18} />
-        </button>
-        <h2 className="font-semibold text-gray-800">
+        </Button>
+        <h2 className="font-semibold text-foreground">
           Pinned Messages
         </h2>
       </div>
 
-      <div className="px-4 py-3 border-b border-gray-100 flex flex-col gap-3 shrink-0">
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-3 shrink-0">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
+          <SearchInput aria-label="Search pinned messages" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pinned messages..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card outline-none transition"
           />
         </div>
 
         {isDirect && (
           <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 mb-1.5">
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1.5">
               <Filter size={13} />
               Sender
             </label>
-            <select
+            <CustomSelect
+              ariaLabel="Filter by sender"
               value={senderId}
-              onChange={(event) => setSenderId(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              onChange={nextValue => setSenderId(nextValue)}
+              triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
             >
               <option value="">
                 All Senders
@@ -223,67 +231,57 @@ export default function PinnedMessagesDetailView({
                   {sender.label}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </div>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
-          <div className="text-center text-xs text-gray-400 py-6">
-            Loading pinned messages...
-          </div>
+        {isError && pinnedMessages.length === 0 ? <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
+          <LoadingState label="Loading pinned messages..." layout="centered" className="text-center text-xs text-muted-foreground py-6" />
         ) : pinnedMessages.length === 0 ? (
-          <div className="text-center text-xs text-gray-400 py-6">
+          <div className="text-center text-xs text-muted-foreground py-6">
             {searchQuery
               ? "No matching pinned messages"
               : "No pinned messages"}
           </div>
         ) : (
           <div className="space-y-2">
-            {pinnedMessages.map((message: any) => (
+            {pinnedMessages.map((message) => (
               <div
                 key={message.id}
-                className="group flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3 hover:bg-gray-100 transition"
+                className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 hover:bg-muted transition"
               >
-                {message.senderProfile?.avatarUrl ? (
-                  <img
-                    src={message.senderProfile.avatarUrl || ""}
-                    alt={
-                      message.senderProfile.fullName || "User"
-                    }
-                    className="h-9 w-9 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
-                    {getInitial(message.senderProfile?.fullName)}
-                  </div>
-                )}
-                <button
+                <UserAvatar
+                  src={message?.senderProfile?.avatarUrl || ""}
+                  alt={ message?.senderProfile?.fullName || "User" }
+                  className="h-9 w-9 shrink-0 rounded-full object-cover"
+                />
+                <Button variant="unstyled"
                   onClick={() => onJumpToMessage(message.id)}
                   className="min-w-0 flex-1 cursor-pointer text-left"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-foreground">
                       {message.senderProfile?.fullName || "User"}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm text-gray-600 inline-flex items-center gap-2">
+                  <div className="mt-1 text-sm text-muted-foreground inline-flex items-center gap-2">
                     <span className="block truncate">
                       {getPinnedPreviewText(message)}
                     </span>
-                    <span className="shrink-0 text-[11px] text-gray-400">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {formatDateTime(message.updatedAt)}
                     </span>
                   </div>
-                </button>
-                <button
+                </Button>
+                <IconButton label="Unpin" showTooltip={false} size="icon-sm"
                   onClick={() => handleUnpin(message.id)}
-                  className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                  className="cursor-pointer rounded-control p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content transition"
                   title="Unpin"
                 >
-                  <Pin size={15} className="mt-1 shrink-0 text-blue-500" />
-                </button>
+                  <Pin size={15} className="mt-1 shrink-0 text-info-content" />
+                </IconButton>
               </div>
             ))}
             <div
@@ -291,9 +289,7 @@ export default function PinnedMessagesDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-gray-400">
-                  Loading more...
-                </span>
+                <LoadingState label="Loading more..." className="text-xs text-muted-foreground" />
               )}
             </div>
           </div>

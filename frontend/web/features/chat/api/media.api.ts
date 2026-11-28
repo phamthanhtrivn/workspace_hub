@@ -1,4 +1,6 @@
+import { logActionError } from "@/lib/permission-feedback";
 import { api } from "@/lib/axios";
+import { getUploadMimeType } from "@/lib/upload-policy";
 import { ApiResponse, ChatContextType } from "../types/chat.types";
 
 export interface PresignRequest {
@@ -35,7 +37,7 @@ export const getPresignedUrls = async (
   const payload: PresignPayload = {
     chatId: params.chatId,
     chatType: params.chatType,
-    files: params.files,
+    files: params.files.map((file) => ({ ...file, mimeType: getUploadMimeType(file.fileName, file.mimeType) })),
     ...(params.chatType === ChatContextType.CHANNEL
       ? { channelId: params.chatId }
       : {}),
@@ -52,13 +54,16 @@ export const getPresignedUrls = async (
 export const uploadToS3 = async (
   file: File,
   presignedUrl: string,
+  signal?: AbortSignal,
 ): Promise<boolean> => {
   try {
     const response = await fetch(presignedUrl, {
       method: "PUT",
       body: file,
+      signal,
       headers: {
-        "Content-Type": file.type,
+        "Content-Type": getUploadMimeType(file.name, file.type),
+        "If-None-Match": "*",
       },
     });
 
@@ -67,7 +72,7 @@ export const uploadToS3 = async (
     }
     return true;
   } catch (error) {
-    console.error("S3 upload error:", error);
+    if (!signal?.aborted) logActionError("S3 upload error:", error);
     return false;
   }
 };

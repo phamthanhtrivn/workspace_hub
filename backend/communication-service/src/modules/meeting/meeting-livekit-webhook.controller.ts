@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   BadRequestException,
   Controller,
@@ -14,6 +15,7 @@ import {
   MEETING_SUCCESS_MESSAGES,
 } from './types/meeting.enums';
 
+@IndependentAuthentication()
 @Controller('api/meetings/livekit')
 export class MeetingLiveKitWebhookController {
   constructor(

@@ -13,6 +13,7 @@ export function MeetingIconButton({
   label,
   icon: Icon,
   className,
+  loading,
   ...props
 }: MeetingIconButtonProps) {
   return (
@@ -22,6 +23,7 @@ export function MeetingIconButton({
       aria-label={label}
       title={label}
       className={cn("size-9 p-0", className)}
+      loading={loading}
       {...props}
     >
       <Icon className="size-4" />

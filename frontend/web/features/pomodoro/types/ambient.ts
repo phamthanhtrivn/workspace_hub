@@ -8,7 +8,7 @@ export interface PomodoroAmbientPreferences {
 }
 
 export const DEFAULT_AMBIENT_PREFERENCES: PomodoroAmbientPreferences = {
-  trackId: "lofi_relax",
+  trackId: "indigo_dreams",
   volume: 0.5,
   autoPlayOnFocus: true,
 };
@@ -37,7 +37,7 @@ export interface PomodoroAudio {
   category: AmbientTrackCategory;
   icon: string;
   description: string;
-  s3Key: string;
+  s3Key: string | null;
   sortOrder: number;
   url: string;
 }

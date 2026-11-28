@@ -53,10 +53,7 @@ export class MeetingScheduleService {
     private readonly meetingRealtimeService: MeetingRealtimeService,
   ) {}
 
-  async createScheduledMeeting({
-    userId,
-    dto,
-  }: CreateScheduledMeetingParams) {
+  async createScheduledMeeting({ userId, dto }: CreateScheduledMeetingParams) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
     }
@@ -93,6 +90,8 @@ export class MeetingScheduleService {
           passwordHash: hashMeetingPassword(dto.password),
           autoAdmit: dto.autoAdmit ?? false,
           chatEnabled: dto.chatEnabled ?? true,
+          autoRecord: dto.autoRecord ?? false,
+          recordingLayout: dto.recordingLayout ?? 'speaker',
           screenShareEnabled: dto.screenShareEnabled ?? true,
         },
       });
@@ -182,6 +181,7 @@ export class MeetingScheduleService {
               },
             },
           });
+
           return tx.meeting.findUniqueOrThrow({
             where: { id: meeting.id },
             include: { participants: true },
@@ -256,6 +256,69 @@ export class MeetingScheduleService {
     };
   }
 
+  async getBadgeSummary({
+    userId,
+    dayStartAt,
+    dayEndAt,
+  }: {
+    userId: string;
+    dayStartAt?: string;
+    dayEndAt?: string;
+  }) {
+    const now = new Date();
+    const parsedStart = dayStartAt ? new Date(dayStartAt) : null;
+    const parsedEnd = dayEndAt ? new Date(dayEndAt) : null;
+    const start =
+      parsedStart && !Number.isNaN(parsedStart.getTime())
+        ? parsedStart
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end =
+      parsedEnd && !Number.isNaN(parsedEnd.getTime())
+        ? parsedEnd
+        : new Date(start.getTime() + 86_400_000);
+
+    const participantFilter: Prisma.MeetingWhereInput = {
+      OR: [
+        { hostId: userId },
+        {
+          participants: {
+            some: {
+              userId,
+              status: { in: UPCOMING_PARTICIPANT_STATUSES },
+            },
+          },
+        },
+      ],
+    };
+
+    const [liveCount, upcomingTodayCount] = await this.prisma.$transaction([
+      this.prisma.meeting.count({
+        where: {
+          status: MeetingStatus.LIVE,
+          ...participantFilter,
+        },
+      }),
+      this.prisma.meeting.count({
+        where: {
+          type: MeetingType.SCHEDULED,
+          status: MeetingStatus.SCHEDULED,
+          scheduledStartAt: { gte: start, lte: end },
+          OR: [
+            { scheduledEndAt: { gt: now } },
+            { scheduledEndAt: null, scheduledStartAt: { gt: now } },
+          ],
+          AND: [participantFilter],
+        },
+      }),
+    ]);
+
+    return {
+      liveCount,
+      upcomingTodayCount,
+      badgeCount: liveCount + upcomingTodayCount,
+    };
+  }
+
   async updateScheduledMeeting({
     joinToken,
     userId,
@@ -288,7 +351,9 @@ export class MeetingScheduleService {
         ? undefined
         : this.normalizeInviteeIds(meeting.hostId, dto.inviteeIds);
     const passwordHash =
-      dto.password === undefined ? undefined : hashMeetingPassword(dto.password);
+      dto.password === undefined
+        ? undefined
+        : hashMeetingPassword(dto.password);
 
     const updatedMeeting = await this.prisma.$transaction(async (tx) => {
       await tx.meeting.update({
@@ -304,6 +369,8 @@ export class MeetingScheduleService {
           passwordHash,
           autoAdmit: dto.autoAdmit,
           chatEnabled: dto.chatEnabled,
+          autoRecord: dto.autoRecord,
+          recordingLayout: dto.recordingLayout,
           screenShareEnabled: dto.screenShareEnabled,
         },
       });
@@ -335,8 +402,12 @@ export class MeetingScheduleService {
     });
 
     const nextUserIds = updatedMeeting.participants.map((p) => p.userId);
-    const addedUserIds = nextUserIds.filter((id) => !previousUserIds.includes(id));
-    const removedUserIds = previousUserIds.filter((id) => !nextUserIds.includes(id));
+    const addedUserIds = nextUserIds.filter(
+      (id) => !previousUserIds.includes(id),
+    );
+    const removedUserIds = previousUserIds.filter(
+      (id) => !nextUserIds.includes(id),
+    );
     const keptUserIds = nextUserIds.filter(
       (id) => previousUserIds.includes(id) && id !== meeting.hostId,
     );
@@ -354,7 +425,11 @@ export class MeetingScheduleService {
         this.meetingRealtimeService.emitUserEvent(
           removedId,
           MeetingEvent.PARTICIPANT_REMOVED,
-          { meetingId: meeting.id, joinToken: meeting.joinToken, userId: removedId },
+          {
+            meetingId: meeting.id,
+            joinToken: meeting.joinToken,
+            userId: removedId,
+          },
         );
       }
     }
@@ -367,19 +442,18 @@ export class MeetingScheduleService {
       );
     }
 
-    const titleChanged = Boolean(dto.title && dto.title.trim() !== meeting.title);
+    const titleChanged = Boolean(
+      dto.title && dto.title.trim() !== meeting.title,
+    );
     const timeChanged = Boolean(
       (dto.scheduledStartAt &&
         new Date(dto.scheduledStartAt).getTime() !==
           meeting.scheduledStartAt?.getTime()) ||
-        (dto.scheduledEndAt &&
-          new Date(dto.scheduledEndAt).getTime() !==
-            meeting.scheduledEndAt?.getTime()),
+      (dto.scheduledEndAt &&
+        new Date(dto.scheduledEndAt).getTime() !==
+          meeting.scheduledEndAt?.getTime()),
     );
-    const changes = [
-      titleChanged ? 'title' : '',
-      timeChanged ? 'time' : '',
-    ]
+    const changes = [titleChanged ? 'title' : '', timeChanged ? 'time' : '']
       .filter(Boolean)
       .join(' & ');
 
@@ -430,6 +504,7 @@ export class MeetingScheduleService {
           metadata: { cancelledAt: cancelledAt.toISOString() },
         },
       });
+
       return tx.meeting.findUniqueOrThrow({
         where: { id: meeting.id },
         include: { participants: true },
@@ -487,29 +562,58 @@ export class MeetingScheduleService {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_CANCELLED);
     }
     if (meeting.status === MeetingStatus.ENDED) {
-      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED);
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+      );
     }
 
     const respondedAt = new Date();
-    const updatedParticipant = await this.prisma.meetingParticipant.upsert({
-      where: {
-        meetingId_userId: {
-          meetingId: meeting.id,
-          userId,
+    const updatedParticipant = await this.prisma.$transaction(async (tx) => {
+      await tx.meeting.updateMany({
+        where: {
+          id: meeting.id,
+          status: { in: [MeetingStatus.SCHEDULED, MeetingStatus.LIVE] },
         },
-      },
-      create: {
-        meetingId: meeting.id,
-        userId,
-        role: MeetingRole.PARTICIPANT,
-        status: participantStatus,
-        invitedAt: respondedAt,
-        lastSeenAt: respondedAt,
-      },
-      update: {
-        status: participantStatus,
-        lastSeenAt: respondedAt,
-      },
+        data: { updatedAt: respondedAt },
+      });
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      if (current.status === MeetingStatus.CANCELLED)
+        throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_CANCELLED);
+      if (current.status === MeetingStatus.ENDED)
+        throw new BadRequestException(
+          MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+        );
+      const invitation = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (!invitation?.invitedAt) {
+        throw new NotFoundException(
+          MEETING_ERROR_MESSAGES.MEETING_INVITATION_NOT_FOUND,
+        );
+      }
+      const invitationStatuses: MeetingParticipantStatus[] = [
+        MeetingParticipantStatus.INVITED,
+        MeetingParticipantStatus.APPROVED,
+        MeetingParticipantStatus.REJECTED,
+      ];
+      const response = await tx.meetingParticipant.updateMany({
+        where: {
+          id: invitation.id,
+          status: { in: invitationStatuses },
+          requiresReadmission: false,
+        },
+        data: { status: participantStatus, lastSeenAt: respondedAt },
+      });
+      if (!response.count)
+        throw new BadRequestException(
+          MEETING_ERROR_MESSAGES.MEETING_INVITATION_ALREADY_HANDLED,
+        );
+
+      return tx.meetingParticipant.findUniqueOrThrow({
+        where: { id: invitation.id },
+      });
     });
 
     this.meetingSchedulePublisher.publishInvitationStatusUpdate({
@@ -659,14 +763,6 @@ export class MeetingScheduleService {
     );
   }
 
-  private async publishScheduledMeetingUpdated(
-    meeting: MeetingWithParticipants,
-  ) {
-    const snapshot = this.toPublisherSnapshot(meeting);
-    const profile = await this.getPublisherProfile(meeting.hostId);
-    this.meetingSchedulePublisher.publishUpdateNotifications(snapshot, profile);
-  }
-
   private async publishScheduledMeetingCancelled(
     meeting: MeetingWithParticipants,
   ) {
@@ -702,8 +798,9 @@ export class MeetingScheduleService {
   }
 
   private async getPublisherProfile(userId: string) {
-    const profiles =
-      await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(
+      [userId],
+    );
     const profile = profiles.get(userId);
 
     return {
@@ -724,6 +821,8 @@ export class MeetingScheduleService {
       scheduledEndAt: meeting.scheduledEndAt?.toISOString() ?? null,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      autoRecord: meeting.autoRecord,
+      recordingLayout: meeting.recordingLayout,
       screenShareEnabled: meeting.screenShareEnabled,
       requiresPassword: Boolean(meeting.passwordHash),
       participants: meeting.participants.map((participant) =>
@@ -761,14 +860,17 @@ export class MeetingScheduleService {
       hostUserId: meeting.hostId,
       hostProfile: hostProfile ?? null,
       myParticipant:
-        enrichedParticipants.find((participant) => participant.userId === userId) ??
-        null,
+        enrichedParticipants.find(
+          (participant) => participant.userId === userId,
+        ) ?? null,
       participants: visibleParticipants.map((participant) =>
         this.meetingPresenterService.toMeetingParticipantListItem(participant),
       ),
       participantCount: visibleParticipants.length,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      autoRecord: meeting.autoRecord,
+      recordingLayout: meeting.recordingLayout,
       screenShareEnabled: meeting.screenShareEnabled,
       requiresPassword: Boolean(meeting.passwordHash),
     };

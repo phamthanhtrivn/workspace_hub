@@ -15,6 +15,7 @@ interface ApiResponse<T> {
 }
 
 interface TaskDocumentRequest {
+  operationId?: string;
   projectId: string;
   userId: string;
   userEmail: string;
@@ -55,6 +56,6 @@ export class TaskDocumentClient {
   }
 
   private internalHeaders(): Record<string, string> {
-    return { 'x-internal-service-key': this.config.internalServiceKey };
+    return { 'x-internal-service-key': this.config.documentServiceKey };
   }
 }

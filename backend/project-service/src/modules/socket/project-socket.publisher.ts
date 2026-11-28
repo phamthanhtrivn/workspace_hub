@@ -11,10 +11,10 @@ export class ProjectSocketPublisher {
   ) {}
 
   publish(event: ProjectChangedEvent, targetUserIds: string[] = []): void {
-    this.events.emitToRooms(this.rooms.project(event.projectId), ProjectSocketEvent.CHANGED, event);
-    for (const userId of new Set(targetUserIds)) {
-      this.events.emitToUser(userId, ProjectSocketEvent.CHANGED, event);
-    }
+    this.events.emitToRooms([
+      this.rooms.project(event.projectId),
+      ...new Set(targetUserIds.map((userId) => this.rooms.user(userId))),
+    ], ProjectSocketEvent.CHANGED, event);
     if (event.resource === 'MEMBER' && event.action === 'DELETED') {
       for (const userId of new Set(targetUserIds)) {
         this.events.removeUserFromRoom(userId, this.rooms.project(event.projectId));

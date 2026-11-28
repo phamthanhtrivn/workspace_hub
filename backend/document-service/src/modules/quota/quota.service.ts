@@ -1,7 +1,46 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ItemType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 import { QuotaConstants } from '../../common/constants/quota.constants';
+
+export interface StorageQuotaBreakdown {
+  documentsBytes: number;
+  mediaBytes: number;
+  otherBytes: number;
+}
+
+const DOCUMENT_MIME_PREFIXES = ['text/'];
+const DOCUMENT_MIME_TOKENS = [
+  'pdf',
+  'word',
+  'document',
+  'spreadsheet',
+  'excel',
+  'presentation',
+  'powerpoint',
+  'csv',
+  'rtf',
+];
+const MEDIA_MIME_PREFIXES = ['image/', 'video/', 'audio/'];
+
+function classifyMimeCategory(
+  mimeType: string | null,
+  name: string,
+): keyof StorageQuotaBreakdown {
+  const mime = (mimeType ?? '').toLowerCase();
+  if (MEDIA_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix))) {
+    return 'mediaBytes';
+  }
+  if (
+    DOCUMENT_MIME_PREFIXES.some((prefix) => mime.startsWith(prefix)) ||
+    DOCUMENT_MIME_TOKENS.some((token) => mime.includes(token)) ||
+    /\.(pdf|docx?|xlsx?|pptx?|txt|md|csv|rtf)$/i.test(name)
+  ) {
+    return 'documentsBytes';
+  }
+  return 'otherBytes';
+}
 
 @Injectable()
 export class QuotaService {
@@ -11,7 +50,7 @@ export class QuotaService {
    * Fetch a user's storage quota. If it doesn't exist, create a default 5GB quota.
    */
   async getOrCreateQuota(userId: string) {
-    let quota = await this.prisma.userStorageQuota.findUnique({
+    const quota = await this.prisma.userStorageQuota.findUnique({
       where: { userId },
     });
 
@@ -20,12 +59,16 @@ export class QuotaService {
       const defaultMaxBytes =
         BigInt(QuotaConstants.DEFAULT_MAX_GB) *
         BigInt(QuotaConstants.BYTES_PER_GB);
-      quota = await this.prisma.userStorageQuota.create({
+      await this.prisma.userStorageQuota.createMany({
         data: {
           userId,
           maxBytes: defaultMaxBytes,
           usedBytes: BigInt(0),
         },
+        skipDuplicates: true,
+      });
+      return this.prisma.userStorageQuota.findUniqueOrThrow({
+        where: { userId },
       });
     }
 
@@ -57,15 +100,64 @@ export class QuotaService {
   /**
    * Modify the user's used storage count.
    */
-  async updateUsedBytes(userId: string, bytesDiff: number) {
-    const quota = await this.getOrCreateQuota(userId);
-    const updatedUsedBytes = quota.usedBytes + BigInt(bytesDiff);
-
-    return this.prisma.userStorageQuota.update({
+  async reserve(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    additionalBytes: number,
+  ) {
+    if (!Number.isSafeInteger(additionalBytes) || additionalBytes < 0)
+      throw new BadRequestException(
+        'File size must be a non-negative safe integer',
+      );
+    await tx.userStorageQuota.upsert({
       where: { userId },
-      data: {
-        usedBytes: updatedUsedBytes >= BigInt(0) ? updatedUsedBytes : BigInt(0),
-      },
+      create: { userId },
+      update: {},
+    });
+    const changed =
+      await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = used_bytes + ${BigInt(additionalBytes)}, updated_at = NOW()
+      WHERE user_id = ${userId}::uuid AND used_bytes + ${BigInt(additionalBytes)} <= max_bytes`;
+    if (changed !== 1)
+      throw new BadRequestException('Insufficient storage for this file');
+  }
+  async getQuotaWithBreakdown(userId: string) {
+    const [quota, files] = await Promise.all([
+      this.getOrCreateQuota(userId),
+      this.prisma.documentItem.findMany({
+        where: {
+          ownerUserId: userId,
+          type: ItemType.FILE,
+        },
+        select: {
+          mimeType: true,
+          name: true,
+          sizeBytes: true,
+        },
+      }),
+    ]);
+
+    const breakdown: StorageQuotaBreakdown = {
+      documentsBytes: 0,
+      mediaBytes: 0,
+      otherBytes: 0,
+    };
+
+    for (const file of files) {
+      const category = classifyMimeCategory(file.mimeType, file.name);
+      breakdown[category] += Number(file.sizeBytes);
+    }
+
+    return {
+      ...quota,
+      breakdown,
+    };
+  }
+
+  async updateUsedBytes(userId: string, bytesDiff: number) {
+    await this.getOrCreateQuota(userId);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes + ${BigInt(bytesDiff)}), updated_at = NOW() WHERE user_id = ${userId}::uuid`;
+      return tx.userStorageQuota.findUniqueOrThrow({ where: { userId } });
     });
   }
 }

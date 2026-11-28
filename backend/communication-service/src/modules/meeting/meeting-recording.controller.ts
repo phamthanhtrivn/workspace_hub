@@ -20,15 +20,21 @@ import {
   ShareRecordingDto,
   ShareRecordingParticipantsDto,
   StartMeetingRecordingDto,
+  RecordingSettingsDto,
+  RecordingRequestDecisionDto,
 } from './dto/meeting-recording.dto';
 import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
 import { recordingError } from './utils/meeting-recording.utils';
 import { RecordingAuthGuard } from '../../common/auth/recording-auth.guard';
 
 @Controller('api/meetings')
 @UseGuards(RecordingAuthGuard)
 export class MeetingRecordingController {
-  constructor(private readonly recordings: MeetingRecordingService) {}
+  constructor(
+    private readonly recordings: MeetingRecordingService,
+    private readonly requests: MeetingRecordingRequestsService,
+  ) {}
 
   private user(id: string) {
     if (!id)
@@ -172,6 +178,34 @@ export class MeetingRecordingController {
     );
   }
 
+  @Post(':joinToken/recordings/capture-permission')
+  async enableCapture(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') joinToken: string,
+  ) {
+    return this.result(
+      await this.recordings.setCapturePermission(
+        joinToken,
+        this.user(userId),
+        true,
+      ),
+    );
+  }
+
+  @Delete(':joinToken/recordings/capture-permission')
+  async disableCapture(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') joinToken: string,
+  ) {
+    return this.result(
+      await this.recordings.setCapturePermission(
+        joinToken,
+        this.user(userId),
+        false,
+      ),
+    );
+  }
+
   @Post(':joinToken/recordings')
   @HttpCode(202)
   async start(
@@ -212,6 +246,69 @@ export class MeetingRecordingController {
         targetId,
         dto.canRecord,
       ),
+    );
+  }
+
+  @Patch(':joinToken/recordings/settings')
+  async settings(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+    @Body() dto: RecordingSettingsDto,
+  ) {
+    return this.result(
+      await this.recordings.configure(token, this.user(userId), dto),
+    );
+  }
+
+  @Post(':joinToken/recordings/permission-requests')
+  @HttpCode(200)
+  async requestPermission(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+  ) {
+    return this.result(await this.requests.request(token, this.user(userId)));
+  }
+
+  @Patch(':joinToken/recordings/permission-requests/:requestId')
+  async answerPermissionRequest(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+    @Param('requestId', ParseUUIDPipe) requestId: string,
+    @Body() dto: RecordingRequestDecisionDto,
+  ) {
+    return this.result(
+      await this.requests.decide(
+        token,
+        this.user(userId),
+        requestId,
+        dto.approve,
+      ),
+    );
+  }
+
+  @Post(':joinToken/recordings/:recordingId/pause')
+  @HttpCode(202)
+  async pause(
+    @Headers('x-user-id') userId: string,
+    @Headers('idempotency-key') key: string,
+    @Param('joinToken') token: string,
+    @Param('recordingId', ParseUUIDPipe) id: string,
+  ) {
+    return this.result(
+      await this.recordings.pause(token, this.user(userId), id, key),
+    );
+  }
+
+  @Post(':joinToken/recordings/:recordingId/resume')
+  @HttpCode(202)
+  async resume(
+    @Headers('x-user-id') userId: string,
+    @Headers('idempotency-key') key: string,
+    @Param('joinToken') token: string,
+    @Param('recordingId', ParseUUIDPipe) id: string,
+  ) {
+    return this.result(
+      await this.recordings.resume(token, this.user(userId), id, key),
     );
   }
 }

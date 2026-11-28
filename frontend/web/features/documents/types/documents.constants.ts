@@ -1,8 +1,10 @@
-import { DocumentTypeDescription } from "./documents.enums";
+import { DocumentTypeDescription, LinkAccess } from "./documents.enums";
 
 // ─── Pagination ────────────────────────────────────────────────────────────────
 
 export const ITEMS_PER_PAGE = 12;
+
+export const UPLOAD_SUCCESS_DISMISS_DELAY_MS = 5000;
 
 // ─── MIME type constants ───────────────────────────────────────────────────────
 
@@ -110,7 +112,17 @@ export const FILE_EXTENSIONS = {
     "npmrc",
     "editorconfig",
   ] as const,
-  IMAGE: ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"] as const,
+  IMAGE: [
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "svg",
+    "webp",
+    "bmp",
+    "avif",
+    "ico",
+  ] as const,
   VIDEO: ["mp4", "webm", "ogg", "mov", "avi", "mkv"] as const,
   AUDIO: ["mp3", "wav", "ogg", "m4a", "flac", "aac"] as const,
   TEXT: ["txt", "log", "md", "csv"] as const,
@@ -193,64 +205,64 @@ export const EXTENSION_TO_TYPE: Record<string, DocumentTypeDescription> = {
 
 export const ICON_COLORS = {
   FOLDER: {
-    colorClass: "text-amber-500",
-    bgClass: "bg-amber-50",
-    bgSelectedClass: "bg-amber-100 text-amber-600",
+    colorClass: "text-warning-content",
+    bgClass: "bg-warning-soft",
+    bgSelectedClass: "bg-warning-soft text-warning-content",
   },
   PDF: {
-    colorClass: "text-red-500",
-    bgClass: "bg-red-50",
-    bgSelectedClass: "bg-red-100 text-red-600",
+    colorClass: "text-destructive-content",
+    bgClass: "bg-destructive-soft",
+    bgSelectedClass: "bg-destructive-soft text-destructive-content",
   },
   WORD: {
-    colorClass: "text-blue-500",
-    bgClass: "bg-blue-50",
-    bgSelectedClass: "bg-blue-100 text-blue-600",
+    colorClass: "text-info-content",
+    bgClass: "bg-info-soft",
+    bgSelectedClass: "bg-info-soft text-info-content",
   },
   EXCEL: {
-    colorClass: "text-emerald-600",
-    bgClass: "bg-emerald-50",
-    bgSelectedClass: "bg-emerald-100 text-emerald-700",
+    colorClass: "text-success-content",
+    bgClass: "bg-success-soft",
+    bgSelectedClass: "bg-success-soft text-success-content",
   },
   POWERPOINT: {
-    colorClass: "text-orange-500",
-    bgClass: "bg-orange-50",
-    bgSelectedClass: "bg-orange-100 text-orange-600",
+    colorClass: "text-warning-content",
+    bgClass: "bg-warning-soft",
+    bgSelectedClass: "bg-warning-soft text-warning-content",
   },
   ARCHIVE: {
-    colorClass: "text-amber-600",
-    bgClass: "bg-amber-50",
-    bgSelectedClass: "bg-amber-100 text-amber-700",
+    colorClass: "text-warning-content",
+    bgClass: "bg-warning-soft",
+    bgSelectedClass: "bg-warning-soft text-warning-content",
   },
   CODE: {
-    colorClass: "text-cyan-600",
-    bgClass: "bg-cyan-50",
-    bgSelectedClass: "bg-cyan-100 text-cyan-700",
+    colorClass: "text-info-content",
+    bgClass: "bg-info-soft",
+    bgSelectedClass: "bg-info-soft text-info-content",
   },
   IMAGE: {
-    colorClass: "text-pink-500",
-    bgClass: "bg-pink-50",
-    bgSelectedClass: "bg-pink-100 text-pink-600",
+    colorClass: "text-info-content",
+    bgClass: "bg-info-soft",
+    bgSelectedClass: "bg-info-soft text-info-content",
   },
   VIDEO: {
-    colorClass: "text-indigo-500",
-    bgClass: "bg-indigo-50",
-    bgSelectedClass: "bg-indigo-100 text-indigo-600",
+    colorClass: "text-info-content",
+    bgClass: "bg-info-soft",
+    bgSelectedClass: "bg-info-soft text-info-content",
   },
   AUDIO: {
-    colorClass: "text-violet-500",
-    bgClass: "bg-violet-50",
-    bgSelectedClass: "bg-violet-100 text-violet-600",
+    colorClass: "text-info-content",
+    bgClass: "bg-info-soft",
+    bgSelectedClass: "bg-info-soft text-info-content",
   },
   TEXT: {
-    colorClass: "text-slate-600",
-    bgClass: "bg-slate-50",
-    bgSelectedClass: "bg-slate-100 text-slate-700",
+    colorClass: "text-muted-foreground",
+    bgClass: "bg-background",
+    bgSelectedClass: "bg-muted text-foreground",
   },
   DEFAULT: {
-    colorClass: "text-slate-500",
-    bgClass: "bg-slate-50",
-    bgSelectedClass: "bg-slate-100 text-slate-600",
+    colorClass: "text-muted-foreground",
+    bgClass: "bg-background",
+    bgSelectedClass: "bg-muted text-muted-foreground",
   },
 } as const;
 
@@ -296,6 +308,19 @@ export const LINK_ACCESS_LABEL_IDS: Record<string, string> = {
   EDITOR: "documents.linkAccess.editor",
 };
 
+export const LINK_ACCESS_LABELS: Record<LinkAccess, string> = {
+  [LinkAccess.NONE]: "Restricted",
+  [LinkAccess.VIEWER]: "Anyone with the link (Viewer)",
+  // Legacy public Editor links grant viewing; named grants determine editing.
+  [LinkAccess.EDITOR]: "Anyone with the link (Viewer)",
+};
+
+export const LINK_ACCESS_DESCRIPTIONS: Record<LinkAccess, string> = {
+  [LinkAccess.NONE]: "Only people with granted access can open with this link",
+  [LinkAccess.VIEWER]: "Anyone on the internet with this link can view this item",
+  [LinkAccess.EDITOR]: "Anyone on the internet with this link can view this item",
+};
+
 export const LINK_ACCESS_DESCRIPTION_IDS: Record<string, string> = {
   NONE: "documents.linkAccess.restrictedDescription",
   VIEWER: "documents.linkAccess.viewerDescription",
@@ -309,6 +334,7 @@ export const DND_ROOT_ID = "root";
 // ─── Query Parameters ─────────────────────────────────────────────────────────
 
 export const DOCUMENT_QUERY_PARAMS = {
+  DOCUMENT_ID: 'documentId',
   VIEW: "view",
   FOLDER_ID: "folderId",
 } as const;

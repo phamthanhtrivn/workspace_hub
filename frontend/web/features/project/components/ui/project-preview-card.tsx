@@ -1,7 +1,7 @@
 "use client";
 
-import { FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProjectColorDot, ProjectIdentityIcon } from "./project-identity";
 
 interface ProjectPreviewCardProps {
   name?: string;
@@ -16,7 +16,7 @@ export default function ProjectPreviewCard({
   name,
   description,
   icon,
-  color = "#0052CC",
+  color = "var(--primary)",
   fallbackName = "Untitled Project",
   className,
 }: ProjectPreviewCardProps) {
@@ -26,31 +26,24 @@ export default function ProjectPreviewCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-slate-200 bg-slate-50 p-4",
+        "rounded-panel border border-border bg-background p-4",
         className,
       )}
     >
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
         Preview
       </p>
       <div className="mt-2 flex min-w-0 items-center gap-3">
-        <span
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg shadow-sm"
-          style={{
-            backgroundColor: `${color}14`,
-            boxShadow: `0 0 0 1px ${color}66`,
-            color,
-          }}
-          aria-hidden="true"
-        >
-          {icon || <FolderKanban className="h-5 w-5" strokeWidth={2} />}
-        </span>
+        <ProjectIdentityIcon icon={icon} color={color} />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-bold text-[#172B4D]">
-            {displayName}
+          <span className="flex min-w-0 items-center gap-2">
+            <ProjectColorDot color={color} />
+            <span className="truncate text-sm font-semibold text-foreground">
+              {displayName}
+            </span>
           </span>
           {displayDescription ? (
-            <span className="mt-0.5 block truncate text-xs font-medium text-slate-500">
+            <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
               {displayDescription}
             </span>
           ) : null}

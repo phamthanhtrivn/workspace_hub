@@ -20,6 +20,20 @@ import java.util.Map;
 public class KafkaProducerConfig {
 
     @Bean
+    public KafkaTemplate<String, String> userOutboxKafkaTemplate(
+            @Value(UserProfileKafkaProperties.BOOTSTRAP_SERVERS_PROPERTY) String bootstrapServers) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.ACKS_CONFIG, "all");
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 5000);
+        config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 15000);
+        return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(config));
+    }
+
+    @Bean
     public ProducerFactory<String, UserProfileSnapshotPayload> userProfileProducerFactory(
             @Value(UserProfileKafkaProperties.BOOTSTRAP_SERVERS_PROPERTY) String bootstrapServers
     ) {

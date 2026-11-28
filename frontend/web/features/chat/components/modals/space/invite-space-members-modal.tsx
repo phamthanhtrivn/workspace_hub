@@ -1,16 +1,29 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { SelectedUserChip } from "@/components/common/selected-user-chip";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
+import { IconButton } from "@/components/ui/icon-button";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { Search, X, Loader2, User } from "lucide-react";
+
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
-import Image from "next/image";
+
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import {
   inviteSpaceMembers,
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 interface InviteSpaceMembersModalProps {
   isOpen: boolean;
@@ -19,7 +32,7 @@ interface InviteSpaceMembersModalProps {
   onInvited?: () => void;
 }
 
-export default function InviteSpaceMembersModal({
+function InviteSpaceMembersModalForm({
   isOpen,
   onClose,
   spaceId,
@@ -33,66 +46,36 @@ export default function InviteSpaceMembersModal({
   const [isInviting, setIsInviting] = useState(false);
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const mounted = useHydrated();
 
   useEffect(() => {
-    if (isOpen) {
-      setEmail("");
-      setResults([]);
+    if (!email.trim()) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
       setError("");
-      setSelectedUsers([]);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!email.trim()) {
-      setResults([]);
-      setError("");
-      return;
-    }
-    const delayDebounceFn = setTimeout(() => {
-      handleSearch();
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [email, selectedUsers]);
-
-  const handleSearch = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await searchUserByEmail(email);
-      const users = response?.success ? response.data : [];
-
-      const filtered = users.filter(
-        (u: UserSearchResponse) =>
-          u.id !== currentUserId &&
-          !selectedUsers.some((selected) => selected.id === u.id),
-      );
-      setResults(filtered);
-
-      if (filtered.length === 0 && users.length > 0) {
-        setError("Selected user is already added");
-      } else if (filtered.length === 0) {
-        setError("User not found");
+      try {
+        const response = await searchUserByEmail(email);
+        const users = response?.success ? response.data : [];
+        const filtered = users.filter(user => user.id !== currentUserId && !selectedUsers.some(selected => selected.id === user.id));
+        if (cancelled) return;
+        setResults(filtered);
+        if (!filtered.length) setError(users.length ? "Selected user is already added" : "User not found");
+      } catch (error) {
+        if (!cancelled) { setError(getApiErrorMessage(error, "Failed to search user")); setResults([]); }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Failed to search user",
-      );
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [email, selectedUsers, currentUserId]);
 
   const handleSelectUser = (user: UserSearchResponse) => {
     setSelectedUsers((prev) => [...prev, user]);
     setEmail("");
     setResults([]);
+    setError("");
+    setLoading(false);
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -115,9 +98,9 @@ export default function InviteSpaceMembersModal({
       toast.success("Space invitations sent successfully");
       onInvited?.();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
-        err.response?.data?.message || "Failed to send invitations",
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to send invitations")),
       );
     } finally {
       setIsInviting(false);
@@ -126,107 +109,91 @@ export default function InviteSpaceMembersModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col max-h-[90vh]">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
+      <div className={`${dialogLayout.surface} w-full max-w-md bg-card rounded-panel border border-border flex flex-col max-h-[90vh]`}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-section-title font-semibold text-foreground">
             Invite Members to Space
           </h2>
-          <button
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+            className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Content */}
-        <div className="p-6 flex flex-col gap-4 overflow-y-auto">
+        <div className={`${dialogLayout.body} p-6 flex flex-col gap-4 overflow-y-auto`}>
           {/* Selected Users Chips */}
           {selectedUsers.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-xl border border-gray-100 max-h-24 overflow-y-auto">
+            <div aria-label="Selected space invitation members" className="flex flex-wrap gap-1.5 p-2 bg-background rounded-panel border border-border max-h-24 overflow-y-auto">
               {selectedUsers.map((user) => (
-                <div
+                <SelectedUserChip
                   key={user.id}
-                  className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-lg"
-                >
-                  <span>
-                    {user.fullName} ({user.email})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveUser(user.id)}
-                    className="hover:bg-blue-100 rounded text-blue-500 hover:text-blue-700 p-0.5 cursor-pointer"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
+                  name={user.fullName || user.email}
+                  email={user.email}
+                  avatarUrl={user.avatarUrl}
+                  disabled={isInviting}
+                  onRemove={() => handleRemoveUser(user.id)}
+                />
               ))}
             </div>
           )}
 
           {/* Search Box */}
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={16}
-            />
-            <input
+            <SearchInput aria-label="Enter user email to search" unstyled
               type="text"
               placeholder="Enter user email to search..."
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-sm outline-none transition"
+              onChange={(event) => { setEmail(event.target.value); setResults([]); setError(""); setLoading(false); }}
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-input focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
 
           {/* Results List */}
-          <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-gray-100 rounded-xl p-1">
+          <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-border rounded-panel p-1">
             {loading ? (
-              <div className="flex justify-center items-center py-6 text-gray-400 text-xs gap-1.5">
-                <Loader2 size={14} className="animate-spin text-blue-500" />
+              <div role="status" className="flex justify-center items-center py-6 text-muted-foreground text-xs gap-1.5">
+                <Spinner size={14} />
                 Searching...
               </div>
             ) : results.length > 0 ? (
               results.map((user) => (
-                <div
+                <Button variant="unstyled" type="button"
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
-                  className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition"
+                  className="w-full text-left flex items-center justify-between p-2 hover:bg-background rounded-lg cursor-pointer transition"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm">
-                      {user.avatarUrl ? (
-                        <Image
-                          src={user.avatarUrl}
-                          alt="Avatar"
-                          width={28}
-                          height={28}
-                          className="rounded-full animate-fade-in object-cover"
-                        />
-                      ) : (
-                        <User size={13} className="text-slate-400" />
-                      )}
+                    <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border">
+                      <UserAvatar
+                        src={user?.avatarUrl}
+                        alt={user.fullName || user.email}
+                        width={28}
+                        height={28}
+                        className="rounded-full animate-fade-in object-cover"
+                      />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-slate-800">
+                      <span className="text-xs font-semibold text-foreground">
                         {user.fullName}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {user.email}
                       </span>
                     </div>
                   </div>
-                </div>
+                </Button>
               ))
             ) : error ? (
-              <div className="text-center py-8 text-xs text-gray-400">
+              <div className="text-center py-8 text-xs text-muted-foreground">
                 {error}
               </div>
             ) : (
-              <div className="text-center py-8 text-xs text-gray-400">
+              <div className="text-center py-8 text-xs text-muted-foreground">
                 Enter an email address to search for workspace members.
               </div>
             )}
@@ -234,27 +201,28 @@ export default function InviteSpaceMembersModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
-          <button
+        <div className="px-6 py-4 border-t border-border flex justify-end gap-3 bg-background">
+          <Button variant="secondary"
             type="button"
             onClick={onClose}
             disabled={isInviting}
-            className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+            className="px-4 py-2 text-sm font-medium rounded-control transition cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button aria-busy={isInviting || undefined} variant="default"
             onClick={handleInvite}
             disabled={isInviting || selectedUsers.length === 0}
-            className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2 text-sm font-medium disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
           >
-            {isInviting && <Loader2 size={16} className="animate-spin" />}
+            {isInviting && <Spinner tone="inherit" />}
             Send Invitation
-          </button>
+          </Button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 
+export default function InviteSpaceMembersModal(props: InviteSpaceMembersModalProps) {
+  return props.isOpen ? <InviteSpaceMembersModalForm key={props.spaceId} {...props} /> : null;
+}

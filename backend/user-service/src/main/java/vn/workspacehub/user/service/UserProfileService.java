@@ -24,10 +24,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
+    private final SessionRevocationPublisher revocations;
+    private final vn.workspacehub.user.repository.PasswordResetGrantRepository passwordResetGrants;
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
-    private final S3Service s3Service;
+    private final AvatarUploadService avatars;
     private final UserProfileEventPublisher userProfileEventPublisher;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -48,22 +50,16 @@ public class UserProfileService {
         UserProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException("User profile not found"));
 
+        avatars.assertConfirmed(userId, userProfile.getAvatarUrl(), request.getAvatarUrl());
         userProfileMapper.updateEntityFromRequest(request, userProfile);
 
         UserProfile savedProfile = userProfileRepository.save(userProfile);
-        userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(savedProfile.getUser());
+        userProfileEventPublisher.enqueueSnapshot(savedProfile.getUser());
         return userProfileMapper.toResponse(savedProfile);
     }
 
-    public PresignedUrlResponse generateAvatarPresignedUrl(UUID userId, String fileName, String contentType) {
-        String extension = "";
-        int i = fileName.lastIndexOf('.');
-        if (i > 0) {
-            extension = fileName.substring(i);
-        }
-
-        String objectKey = "avatars/" + userId + "/" + UUID.randomUUID() + extension;
-        return s3Service.generatePresignedUrl(objectKey, contentType);
+    public PresignedUrlResponse generateAvatarPresignedUrl(UUID userId, String fileName, String contentType, long sizeBytes) {
+        return avatars.initiate(userId, fileName, contentType, sizeBytes);
     }
 
     @Transactional
@@ -80,8 +76,8 @@ public class UserProfileService {
     }
 
     @Transactional
-    public void setFirstPassword(UUID userId, SetFirstPasswordRequest request, String currentTokenHash) {
-        User user = userRepository.findById(userId)
+    public void setFirstPassword(UUID userId, SetFirstPasswordRequest request) {
+        User user = userRepository.findForUpdateById(userId)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         if (user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
@@ -99,16 +95,17 @@ public class UserProfileService {
 
         otpService.clearOtp(user.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setEmailVerified(true);
         userRepository.save(user);
 
-        if (currentTokenHash != null && !currentTokenHash.isBlank()) {
-            refreshTokenRepository.revokeAllExceptCurrent(userId, currentTokenHash, LocalDateTime.now());
-        }
+        refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        revocations.revoked(userId, null);
+        passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 
     @Transactional
-    public void updatePassword(UUID userId, UpdatePasswordRequest request, String currentTokenHash) {
-        User user = userRepository.findById(userId)
+    public void updatePassword(UUID userId, UpdatePasswordRequest request) {
+        User user = userRepository.findForUpdateById(userId)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
@@ -127,8 +124,8 @@ public class UserProfileService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        if (currentTokenHash != null && !currentTokenHash.isBlank()) {
-            refreshTokenRepository.revokeAllExceptCurrent(userId, currentTokenHash, LocalDateTime.now());
-        }
+        refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        revocations.revoked(userId, null);
+        passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 }

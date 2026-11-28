@@ -1,4 +1,9 @@
 name: workspacehub-app
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
 services:
   user-service:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service:${USER_SERVICE_IMAGE_TAG:?USER_SERVICE_IMAGE_TAG is required}
@@ -8,12 +13,13 @@ services:
       JWT_ISSUER: workspace-hub
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
       KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
       REDIS_HOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
       REDIS_PORT: '6379'
       AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
       AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
-      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
       MAIL_PORT: ${MAIL_PORT:-587}
@@ -25,10 +31,16 @@ services:
       POSTGRES_DB: user_db
       POSTGRES_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      PROJECT_TO_USER_KEY: ${PROJECT_TO_USER_KEY:?PROJECT_TO_USER_KEY is required}
+      COMMUNICATION_TO_USER_KEY: ${COMMUNICATION_TO_USER_KEY:?COMMUNICATION_TO_USER_KEY is required}
+      DOCUMENT_TO_USER_KEY: ${DOCUMENT_TO_USER_KEY:?DOCUMENT_TO_USER_KEY is required}
+      CALENDAR_TO_USER_KEY: ${CALENDAR_TO_USER_KEY:?CALENDAR_TO_USER_KEY is required}
+      NOTIFICATION_TO_USER_KEY: ${NOTIFICATION_TO_USER_KEY:?NOTIFICATION_TO_USER_KEY is required}
+      AI_TO_USER_KEY: ${AI_TO_USER_KEY:?AI_TO_USER_KEY is required}
     expose:
       - '8081'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD-SHELL
@@ -46,16 +58,24 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
       KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
-      DOCUMENT_SERVICE_URL: http://document-service:8085
       PORT: '8082'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/project_db?schema=public
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
       USER_SERVICE_URL: http://user-service:8081
       COMMUNICATION_SERVICE_URL: http://communication-service:8083
       NOTIFICATION_SERVICE_URL: http://notification-service:8084
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      PROJECT_TO_USER_KEY: ${PROJECT_TO_USER_KEY:?PROJECT_TO_USER_KEY is required}
+      PROJECT_TO_COMMUNICATION_KEY: ${PROJECT_TO_COMMUNICATION_KEY:?PROJECT_TO_COMMUNICATION_KEY is required}
+      COMMUNICATION_TO_PROJECT_KEY: ${COMMUNICATION_TO_PROJECT_KEY:?COMMUNICATION_TO_PROJECT_KEY is required}
+      PROJECT_TO_DOCUMENT_KEY: ${PROJECT_TO_DOCUMENT_KEY:?PROJECT_TO_DOCUMENT_KEY is required}
+      DOCUMENT_TO_PROJECT_KEY: ${DOCUMENT_TO_PROJECT_KEY:?DOCUMENT_TO_PROJECT_KEY is required}
+      PROJECT_TO_NOTIFICATION_KEY: ${PROJECT_TO_NOTIFICATION_KEY:?PROJECT_TO_NOTIFICATION_KEY is required}
+      AI_TO_PROJECT_KEY: ${AI_TO_PROJECT_KEY:?AI_TO_PROJECT_KEY is required}
     expose:
       - '8082'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -78,19 +98,37 @@ services:
       REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
       AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
       AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
-      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL:-}
+      AWS_S3_USE_IAM_ROLE: ${AWS_S3_USE_IAM_ROLE:-true}
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY:-}
+      AWS_SECRET_KEY: ${AWS_SECRET_KEY:-}
       LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
       LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:?LIVEKIT_PUBLIC_URL is required}
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      MEETING_RECORDING_ENABLED: ${MEETING_RECORDING_ENABLED:-false}
+      LIVEKIT_RECORDING_TEMPLATE_URL: ${LIVEKIT_RECORDING_TEMPLATE_URL:-}
+      LIVEKIT_EGRESS_WEBHOOK_URL: ${LIVEKIT_EGRESS_WEBHOOK_URL:-}
+      LIVEKIT_EGRESS_HEALTH_URL: ${LIVEKIT_EGRESS_HEALTH_URL:-}
       PORT: '8083'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/communication_db?schema=public
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
       USER_SERVICE_URL: http://user-service:8081
       PROJECT_SERVICE_URL: http://project-service:8082
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      AI_SERVICE_URL: http://notebook-api:8087
+      CONVERSATION_AI_ENABLED: ${CONVERSATION_AI_ENABLED:-false}
+      MEETING_SUMMARY_ENABLED: ${MEETING_SUMMARY_ENABLED:-false}
+      VOICE_TRANSCRIPTION_ENABLED: ${VOICE_TRANSCRIPTION_ENABLED:-false}
+      COMMUNICATION_TO_USER_KEY: ${COMMUNICATION_TO_USER_KEY:?COMMUNICATION_TO_USER_KEY is required}
+      COMMUNICATION_TO_PROJECT_KEY: ${COMMUNICATION_TO_PROJECT_KEY:?COMMUNICATION_TO_PROJECT_KEY is required}
+      PROJECT_TO_COMMUNICATION_KEY: ${PROJECT_TO_COMMUNICATION_KEY:?PROJECT_TO_COMMUNICATION_KEY is required}
+      CALENDAR_TO_COMMUNICATION_KEY: ${CALENDAR_TO_COMMUNICATION_KEY:?CALENDAR_TO_COMMUNICATION_KEY is required}
+      AI_TO_COMMUNICATION_KEY: ${AI_TO_COMMUNICATION_KEY:?AI_TO_COMMUNICATION_KEY is required}
+      COMMUNICATION_TO_AI_KEY: ${COMMUNICATION_TO_AI_KEY:?COMMUNICATION_TO_AI_KEY is required}
     expose:
       - '8083'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -114,16 +152,21 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
       MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
-      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM: ${MAIL_FROM:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:?VAPID_SUBJECT is required}
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?VAPID_PUBLIC_KEY is required}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?VAPID_PRIVATE_KEY is required}
       PORT: '8084'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notification_db?schema=public
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
+      USER_SERVICE_URL: http://user-service:8081
+      WEB_PUSH_ALLOWED_HOSTS: ${WEB_PUSH_ALLOWED_HOSTS:-}
+      NOTIFICATION_TO_USER_KEY: ${NOTIFICATION_TO_USER_KEY:?NOTIFICATION_TO_USER_KEY is required}
+      PROJECT_TO_NOTIFICATION_KEY: ${PROJECT_TO_NOTIFICATION_KEY:?PROJECT_TO_NOTIFICATION_KEY is required}
     expose:
       - '8084'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -145,14 +188,22 @@ services:
       KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
       AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
       AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
-      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL:-}
+      USER_SERVICE_URL: http://user-service:8081
       PROJECT_SERVICE_URL: http://project-service:8082
       PORT: '8085'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/document_db?schema=public
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      DOCUMENT_TO_USER_KEY: ${DOCUMENT_TO_USER_KEY:?DOCUMENT_TO_USER_KEY is required}
+      DOCUMENT_TO_PROJECT_KEY: ${DOCUMENT_TO_PROJECT_KEY:?DOCUMENT_TO_PROJECT_KEY is required}
+      PROJECT_TO_DOCUMENT_KEY: ${PROJECT_TO_DOCUMENT_KEY:?PROJECT_TO_DOCUMENT_KEY is required}
+      AI_DOCUMENT_SERVICE_KEY: ${AI_DOCUMENT_SERVICE_KEY:?AI_DOCUMENT_SERVICE_KEY is required}
+      AI_DOCUMENT_SERVICE_KEY_PREVIOUS: ${AI_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
+      CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
+      CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS: ${CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
     expose:
       - '8085'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -174,13 +225,21 @@ services:
       KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
       PORT: '8086'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/calendar_db?schema=public
-      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL:-}
       USER_SERVICE_URL: http://user-service:8081
       PROJECT_SERVICE_URL: http://project-service:8082
       DOCUMENT_SERVICE_URL: http://document-service:8085
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      CALENDAR_TO_USER_KEY: ${CALENDAR_TO_USER_KEY:?CALENDAR_TO_USER_KEY is required}
+      CALENDAR_TO_COMMUNICATION_KEY: ${CALENDAR_TO_COMMUNICATION_KEY:?CALENDAR_TO_COMMUNICATION_KEY is required}
+      CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
+      AI_TO_CALENDAR_KEY: ${AI_TO_CALENDAR_KEY:?AI_TO_CALENDAR_KEY is required}
     expose:
       - '8086'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -191,14 +250,216 @@ services:
       timeout: 5s
       retries: 18
       start_period: 45s
+  notebook-qdrant:
+    image: qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad
+    volumes:
+      - notebook-qdrant:/qdrant/storage
+    networks:
+      - ai_internal
+    restart: unless-stopped
+    logging: *bounded-logs
+  rag-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-rag-worker:${RAG_WORKER_IMAGE_TAG:?RAG_WORKER_IMAGE_TAG is required}
+    deploy:
+      replicas: 1
+    environment:
+      RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?RAG_SERVICE_KEY is required}
+      RAG_SERVICE_KEY_PREVIOUS: ${RAG_SERVICE_KEY_PREVIOUS:-}
+      QDRANT_URL: http://notebook-qdrant:6333
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      EMBEDDING_SECONDARY_MODEL: ${EMBEDDING_SECONDARY_MODEL:-}
+      EMBEDDING_LOCAL_ENABLED: ${EMBEDDING_LOCAL_ENABLED:-false}
+      EMBEDDING_INDEX_STRATEGY: ${EMBEDDING_INDEX_STRATEGY:-ensemble}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      EMBEDDING_MAX_CONCURRENCY: ${EMBEDDING_MAX_CONCURRENCY:-5}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      INDEX_PIPELINE_VERSION: ${INDEX_PIPELINE_VERSION:-notebook-v1}
+      VISUAL_ENABLED: ${VISUAL_ENABLED:-false}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
+      TOKENIZERS_PARALLELISM: ${TOKENIZERS_PARALLELISM:-false}
+    volumes:
+      - notebook-models:/models
+    networks:
+      - ai_internal
+    depends_on:
+      - notebook-qdrant
+    restart: unless-stopped
+    mem_limit: ${RAG_MEMORY_LIMIT:-2g}
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8088/ready',headers={'x-internal-service-key':os.environ['RAG_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=10).close()
+      interval: 30s
+      timeout: 12s
+      retries: 6
+      start_period: 180s
+  speech-worker:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-speech-worker:${SPEECH_WORKER_IMAGE_TAG:?SPEECH_WORKER_IMAGE_TAG is required}
+    environment:
+      SPEECH_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:?MEETING_STT_SERVICE_KEY is required}
+      STT_MODEL_PATH: /models/small
+      STT_CPU_THREADS: ${MEETING_STT_CPU_THREADS:-4}
+      HF_HUB_OFFLINE: '1'
+    expose:
+      - '8090'
+    networks:
+      - ai_internal
+    restart: unless-stopped
+    mem_limit: 3g
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8090/ready',headers={'x-internal-service-key':os.environ['SPEECH_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=5).close()
+      interval: 30s
+      timeout: 8s
+      retries: 6
+      start_period: 120s
+  notebook-api:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-service:${AI_SERVICE_IMAGE_TAG:?AI_SERVICE_IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      BIND_HOST: 0.0.0.0
+      PORT: '8087'
+      DATABASE_URL: postgresql://notebook:${NOTEBOOK_POSTGRES_PASSWORD_URLENCODED:?NOTEBOOK_POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notebook_db
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379/3
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      USER_SERVICE_URL: http://user-service:8081
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      WORK_ASSISTANT_PROJECT_URL: http://project-service:8082
+      WORK_ASSISTANT_CALENDAR_URL: http://calendar-service:8086
+      RAG_WORKER_URL: http://rag-worker:8088
+      MEETING_STT_URL: http://speech-worker:8090
+      AI_ENABLED: ${AI_ENABLED:-true}
+      CONVERSATION_AI_ENABLED: ${CONVERSATION_AI_ENABLED:-false}
+      WORK_ASSISTANT_ENABLED: ${WORK_ASSISTANT_ENABLED:-true}
+      MEETING_SUMMARY_ENABLED: ${MEETING_SUMMARY_ENABLED:-false}
+      VOICE_TRANSCRIPTION_ENABLED: ${VOICE_TRANSCRIPTION_ENABLED:-false}
+      MEETING_MEDIA_HOSTS: ${MEETING_MEDIA_HOSTS:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY is required}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
+      VISUAL_ENABLED: ${VISUAL_ENABLED:-false}
+      AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:?AI_GATEWAY_KEY is required}
+      AI_GATEWAY_KEY_PREVIOUS: ${AI_GATEWAY_KEY_PREVIOUS:-}
+      AI_DOCUMENT_SERVICE_KEY: ${AI_DOCUMENT_SERVICE_KEY:?AI_DOCUMENT_SERVICE_KEY is required}
+      RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?RAG_SERVICE_KEY is required}
+      MEETING_STT_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:?MEETING_STT_SERVICE_KEY is required}
+      AI_TO_USER_KEY: ${AI_TO_USER_KEY:?AI_TO_USER_KEY is required}
+      AI_TO_PROJECT_KEY: ${AI_TO_PROJECT_KEY:?AI_TO_PROJECT_KEY is required}
+      AI_TO_CALENDAR_KEY: ${AI_TO_CALENDAR_KEY:?AI_TO_CALENDAR_KEY is required}
+      AI_TO_COMMUNICATION_KEY: ${AI_TO_COMMUNICATION_KEY:?AI_TO_COMMUNICATION_KEY is required}
+      COMMUNICATION_TO_AI_KEY: ${COMMUNICATION_TO_AI_KEY:?COMMUNICATION_TO_AI_KEY is required}
+    stop_grace_period: 4m
+    expose:
+      - '8087'
+    networks:
+      - default
+      - ai_internal
+    depends_on:
+      rag-worker:
+        condition: service_healthy
+      speech-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:8087/ready',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 120s
+  notebook-jobs:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-service:${AI_SERVICE_IMAGE_TAG:?AI_SERVICE_IMAGE_TAG is required}
+    command:
+      - node
+      - dist/worker.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://notebook:${NOTEBOOK_POSTGRES_PASSWORD_URLENCODED:?NOTEBOOK_POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notebook_db
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379/3
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      USER_SERVICE_URL: http://user-service:8081
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      WORK_ASSISTANT_PROJECT_URL: http://project-service:8082
+      WORK_ASSISTANT_CALENDAR_URL: http://calendar-service:8086
+      RAG_WORKER_URL: http://rag-worker:8088
+      MEETING_STT_URL: http://speech-worker:8090
+      AI_ENABLED: ${AI_ENABLED:-true}
+      CONVERSATION_AI_ENABLED: ${CONVERSATION_AI_ENABLED:-false}
+      WORK_ASSISTANT_ENABLED: ${WORK_ASSISTANT_ENABLED:-true}
+      MEETING_SUMMARY_ENABLED: ${MEETING_SUMMARY_ENABLED:-false}
+      VOICE_TRANSCRIPTION_ENABLED: ${VOICE_TRANSCRIPTION_ENABLED:-false}
+      MEETING_MEDIA_HOSTS: ${MEETING_MEDIA_HOSTS:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY is required}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
+      VISUAL_ENABLED: ${VISUAL_ENABLED:-false}
+      AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:?AI_GATEWAY_KEY is required}
+      AI_DOCUMENT_SERVICE_KEY: ${AI_DOCUMENT_SERVICE_KEY:?AI_DOCUMENT_SERVICE_KEY is required}
+      RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?RAG_SERVICE_KEY is required}
+      MEETING_STT_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:?MEETING_STT_SERVICE_KEY is required}
+      AI_TO_USER_KEY: ${AI_TO_USER_KEY:?AI_TO_USER_KEY is required}
+      AI_TO_PROJECT_KEY: ${AI_TO_PROJECT_KEY:?AI_TO_PROJECT_KEY is required}
+      AI_TO_CALENDAR_KEY: ${AI_TO_CALENDAR_KEY:?AI_TO_CALENDAR_KEY is required}
+      AI_TO_COMMUNICATION_KEY: ${AI_TO_COMMUNICATION_KEY:?AI_TO_COMMUNICATION_KEY is required}
+      COMMUNICATION_TO_AI_KEY: ${COMMUNICATION_TO_AI_KEY:?COMMUNICATION_TO_AI_KEY is required}
+    stop_grace_period: 4m
+    networks:
+      - default
+      - ai_internal
+    depends_on:
+      rag-worker:
+        condition: service_healthy
+      speech-worker:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - const u=new URL(process.env.REDIS_URL);const s=require('node:net').connect(Number(u.port||6379),u.hostname,()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),5000)
+      interval: 15s
+      timeout: 8s
+      retries: 12
+      start_period: 45s
   kong:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${KONG_IMAGE_TAG:?KONG_IMAGE_TAG is required}
     environment:
+      KONG_PROXY_ACCESS_LOG: 'off'
+      KONG_PROXY_ERROR_LOG: /dev/null
+      KONG_DNS_VALID_TTL: '5'
+      KONG_DNS_STALE_TTL: '5'
+      KONG_DNS_NOT_FOUND_TTL: '1'
+      KONG_DNS_ERROR_TTL: '1'
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:?AI_GATEWAY_KEY is required}
     ports:
-      - ${KONG_PORT:-8000}:8000
+      - ${KONG_BIND_HOST:-127.0.0.1}:${KONG_PORT:-8000}:8000
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -220,13 +481,16 @@ services:
         condition: service_healthy
       calendar-service:
         condition: service_healthy
+      notebook-api:
+        condition: service_healthy
   frontend-web:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-web:${FRONTEND_WEB_IMAGE_TAG:?FRONTEND_WEB_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
-    ports:
-      - ${FRONTEND_PORT:-3000}:3000
+    expose:
+      - '3000'
     restart: unless-stopped
+    logging: *bounded-logs
     healthcheck:
       test:
         - CMD
@@ -237,6 +501,33 @@ services:
       timeout: 5s
       retries: 18
       start_period: 45s
+  caddy:
+    image: caddy:2.10.0-alpine@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend-web:
+        condition: service_healthy
+      kong:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        - CMD
+        - caddy
+        - version
+      interval: 15s
+      timeout: 5s
+      retries: 6
   communication-service-migration:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service-migration:${COMMUNICATION_SERVICE_MIGRATION_IMAGE_TAG:?COMMUNICATION_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
@@ -287,3 +578,45 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       PGDATABASE: project_db
     restart: 'no'
+  notebook-db-bootstrap:
+    image: postgres:15.18-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+    profiles:
+      - migration
+    entrypoint:
+      - sh
+      - /bootstrap-db.sh
+    environment:
+      PGHOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      NOTEBOOK_POSTGRES_USER: notebook
+      NOTEBOOK_POSTGRES_PASSWORD: ${NOTEBOOK_POSTGRES_PASSWORD:?NOTEBOOK_POSTGRES_PASSWORD is required}
+    volumes:
+      - ./bootstrap-db.sh:/bootstrap-db.sh:ro
+    restart: 'no'
+  ai-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-service:${AI_SERVICE_IMAGE_TAG:?AI_SERVICE_IMAGE_TAG is required}
+    profiles:
+      - migration
+    command:
+      - node
+      - dist/migrate.js
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://notebook:${NOTEBOOK_POSTGRES_PASSWORD_URLENCODED:?NOTEBOOK_POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notebook_db
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379/3
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      RAG_WORKER_URL: http://rag-worker:8088
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY is required}
+      LLM_MODEL: ${LLM_MODEL:?LLM_MODEL is required}
+    restart: 'no'
+volumes:
+  notebook-qdrant: {}
+  notebook-models: {}
+  caddy_data: {}
+  caddy_config: {}
+networks:
+  ai_internal:
+    internal: true

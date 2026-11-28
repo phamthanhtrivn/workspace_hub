@@ -9,11 +9,13 @@ import {
 } from "./use-calendar-queries";
 import { useCalendarView } from "./use-calendar-view";
 import { useCalendarVisibility } from "./use-calendar-visibility";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 
 export function useCalendarWorkspace(
   calendarRef: RefObject<FullCalendar | null>,
 ) {
   const view = useCalendarView(calendarRef);
+  const timeZone = useAccountTimezone();
   const calendarsQuery = useCalendarCalendars();
   const eventsQuery = useCalendarEvents(view.range);
   const calendars = useMemo(
@@ -35,8 +37,11 @@ export function useCalendarWorkspace(
     ...actions,
     calendars,
     events,
-    displayTimeZone: defaultCalendar?.timeZone || "Asia/Ho_Chi_Minh",
+    displayTimeZone: timeZone,
     hasError: calendarsQuery.isError || eventsQuery.isError,
+    hasLoadedContent: calendarsQuery.data !== undefined && eventsQuery.data !== undefined,
+    retrying: calendarsQuery.isFetching || eventsQuery.isFetching,
+    retry: () => Promise.all([calendarsQuery.refetch(), eventsQuery.refetch()]),
     isPreparingDefaultCalendar:
       calendars.length === 0 && calendarsQuery.isLoading,
     loading: calendarsQuery.isLoading || eventsQuery.isLoading,

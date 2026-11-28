@@ -38,7 +38,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       success: false,
-      message: Array.isArray(message) ? 'Validation failed' : message,
+      message: status >= HttpStatus.INTERNAL_SERVER_ERROR ? 'Internal server error' : Array.isArray(message) ? 'Validation failed' : message,
       data: null,
       errors,
       timestamp: new Date().toISOString(),

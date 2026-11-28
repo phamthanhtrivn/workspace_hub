@@ -3,8 +3,9 @@ import {
   getDateInputValue,
   getTimeInputValue,
   hasMinimumEventDuration,
-  toDateTimeLocal,
+  addMinutesToDateTimeLocal,
 } from "./calendar-date.utils";
+import { Temporal } from "temporal-polyfill";
 
 export interface CalendarTimeOption {
   value: string;
@@ -17,11 +18,12 @@ const GOOGLE_STYLE_DURATIONS = [
   30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 600, 720,
 ];
 
-function formatTime(date: Date, locale: string): string {
+function formatTime(clock: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
     hour: "numeric",
     minute: "2-digit",
-  }).format(date);
+  }).format(new Date(`2000-01-01T${clock}:00Z`));
 }
 
 export function formatDuration(minutes: number, locale: string): string {
@@ -55,12 +57,10 @@ export function createStartTimeOptions(
   }
 
   return values.map((minutes) => {
-    const date = new Date(2000, 0, 1, 0, minutes);
+    const clock = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     return {
-      value: `${String(date.getHours()).padStart(2, "0")}:${String(
-        date.getMinutes(),
-      ).padStart(2, "0")}`,
-      label: formatTime(date, locale),
+      value: clock,
+      label: formatTime(clock, locale),
     };
   });
 }
@@ -70,8 +70,8 @@ export function createEndTimeOptions(
   currentEndAt: string,
   locale: string,
 ): CalendarTimeOption[] {
-  const start = new Date(startAt);
-  const currentEnd = new Date(currentEndAt);
+  const start = new Date(`${startAt}Z`);
+  const currentEnd = new Date(`${currentEndAt}Z`);
   if (Number.isNaN(start.getTime())) return [];
 
   if (getDateInputValue(startAt) !== getDateInputValue(currentEndAt)) {
@@ -80,7 +80,7 @@ export function createEndTimeOptions(
       .map((option) => {
         const value = composeDateTimeLocal(endDate, option.value);
         const minutes = Math.round(
-          (new Date(value).getTime() - start.getTime()) / 60_000,
+          Temporal.PlainDateTime.from(startAt).until(Temporal.PlainDateTime.from(value)).total("minutes"),
         );
         return {
           value,
@@ -100,10 +100,10 @@ export function createEndTimeOptions(
   }
 
   return durations.map((minutes) => {
-    const end = new Date(start.getTime() + minutes * 60_000);
+    const end = addMinutesToDateTimeLocal(startAt, minutes);
     return {
-      value: toDateTimeLocal(end),
-      label: `${formatTime(end, locale)} (${formatDuration(minutes, locale)})`,
+      value: end,
+      label: `${formatTime(getTimeInputValue(end), locale)} (${formatDuration(minutes, locale)})`,
     };
-  });
+  }).filter(option => hasMinimumEventDuration(startAt, option.value));
 }

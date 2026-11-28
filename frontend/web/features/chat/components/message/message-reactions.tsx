@@ -1,11 +1,14 @@
 import { cn } from "@/lib/utils";
 import { MessageReaction } from "./chat-message.types";
+import { Button } from "@/components/ui/button";
+
 
 interface MessageReactionsProps {
   reactions?: MessageReaction[];
   currentUserId?: string | null;
   onReactionClick: (emoji: string) => void;
   onOpenDetails: () => void;
+  align?: "start" | "end";
 }
 
 export default function MessageReactions({
@@ -13,6 +16,7 @@ export default function MessageReactions({
   currentUserId,
   onReactionClick,
   onOpenDetails,
+  align = "start",
 }: MessageReactionsProps) {
   if (!reactions || reactions.length === 0) return null;
 
@@ -26,34 +30,34 @@ export default function MessageReactions({
   );
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className={cn("mt-1.5 flex max-w-full min-w-0 flex-wrap gap-1", align === "end" && "justify-end")}>
       {Object.entries(groupedReactions).map(([emoji, emojiReactions]) => {
         const userReacted = emojiReactions.some(
           (reaction) => reaction.userId === currentUserId,
         );
 
         return (
-          <button
+          <Button variant="unstyled"
             key={emoji}
             onClick={() => onReactionClick(emoji)}
             className={cn(
-              "cursor-pointer flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border transition-all duration-150",
+              "cursor-pointer flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all duration-150",
               userReacted
-                ? "bg-blue-50 border-blue-200 text-blue-700 font-bold"
-                : "bg-slate-50/60 border-slate-200/60 text-slate-600 hover:bg-slate-100 hover:text-slate-800",
+                ? "bg-info-soft border-border text-info-content font-semibold"
+                : "bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <span>{emoji}</span>
             <span>{emojiReactions.length}</span>
-          </button>
+          </Button>
         );
       })}
-      <button
+      <Button variant="link"
         onClick={onOpenDetails}
-        className="cursor-pointer text-[10px] text-slate-400 hover:text-slate-600 hover:underline px-2 py-0.5 transition"
+        className="cursor-pointer text-xs hover:underline px-2 py-0.5 transition"
       >
         Details
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { MEETING_STATUS } from "./meeting.constants";
 import type {
   MeetingEndedResponse,
+  MeetingHistoryVisibilityResponse,
+  MeetingHistoryBulkVisibilityResponse,
   MeetingChatNotificationPreferenceResponse,
   MeetingJoinRequestStatusResponse,
   MeetingMessageResponse,
@@ -11,6 +13,7 @@ import type {
 } from "./meeting.types";
 
 export enum MeetingSocketEvent {
+  HISTORY_VISIBILITY_UPDATED = "meeting:history_visibility_updated",
   JOIN = "meeting:join",
   PARTICIPANT_JOINED = "meeting:participant_joined",
   PARTICIPANT_LEFT = "meeting:participant_left",
@@ -84,6 +87,7 @@ export interface MeetingMessageReadPayload {
 }
 
 export interface ServerToClientMeetingEvents {
+  [MeetingSocketEvent.HISTORY_VISIBILITY_UPDATED]: (payload: MeetingHistoryVisibilityResponse | MeetingHistoryBulkVisibilityResponse) => void;
   [MeetingSocketEvent.PARTICIPANT_JOINED]: (
     payload: MeetingParticipantJoinedPayload,
   ) => void;

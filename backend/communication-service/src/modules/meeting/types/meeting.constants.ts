@@ -2,6 +2,10 @@ export const MESSAGE_UPDATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export const DEFAULT_HISTORY_LIMIT = 9;
 export const MAX_HISTORY_LIMIT = 50;
+export const HISTORY_BULK_CHUNK_SIZE = 500;
+export const HISTORY_BULK_SELECTION_LIMIT = 500;
+export const HISTORY_MUTATION_TIMEOUT_MS = 30000;
+export const HISTORY_MUTATION_LOCK_PREFIX = 'meeting-history:';
 export const PARTICIPANT_PREVIEW_LIMIT = 4;
 export const DEFAULT_UPCOMING_LIMIT = 9;
 export const MAX_UPCOMING_LIMIT = 50;

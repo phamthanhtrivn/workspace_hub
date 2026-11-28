@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserDirectMessageSettingsClient } from './user-direct-message-settings.client';
 import {
@@ -8,7 +12,8 @@ import {
 
 export interface DirectMessageSendPermission {
   canSend: boolean;
-  reason: typeof DIRECT_MESSAGE_PERMISSION_REASON.RECIPIENT_BLOCKS_NEW_DM | null;
+  reason:
+    typeof DIRECT_MESSAGE_PERMISSION_REASON.RECIPIENT_BLOCKS_NEW_DM | null;
 }
 
 @Injectable()
@@ -18,19 +23,40 @@ export class DirectMessagePermissionService {
     private readonly userSettings: UserDirectMessageSettingsClient,
   ) {}
 
+  async assertCanRead(conversationId: string, userId: string): Promise<void> {
+    if (!userId) {
+      throw new ForbiddenException(
+        DIRECT_MESSAGE_PERMISSION_MESSAGES.NOT_PARTICIPANT,
+      );
+    }
+    const participant =
+      await this.prisma.directConversationParticipant.findUnique({
+        where: { conversationId_userId: { conversationId, userId } },
+        select: { userId: true },
+      });
+    if (!participant) {
+      throw new ForbiddenException(
+        DIRECT_MESSAGE_PERMISSION_MESSAGES.NOT_PARTICIPANT,
+      );
+    }
+  }
+
   async getSendPermission(
     conversationId: string,
     senderId: string,
   ): Promise<DirectMessageSendPermission> {
-    const participants = await this.prisma.directConversationParticipant.findMany({
-      where: { conversationId },
-      select: { userId: true },
-    });
+    const participants =
+      await this.prisma.directConversationParticipant.findMany({
+        where: { conversationId },
+        select: { userId: true },
+      });
     if (participants.length === 0) {
       throw new NotFoundException('Direct conversation not found.');
     }
     if (!participants.some((participant) => participant.userId === senderId)) {
-      throw new ForbiddenException(DIRECT_MESSAGE_PERMISSION_MESSAGES.NOT_PARTICIPANT);
+      throw new ForbiddenException(
+        DIRECT_MESSAGE_PERMISSION_MESSAGES.NOT_PARTICIPANT,
+      );
     }
 
     const priorMessage = await this.prisma.directMessage.findFirst({
@@ -39,14 +65,20 @@ export class DirectMessagePermissionService {
     });
     if (priorMessage) return { canSend: true, reason: null };
 
-    const recipient = participants.find((participant) => participant.userId !== senderId);
+    const recipient = participants.find(
+      (participant) => participant.userId !== senderId,
+    );
     if (!recipient) {
       throw new NotFoundException('Direct message recipient not found.');
     }
-    const allowed = await this.userSettings.allowsNewDirectMessages(recipient.userId);
+    const allowed = await this.userSettings.allowsNewDirectMessages(
+      recipient.userId,
+    );
     return {
       canSend: allowed,
-      reason: allowed ? null : DIRECT_MESSAGE_PERMISSION_REASON.RECIPIENT_BLOCKS_NEW_DM,
+      reason: allowed
+        ? null
+        : DIRECT_MESSAGE_PERMISSION_REASON.RECIPIENT_BLOCKS_NEW_DM,
     };
   }
 

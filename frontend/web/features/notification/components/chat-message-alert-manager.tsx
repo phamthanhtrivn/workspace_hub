@@ -46,7 +46,7 @@ export default function ChatMessageAlertManager() {
     if (!accessToken || !currentUserId) return;
 
     const socket =
-      socketService.getSocket() || socketService.connect(accessToken);
+      socketService.connect(accessToken);
 
     const handleNewMessage = (message: ChatMessageResponse) => {
       const messageConversationId = message.conversationId ?? message.channelId;

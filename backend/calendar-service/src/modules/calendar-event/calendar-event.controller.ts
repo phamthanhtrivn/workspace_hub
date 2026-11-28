@@ -29,6 +29,17 @@ import { UpdateTaskOrderDto } from './dto/update-task-order.dto';
 export class CalendarEventController {
   constructor(private readonly calendarEventService: CalendarEventService) {}
 
+  @Post(':eventId/conference/retry')
+  async retryConference(
+    @Headers('x-user-id') userId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+  ) {
+    this.validateUserId(userId);
+    return {
+      data: await this.calendarEventService.retryConference(userId, eventId),
+    };
+  }
+
   @Post()
   async createEvent(
     @Headers('x-user-id') userId: string,
@@ -85,6 +96,25 @@ export class CalendarEventController {
         limit: result.limit,
         totalPages: Math.ceil(result.total / result.limit),
       },
+    };
+  }
+
+  @Get('today-summary')
+  async getTodaySummary(
+    @Headers('x-user-id') userId: string,
+    @Query('startAt') startAt?: string,
+    @Query('endAt') endAt?: string,
+  ) {
+    this.validateUserId(userId);
+    const data = await this.calendarEventService.getTodaySummary(
+      userId,
+      startAt,
+      endAt,
+    );
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.EVENTS_LISTED,
+      data,
     };
   }
 

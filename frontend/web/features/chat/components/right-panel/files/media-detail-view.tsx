@@ -1,3 +1,14 @@
+"use client";
+
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import { StorageVideo, StorageImg } from "@/components/common/storage-media";
+import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
+import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
+import { toast } from "sonner";
+
+import { IconButton } from "@/components/ui/icon-button";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -11,7 +22,6 @@ import {
   FileText,
   FileVideo,
   Presentation,
-  Search,
 } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
@@ -22,6 +32,11 @@ import { logApiError } from "@/lib/interceptors";
 import { getDirectConversationMedia } from "@/features/chat/api/direct-message.api";
 import { getChannelMedia } from "@/features/chat/api/channel.api";
 import MediaLightbox from "../../message/media-lightbox";
+import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { LoadingState } from "@/components/ui/loading-state";
+
 
 const FILE_FILTERS = [
   { value: undefined, label: "All" },
@@ -45,7 +60,7 @@ interface MediaDetailViewProps {
   onBack: () => void;
 }
 
-function getMediaKind(item: any) {
+function getMediaKind(item: ChatMediaResponse) {
   const mimeType = item.mimeType || "";
   const name = (item.name || "").toLowerCase();
 
@@ -104,9 +119,9 @@ function getMediaKind(item: any) {
   return "other";
 }
 
-function getFileIcon(item: any) {
+function getFileIcon(item: ChatMediaResponse) {
   const kind = getMediaKind(item);
-  const className = "text-white";
+  const className = "text-inherit";
 
   if (kind === "image") return <FileImage size={20} className={className} />;
   if (kind === "video") return <FileVideo size={20} className={className} />;
@@ -122,20 +137,20 @@ function getFileIcon(item: any) {
   return <File size={20} className={className} />;
 }
 
-function getFileIconBg(item: any) {
+function getFileIconBg(item: ChatMediaResponse) {
   const kind = getMediaKind(item);
-  if (kind === "image") return "bg-emerald-500";
-  if (kind === "video") return "bg-violet-500";
-  if (kind === "audio") return "bg-pink-500";
-  if (kind === "pdf") return "bg-red-500";
-  if (kind === "spreadsheet") return "bg-green-600";
-  if (kind === "presentation") return "bg-orange-500";
-  if (kind === "archive") return "bg-amber-600";
-  if (kind === "code") return "bg-slate-700";
-  return "bg-blue-500";
+  if (kind === "image") return "bg-success text-success-foreground";
+  if (kind === "video") return "bg-primary text-primary-foreground";
+  if (kind === "audio") return "bg-primary text-primary-foreground";
+  if (kind === "pdf") return "bg-destructive text-destructive-foreground";
+  if (kind === "spreadsheet") return "bg-success text-success-foreground";
+  if (kind === "presentation") return "bg-warning text-warning-foreground";
+  if (kind === "archive") return "bg-warning text-warning-foreground";
+  if (kind === "code") return "bg-primary text-primary-foreground";
+  return "bg-primary text-primary-foreground";
 }
 
-function formatMediaDate(item: any) {
+function formatMediaDate(item: ChatMediaResponse) {
   return formatDateTime(item.message?.createdAt || item.createdAt);
 }
 
@@ -144,6 +159,7 @@ export default function MediaDetailView({
   isDirect = false,
   onBack,
 }: MediaDetailViewProps) {
+  useAccountTimezone();
   const [activeFilter, setActiveFilter] = useState<FileFilter>(undefined);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -157,7 +173,7 @@ export default function MediaDetailView({
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
       queryKey: [
         "media",
@@ -186,7 +202,7 @@ export default function MediaDetailView({
               ? "Failed to fetch direct message media detail"
               : "Failed to fetch channel media detail",
           );
-          return { medias: [], nextCursor: undefined };
+          throw error;
         }
       },
       initialPageParam: undefined as string | undefined,
@@ -204,121 +220,118 @@ export default function MediaDetailView({
   const allItems = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap((page) => page.medias || []);
-  }, [data?.pages]);
+  }, [data]);
 
   const previewItems = useMemo(
     () =>
-      allItems.filter((item: any) =>
+      allItems.filter((item) =>
         ["image", "video"].includes(getMediaKind(item)),
       ),
     [allItems],
   );
 
-  const openItem = (item: any) => {
+  const openItem = (item: ChatMediaResponse) => {
     const kind = getMediaKind(item);
     if (["image", "video"].includes(kind)) {
       const index = previewItems.findIndex(
-        (media: any) => media.id === item.id,
+        (media) => media.id === item.id,
       );
       setLightboxIndex(index >= 0 ? index : 0);
       return;
     }
 
     if (item.fileUrl) {
-      window.open(item.fileUrl, "_blank", "noopener,noreferrer");
+      void openStorageAsset(item.fileUrl).catch(() => {});
     }
   };
 
-  const handleDownload = async (e: React.MouseEvent, item: any) => {
+  const handleDownload = async (e: React.MouseEvent, item: ChatMediaResponse) => {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(item.fileUrl);
+      const response = await fetchStorageAsset(item.fileUrl);
       const blob = await response.blob();
       saveAs(blob, item.name);
     } catch (error) {
-      console.error("Download error:", error);
+      logActionError("Download error:", error);
+      toast.error(getActionErrorMessage(error, "Could not download this file. Please try again."));
     }
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-white">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3">
-        <button
+    <div className="w-full h-full min-h-0 min-w-0 flex flex-col bg-card">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
+        <Button variant="unstyled" aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
-        </button>
-        <h2 className="font-semibold text-gray-800">
+        </Button>
+        <h2 className="font-semibold text-foreground">
           Files
         </h2>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3 flex flex-col gap-3 shrink-0">
+      <div className="border-b border-border px-4 py-3 flex flex-col gap-3 shrink-0">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
+          <SearchInput aria-label="Search files by name" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files by name..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card outline-none transition"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold text-gray-500">
+          <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
             File Type
           </label>
-          <select
+          <CustomSelect
+            ariaLabel="File filter"
             value={activeFilter || ""}
-            onChange={(event) =>
-              setActiveFilter((event.target.value || undefined) as FileFilter)
+            onChange={nextValue =>
+              setActiveFilter((nextValue || undefined) as FileFilter)
             }
-            className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            triggerClassName="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition"
           >
             {FILE_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value || ""}>
                 {filter.label}
               </option>
             ))}
-          </select>
+          </CustomSelect>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {isLoading ? (
-          <div className="text-center text-sm text-gray-400 py-4">
-            Loading files...
-          </div>
+        {isError && allItems.length > 0 && <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} />}
+        {isError && allItems.length === 0 ? <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
+          <LoadingState label="Loading files..." layout="centered" className="text-center text-sm text-muted-foreground py-4" />
         ) : allItems.length === 0 ? (
-          <div className="text-center text-sm text-gray-400 py-4">
+          <div className="text-center text-sm text-muted-foreground py-4">
             No files available
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {allItems.map((item: any) => {
+            {allItems.map((item) => {
               const kind = getMediaKind(item);
 
               return (
-                <button
+                <div
                   key={item.id}
-                  onClick={() => openItem(item)}
-                  className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-2 text-left transition hover:bg-gray-50"
+
+                  className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border bg-card p-2 text-left transition hover:bg-background"
                 >
-                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 flex items-center justify-center">
+                  <Button variant="unstyled" type="button" onClick={() => openItem(item)} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                     {kind === "image" && item.fileUrl ? (
-                      <img
+                      <StorageImg
                         src={item.fileUrl}
                         alt={item.name}
                         className="h-full w-full object-cover"
                       />
                     ) : kind === "video" && item.fileUrl ? (
-                      <video
+                      <StorageVideo
                         src={item.fileUrl}
                         className="h-full w-full object-cover"
                       />
@@ -331,23 +344,23 @@ export default function MediaDetailView({
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-gray-900">
+                    <span className="block truncate text-sm font-semibold text-foreground">
                       {item.name}
                     </span>
-                    <span className="mt-1 block truncate text-xs text-gray-500">
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
                       {formatFileSize(item.sizeBytes)} - {formatMediaDate(item)}
                     </span>
                   </span>
-                  {item.fileUrl && (
-                    <span
+                  </Button>{item.fileUrl && (
+                    <IconButton label="Download file" showTooltip={false} size="icon-sm" type="button" aria-label="Download file"
                       onClick={(e) => handleDownload(e, item)}
-                      className="rounded-md p-2 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                       title="Download"
                     >
                       <Download size={16} />
-                    </span>
+                    </IconButton>
                   )}
-                </button>
+                </div>
               );
             })}
             <div
@@ -355,9 +368,7 @@ export default function MediaDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-gray-400">
-                  Loading more...
-                </span>
+                <LoadingState label="Loading more..." className="text-xs text-muted-foreground" />
               )}
             </div>
           </div>

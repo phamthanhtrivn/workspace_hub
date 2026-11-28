@@ -1,11 +1,6 @@
-"use client";
+﻿"use client";
 
-import React from "react";
-import { Send, Users, MessageSquare } from "lucide-react";
-import { DocumentItem } from "../../types/documents.types";
-import { ShareTabType } from "../../types/documents.enums";
-import { useShareToChat } from "../../hooks/useShareToChat";
-import { DocumentsConfirmDialog } from "../ui/documents-confirm-dialog";
+import { Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +9,22 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Textarea } from "@/components/ui/textarea";
+import { Spinner } from "@/components/ui/spinner";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAppSelector } from "@/store/store";
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+import type { DocumentItem } from "../../types/documents.types";
+import type { DocumentCopyTab } from "../../types/document-copy.types";
+import { DOCUMENT_COPY_TABS } from "../../types/document-copy.constants";
+import { DocumentIcon } from "../common/document-icon";
+import { useShareToChat } from "../../hooks/useShareToChat";
+import { DirectCopyPicker } from "./direct-copy-picker";
+import { ChannelCopyPicker } from "./channel-copy-picker";
+import { CopyDeliveryResults } from "./copy-delivery-results";
 
-interface ShareToChatModalProps {
+interface Props {
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
@@ -25,232 +32,136 @@ interface ShareToChatModalProps {
   projectId?: string;
 }
 
-export function ShareToChatModal({
-  open,
-  isOpen,
-  onClose,
-  item,
-  projectId,
-}: ShareToChatModalProps) {
-  const isModalOpen = open ?? isOpen ?? false;
+export function ShareToChatModal(props: Props) {
+  const open = props.open ?? props.isOpen ?? false;
+  const userId = useAppSelector((state) => state.auth.userId);
 
-  const {
-    activeTab,
-    setActiveTab,
-    selectedChatId,
-    setSelectedChatId,
-    selectedSpaceId,
-    setSelectedSpaceId,
-    introMessage,
-    setIntroMessage,
-    isSubmitting,
-    spaces,
-    channels,
-    directConversations,
-    handleShare,
-    executeShare,
-    isPermissionConfirmOpen,
-    setIsPermissionConfirmOpen,
-    pendingUnauthorizedEmails,
-    currentUserId,
-    isProjectDocuments,
-    isLoadingProjectSpace,
-    projectSpaceUnavailable,
-  } = useShareToChat({
-    item,
-    projectId,
-    onSuccess: onClose,
-  });
+  return open && props.item ? (
+    <SendCopyForm
+      key={`${userId}:${props.item.id}`}
+      {...props}
+      item={props.item}
+    />
+  ) : null;
+}
 
-  if (!isModalOpen || !item) return null;
-  const selectedTab = isProjectDocuments ? ShareTabType.CHANNEL : activeTab;
-
-  const spaceOptions =
-    spaces?.map((space) => ({
-      value: space.id,
-      label: space.name,
-    })) || [];
-
-  const channelOptions = [
-    {
-      value: "",
-      label: projectSpaceUnavailable
-        ? "Project chat space unavailable"
-        : channels.length > 0
-          ? "Select channel..."
-          : "No channels allow sending",
-    },
-    ...channels.map((ch) => ({
-      value: ch.id,
-      label: `# ${ch.name}`,
-    })),
-  ];
-
-  const dmOptions = [
-    { value: "", label: "Select conversation..." },
-    ...directConversations.map((conv) => {
-      const otherMember = conv.members?.find((m) => m.userId !== currentUserId);
-      const name =
-        otherMember?.profile?.fullName ||
-        otherMember?.nickname ||
-        "Direct Message";
-      return { value: conv.id, label: name };
-    }),
-  ];
+function SendCopyForm({ item, onClose }: Props & { item: DocumentItem }) {
+  const share = useShareToChat({ item, onSuccess: onClose });
+  const sendLabel = share.failedCount
+    ? `Retry failed (${share.failedCount})`
+    : share.isSubmitting
+      ? "Sending copies…"
+      : share.selectedCount > 1
+        ? `Send copies (${share.selectedCount})`
+        : "Send copy";
 
   return (
-    <>
-      <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
-        <DialogContent
-          className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
-          showCloseButton={!isSubmitting}
-        >
-          <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 ring-1 ring-purple-100">
-              <Send className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base font-black text-slate-800">
-                Share to chat
-              </DialogTitle>
-              <p className="mt-0.5 truncate text-xs text-slate-400 font-bold">
-                {item.name}
-              </p>
-            </div>
-          </DialogHeader>
-
-          {!isProjectDocuments ? (
-            <div className="mt-3 flex items-center border-b border-slate-100 gap-6">
-              <button
-                type="button"
-                onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                  activeTab === ShareTabType.CHANNEL
-                    ? "border-purple-600 text-purple-600"
-                    : "border-transparent text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                <span>Channels</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab(ShareTabType.DM)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                  activeTab === ShareTabType.DM
-                    ? "border-purple-600 text-purple-600"
-                    : "border-transparent text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Direct messages</span>
-              </button>
-            </div>
-          ) : null}
-
-          <div className="mt-4 space-y-4">
-            {selectedTab === ShareTabType.CHANNEL ? (
-              <>
-                {!isProjectDocuments ? (
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                      Space
-                    </label>
-                    <CustomSelect
-                      value={selectedSpaceId}
-                      options={spaceOptions}
-                      onChange={setSelectedSpaceId}
-                      ariaLabel="Select Space"
-                      triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                    />
-                  </div>
-                ) : null}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                    Channel
-                  </label>
-                  <CustomSelect
-                    value={selectedChatId}
-                    options={channelOptions}
-                    onChange={setSelectedChatId}
-                    ariaLabel="Select Channel"
-                    triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                  />
-                </div>
-                {projectSpaceUnavailable ? (
-                  <p className="text-xs font-semibold text-amber-600">
-                    Project chat space is not available.
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Recipient
-                </label>
-                <CustomSelect
-                  value={selectedChatId}
-                  options={dmOptions}
-                  onChange={setSelectedChatId}
-                  ariaLabel="Select Recipient"
-                  triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                />
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                Message (optional)
-              </label>
-              <Textarea
-                value={introMessage}
-                onChange={(e) => setIntroMessage(e.target.value)}
-                placeholder="Add a message..."
-                className="min-h-[80px] rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-sm font-semibold text-slate-700 focus:outline-hidden focus:border-purple-500"
-              />
-            </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !share.isSubmitting) onClose();
+      }}
+    >
+      <DialogContent
+        className={`${dialogLayout.surface} max-w-lg bg-card p-0 text-card-foreground`}
+        showCloseButton={!share.isSubmitting}
+      >
+        <DialogHeader className="border-b border-border">
+          <DialogTitle>Send a copy</DialogTitle>
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            <DocumentIcon
+              item={item}
+              iconSize={18}
+              className="size-8 shrink-0 rounded-full"
+            />
+            <span className="truncate">{item.name}</span>
           </div>
-
-          <DialogFooter className="mt-5 flex items-center justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isSubmitting}
-              onClick={onClose}
-              className="h-10 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+        </DialogHeader>
+        <div className={`${dialogLayout.body} space-y-4 p-5`}>
+          <Tabs
+            value={share.activeTab}
+            onValueChange={(value) => share.changeTab(value as DocumentCopyTab)}
+          >
+            <TabsList className="grid h-auto w-full grid-cols-2">
+              {DOCUMENT_COPY_TABS.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  disabled={share.locked}
+                  className="gap-1.5"
+                >
+                  <tab.icon aria-hidden="true" className="size-4 shrink-0" />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+          {share.targetsLoading ? (
+            <div
+              role="status"
+              className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground"
             >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={
-                isSubmitting ||
-                isLoadingProjectSpace ||
-                projectSpaceUnavailable ||
-                !selectedChatId
-              }
-              onClick={handleShare}
-              className="h-10 rounded-2xl bg-purple-600 hover:bg-purple-700 px-5 text-sm font-bold text-white shadow-md shadow-purple-500/10 disabled:opacity-50"
-            >
-              {isSubmitting || isLoadingProjectSpace ? "Sharing..." : "Share"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Permission Grant Confirm Dialog */}
-      <DocumentsConfirmDialog
-        open={!isProjectDocuments && isPermissionConfirmOpen}
-        title="Permissions required"
-        description={`Some members (${pendingUnauthorizedEmails.length}) do not have view access to this file. Grant view permission to them?`}
-        confirmLabel="Grant access and share"
-        cancelLabel="Share only"
-        variant="warning"
-        isLoading={isSubmitting}
-        onConfirm={() => executeShare(true)}
-        onCancel={() => executeShare(false)}
-      />
-    </>
+              <Spinner size={18} />
+              Loading destinations…
+            </div>
+          ) : share.targetError ? (
+            <QueryFeedback
+              label="copy destinations"
+              error
+              onRetry={() => void share.retryTargets()}
+            />
+          ) : share.activeTab === "direct" ? (
+            <DirectCopyPicker
+              recipients={share.directRecipients}
+              selected={share.selectedRecipients}
+              locked={share.locked}
+              onToggle={share.toggleDirect}
+            />
+          ) : (
+            <ChannelCopyPicker
+              spaces={share.spaces}
+              channels={share.channels}
+              selectedSpaceId={share.selectedSpaceId}
+              selectedChannelId={share.selectedChannelId}
+              locked={share.locked}
+              onSpaceChange={share.setSelectedSpaceId}
+              onChannelChange={share.setSelectedChannelId}
+            />
+          )}
+          <Textarea
+            aria-label="Message (optional)"
+            value={share.introMessage}
+            onChange={(event) => share.setIntroMessage(event.target.value)}
+            disabled={share.locked}
+            placeholder="Message (optional)"
+            className="min-h-20"
+          />
+          {share.batch && <CopyDeliveryResults batch={share.batch} />}
+          {share.error && (
+            <p role="alert" className="text-sm text-destructive-content">
+              {share.error}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            disabled={share.isSubmitting}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={!share.canSubmit}
+            loading={share.isSubmitting}
+            onClick={() => void share.handleShare()}
+          >
+            <Send aria-hidden="true" />
+            {sendLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

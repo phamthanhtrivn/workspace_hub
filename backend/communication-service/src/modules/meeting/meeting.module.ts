@@ -1,3 +1,5 @@
+import { CalendarMeetingSyncController } from './calendar-meeting-sync.controller';
+import { CalendarMeetingSyncService } from './services/calendar-meeting-sync.service';
 import { Module } from '@nestjs/common';
 import { LiveKitModule } from '../../infrastructure/livekit/livekit.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
@@ -11,6 +13,9 @@ import { MeetingLiveKitWebhookController } from './meeting-livekit-webhook.contr
 import { MeetingService } from './meeting.service';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingHistoryService } from './services/meeting-history.service';
+import { MeetingHistoryPreferenceController } from './meeting-history-preference.controller';
+import { MeetingHistoryPreferenceService } from './services/meeting-history-preference.service';
+import { MeetingHistoryBulkService } from './services/meeting-history-bulk.service';
 import { MeetingLiveKitWebhookService } from './services/meeting-livekit-webhook.service';
 import { MeetingSchedulePublisher } from './events/meeting-schedule.publisher';
 import { MeetingScheduleService } from './services/meeting-schedule.service';
@@ -24,7 +29,15 @@ import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 import { MeetingRecordingController } from './meeting-recording.controller';
 import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingSummaryService } from './services/meeting-summary.service';
 import { MeetingRecordingWorker } from './services/meeting-recording.worker';
+import { MeetingRecordingMediaService } from './services/meeting-recording-media.service';
+import { MeetingRecordingSegmentsService } from './services/meeting-recording-segments.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
+import {
+  MeetingSummaryController,
+  MeetingSummarySourceController,
+} from './meeting-summary.controller';
 
 @Module({
   imports: [
@@ -37,17 +50,28 @@ import { MeetingRecordingWorker } from './services/meeting-recording.worker';
     DirectMessagePermissionModule,
   ],
   controllers: [
+    CalendarMeetingSyncController,
+    MeetingSummaryController,
+    MeetingSummarySourceController,
+    MeetingHistoryPreferenceController,
     MeetingRecordingController,
     MeetingController,
     MeetingLiveKitWebhookController,
   ],
   providers: [
+    CalendarMeetingSyncService,
+    MeetingRecordingRequestsService,
     MeetingRecordingService,
+    MeetingSummaryService,
+    MeetingRecordingMediaService,
+    MeetingRecordingSegmentsService,
     MeetingRecordingWorker,
     MeetingService,
     MeetingRoomService,
     MeetingLiveKitWebhookService,
     MeetingHistoryService,
+    MeetingHistoryPreferenceService,
+    MeetingHistoryBulkService,
     MeetingParticipantService,
     MeetingMessageService,
     MeetingAdmissionService,

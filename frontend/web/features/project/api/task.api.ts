@@ -11,6 +11,7 @@ import {
   TaskDocumentAttachmentSource,
 } from "@/features/project/types/project";
 import { fetchAllPages, type PaginationMeta } from "./pagination";
+import { taskActionRequest } from "./task-error-policy";
 import type { ProjectTaskQuery } from "../project-task-view";
 
 interface ApiResponse<T> {
@@ -38,12 +39,14 @@ export interface TaskApiModel {
   completedAt?: string | null;
   deletedAt?: string | null;
   rank?: string | null;
-  archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
   checklists?: TaskChecklist[];
   assignees?: Array<
-    Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">
+    Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt"> & {
+      displayName?: string | null;
+      avatarUrl?: string | null;
+    }
   >;
   labels?: TaskLabel[];
   documentAttachments?: TaskDocumentAttachment[];
@@ -73,7 +76,6 @@ export interface UpdateTaskPayload {
   dueDate?: string | null;
   allDay?: boolean;
   rank?: string;
-  archived?: boolean;
   parentTaskId?: string;
   clearParent?: boolean;
 }
@@ -81,6 +83,7 @@ export interface UpdateTaskPayload {
 export type ProjectTaskStatusCounts = Record<TaskStatus, number>;
 
 export interface AttachTaskDocumentsPayload {
+  operationId?: string;
   documentItemIds: string[];
   source: TaskDocumentAttachmentSource;
 }
@@ -114,14 +117,14 @@ export function normalizeTask(task: TaskApiModel): Task {
     completedAt: task.completedAt || undefined,
     deletedAt: task.deletedAt || undefined,
     rank: task.rank || "",
-    archived: task.archived,
     createdAt: task.createdAt || now,
     updatedAt: task.updatedAt || now,
     checklists: task.checklists || [],
     documentAttachments: task.documentAttachments || [],
     assignees: (task.assignees || []).map((assignee) => ({
       ...assignee,
-      displayName: "",
+      displayName: assignee.displayName?.trim() || "",
+      avatarUrl: assignee.avatarUrl?.trim() || undefined,
     })),
     comments: [],
     activities: [],
@@ -172,6 +175,7 @@ export async function createTask(
   const response = await api.post<ApiResponse<TaskApiModel>>(
     `/api/projects/${projectId}/tasks`,
     cleanPayload,
+    taskActionRequest(),
   );
   return normalizeTask(unwrap(response));
 }
@@ -183,6 +187,7 @@ export async function updateTask(
   const response = await api.patch<ApiResponse<TaskApiModel>>(
     `/api/tasks/${taskId}`,
     payload,
+    taskActionRequest(),
   );
   return normalizeTask(unwrap(response));
 }
@@ -196,6 +201,7 @@ export async function createChecklist(
   const response = await api.post<ApiResponse<ChecklistApiModel>>(
     `/api/tasks/${taskId}/checklists`,
     { title },
+    taskActionRequest(),
   );
   return unwrap(response);
 }
@@ -207,12 +213,13 @@ export async function updateChecklist(
   const response = await api.patch<ApiResponse<ChecklistApiModel>>(
     `/api/checklists/${checklistId}`,
     { completed },
+    taskActionRequest(),
   );
   return unwrap(response);
 }
 
 export async function deleteChecklist(checklistId: string): Promise<void> {
-  await api.delete(`/api/checklists/${checklistId}`);
+  await api.delete(`/api/checklists/${checklistId}`, taskActionRequest());
 }
 
 export async function getTaskActivities(
@@ -243,6 +250,7 @@ export async function attachTaskDocuments(
   const response = await api.post<ApiResponse<TaskDocumentAttachment[]>>(
     `/api/tasks/${taskId}/documents`,
     payload,
+    taskActionRequest(),
   );
   return unwrap(response) || [];
 }
@@ -253,6 +261,12 @@ export async function detachTaskDocument(
 ): Promise<TaskDocumentAttachment> {
   const response = await api.delete<ApiResponse<TaskDocumentAttachment>>(
     `/api/tasks/${taskId}/documents/${attachmentId}`,
+    taskActionRequest(),
   );
   return unwrap(response);
+}
+
+export async function reopenTask(taskId: string): Promise<Task> {
+  const response = await api.post<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}/reopen`, undefined, taskActionRequest());
+  return normalizeTask(unwrap(response));
 }

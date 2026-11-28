@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import {
   ExceptionFilter,
   Catch,
@@ -7,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { DOCUMENT_ACCESS_ERRORS } from '../constants/document-access.constants';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -16,11 +16,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errors: any = null;
+    let errors: unknown = null;
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const exceptionResponse: any = exception.getResponse();
+      const exceptionResponse = exception.getResponse() as
+        string | Record<string, unknown>;
+      if (typeof exceptionResponse === 'object') {
+        const accessError = Object.values(DOCUMENT_ACCESS_ERRORS).find(
+          (failure) =>
+            failure.status === status &&
+            failure.code === exceptionResponse.code,
+        );
+        if (accessError) code = accessError.code;
+      }
+      if (
+        status === HttpStatus.CONFLICT &&
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse.code === 'DOCUMENT_NAME_CONFLICT'
+      )
+        code = 'DOCUMENT_NAME_CONFLICT';
 
       if (
         status === HttpStatus.BAD_REQUEST &&
@@ -35,19 +51,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         Array.isArray(exceptionResponse.message)
       ) {
         message = 'Validation failed';
-        errors = {};
-        exceptionResponse.message.forEach((msg: string) => {
-          const field = msg.split(' ')[0];
-          errors[field] = msg;
-        });
+        errors = Object.fromEntries(
+          exceptionResponse.message
+            .filter((msg): msg is string => typeof msg === 'string')
+            .map((msg) => [msg.split(' ')[0], msg]),
+        );
       } else {
         message =
           typeof exceptionResponse === 'string'
             ? exceptionResponse
-            : exceptionResponse.message || exception.message;
+            : typeof exceptionResponse.message === 'string'
+              ? exceptionResponse.message
+              : exception.message;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
+    }
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      message = 'Internal server error';
+      errors = null;
+      code = undefined;
     }
 
     response.status(status).json({
@@ -55,6 +77,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: message,
       data: null,
       errors: errors,
+      ...(code ? { code } : {}),
       timestamp: new Date().toISOString(),
     });
   }

@@ -1,7 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { MeetingHistoryVisibility } from '../types/meeting.enums';
 
 export class ListMeetingHistoryDto {
+  @IsOptional()
+  @IsEnum(MeetingHistoryVisibility)
+  visibility?: MeetingHistoryVisibility;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

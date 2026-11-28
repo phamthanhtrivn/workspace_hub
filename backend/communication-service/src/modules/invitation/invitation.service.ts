@@ -1,20 +1,24 @@
+import { SystemMessageService } from '../message/system-message.service';
 import {
   Injectable,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SpaceRole } from '@prisma/client';
+import {
+  SpaceRole,
+  InvitationStatus as INVITATION_STATUS,
+} from '@prisma/client';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageService } from '../message/message.service';
-import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
-import { UserProfileSnapshot } from 'src/common/types/user.types';
+import { UserProfileSnapshot } from '../../common/types/user.types';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class InvitationService {
   constructor(
+    private readonly systemMessages: SystemMessageService,
     private readonly prisma: PrismaService,
     private readonly conversationPublisher: InvitationPublisher,
     private readonly chatSocketPublisher: ChatSocketPublisher,
@@ -148,7 +152,7 @@ export class InvitationService {
     });
 
     for (const channel of spaceChannels) {
-      await this.chatSocketPublisher.sendSystemMessage(
+      await this.systemMessages.sendSystemMessage(
         channel.id,
         userId,
         `${responderSnapshot.fullName || userId} joined the chat channel`,

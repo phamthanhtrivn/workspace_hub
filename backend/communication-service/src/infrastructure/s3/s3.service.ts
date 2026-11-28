@@ -1,21 +1,40 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  type HeadObjectCommandOutput,
+  S3ServiceException,
+  CopyObjectCommand,
 } from '@aws-sdk/client-s3';
+import { createWriteStream } from 'fs';
+import { pipeline } from 'stream/promises';
 import {
   RecordingMultipartUploader,
   RecordingUploadOptions,
 } from './recording-multipart-upload';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ATTACHMENT_READ_TTL_SECONDS } from '../../common/types/media.constants';
 import { generateS3Key } from '../../common/utils/s3-key.util';
-import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
+import {
+  AttachmentUploadScope,
+  ChatAttachment,
+  UPLOAD_POLICY,
+  validateUploadMetadata,
+  validateUploadContent,
+} from './attachment-upload.policy';
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
 
@@ -36,6 +55,14 @@ export class S3Service {
             }
           : undefined,
     });
+  }
+
+  generateAttachmentDownloadUrl(s3Key: string): Promise<string> {
+    return getSignedUrl(
+      this.s3Client,
+      new GetObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
+      { expiresIn: ATTACHMENT_READ_TTL_SECONDS },
+    );
   }
 
   async getFileSize(s3Key: string): Promise<bigint> {
@@ -61,6 +88,67 @@ export class S3Service {
     };
   }
 
+  async copyRecording(source: string, target: string, signal?: AbortSignal) {
+    await this.s3Client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucketName,
+        Key: target,
+        CopySource: `${this.bucketName}/${source.split('/').map(encodeURIComponent).join('/')}`,
+        ContentType: 'video/mp4',
+        MetadataDirective: 'REPLACE',
+      }),
+      { abortSignal: signal },
+    );
+  }
+
+  async putImportedAttachment(
+    key: string,
+    bytes: Buffer,
+    mimeType: string,
+    scope: AttachmentUploadScope,
+  ) {
+    validateUploadContent(
+      bytes.subarray(0, UPLOAD_POLICY.SIGNATURE_BYTES),
+      mimeType,
+    );
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: bytes,
+        ContentType: mimeType,
+        ContentLength: bytes.length,
+        Metadata: {
+          actor: scope.actorId,
+          reference: scope.referenceId,
+          context: String(scope.chatType),
+          size: String(bytes.length),
+        },
+      }),
+    );
+  }
+
+  async downloadRecording(
+    key: string,
+    path: string,
+    expectedSize: bigint,
+    signal: AbortSignal,
+  ) {
+    const result = await this.s3Client.send(
+      new GetObjectCommand({ Bucket: this.bucketName, Key: key }),
+      { abortSignal: signal },
+    );
+    if (!result.Body) throw new Error('Recording segment body is missing');
+    const stream = result.Body.transformToWebStream();
+    if (BigInt(result.ContentLength ?? 0) !== expectedSize) {
+      await stream.cancel().catch(() => {});
+      throw new Error('Recording segment size mismatch');
+    }
+    await pipeline(stream, createWriteStream(path, { flags: 'wx' }), {
+      signal,
+    });
+  }
+
   uploadRecordingBackup(
     path: string,
     s3Key: string,
@@ -84,7 +172,9 @@ export class S3Service {
     referenceId: string,
     fileName: string,
     mimeType: string,
+    scope?: AttachmentUploadScope,
   ): Promise<{ presignedUrl: string; s3Key: string }> {
+    if (scope) validateUploadMetadata(fileName, mimeType);
     try {
       const s3Key = generateS3Key(type, referenceId, fileName);
 
@@ -92,6 +182,16 @@ export class S3Service {
         Bucket: this.bucketName,
         Key: s3Key,
         ContentType: mimeType,
+        ...(scope && {
+          ContentLength: scope.sizeBytes,
+          IfNoneMatch: '*',
+          Metadata: {
+            actor: scope.actorId,
+            reference: scope.referenceId,
+            context: scope.chatType,
+            size: String(scope.sizeBytes),
+          },
+        }),
       });
 
       const presignedUrl = await getSignedUrl(this.s3Client, command, {
@@ -99,9 +199,79 @@ export class S3Service {
       });
 
       return { presignedUrl, s3Key };
-    } catch (error) {
-      console.error('Error generating presigned URL:', error);
+    } catch {
+      this.logger.error('S3 upload URL generation failed');
       throw new InternalServerErrorException('Failed to generate upload URL');
+    }
+  }
+
+  async assertAttachments(
+    attachments: ChatAttachment[],
+    scope: Omit<AttachmentUploadScope, 'sizeBytes'>,
+  ): Promise<void> {
+    for (const attachment of attachments) {
+      validateUploadMetadata(attachment.name, attachment.mimeType);
+      if (
+        !Number.isSafeInteger(attachment.sizeBytes) ||
+        attachment.sizeBytes < 0 ||
+        attachment.sizeBytes > UPLOAD_POLICY.MAX_SIZE_BYTES ||
+        !attachment.s3Key.startsWith(
+          `${S3_UPLOAD_TYPE.CHAT_MEDIA}/${scope.referenceId}/`,
+        )
+      ) {
+        throw new BadRequestException(
+          'Invalid attachment metadata or storage scope',
+        );
+      }
+      let object: HeadObjectCommandOutput;
+      try {
+        object = await this.s3Client.send(
+          new HeadObjectCommand({
+            Bucket: this.bucketName,
+            Key: attachment.s3Key,
+          }),
+        );
+      } catch (error) {
+        if (
+          error instanceof S3ServiceException &&
+          error.$metadata.httpStatusCode === 404
+        ) {
+          throw new BadRequestException('Uploaded attachment is unavailable');
+        }
+        throw error;
+      }
+      if (
+        object.ContentLength !== attachment.sizeBytes ||
+        object.ContentType !== attachment.mimeType ||
+        object.Metadata?.actor !== scope.actorId ||
+        object.Metadata?.reference !== scope.referenceId ||
+        object.Metadata?.context !== String(scope.chatType) ||
+        object.Metadata?.size !== String(attachment.sizeBytes)
+      ) {
+        throw new BadRequestException(
+          'Uploaded attachment does not match this user or chat',
+        );
+      }
+      if (attachment.sizeBytes > 0) {
+        const content = await this.s3Client.send(
+          new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: attachment.s3Key,
+            IfMatch: object.ETag,
+            Range: `bytes=0-${UPLOAD_POLICY.SIGNATURE_BYTES - 1}`,
+          }),
+        );
+        if (!content.Body)
+          throw new BadRequestException(
+            'Uploaded attachment content is missing',
+          );
+        validateUploadContent(
+          Buffer.from(await content.Body.transformToByteArray()),
+          attachment.mimeType,
+        );
+      } else {
+        validateUploadContent(Buffer.alloc(0), attachment.mimeType);
+      }
     }
   }
 
@@ -113,8 +283,8 @@ export class S3Service {
       });
 
       await this.s3Client.send(command);
-    } catch (error) {
-      console.error(`Error deleting file from S3 (${s3Key}):`, error);
+    } catch {
+      this.logger.error('S3 object deletion failed');
       throw new InternalServerErrorException('Failed to delete file from S3');
     }
   }

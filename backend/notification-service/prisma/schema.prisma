@@ -8,6 +8,9 @@ datasource db {
 }
 
 enum NotificationType {
+  CHANNEL_MEMBER_ADDED
+  CHANNEL_MEMBER_REMOVED
+  CHANNEL_OWNERSHIP_TRANSFERRED
   SPACE_INVITATION
   SPACE_INVITATION_ACCEPTED
   SPACE_INVITATION_DECLINED
@@ -19,6 +22,15 @@ enum NotificationType {
   CHAT_INVITATION_ACCEPTED
   CHAT_INVITATION_DECLINED
   PROJECT_INVITATION
+  PROJECT_INVITATION_ACCEPTED
+  PROJECT_INVITATION_DECLINED
+  PROJECT_PERMISSIONS_UPDATED
+  PROJECT_MEMBER_REMOVED
+  PROJECT_TASK_UNASSIGNED
+  PROJECT_TASK_DELETED
+  DOCUMENT_SHARED
+  DOCUMENT_PERMISSION_UPDATED
+  DOCUMENT_SHARE_REMOVED
   PROJECT_TASK_ASSIGNED
   PROJECT_TASK_UPDATED
   PROJECT_SPRINT_STARTED
@@ -42,6 +54,7 @@ model Notification {
   isRead       Boolean          @default(false) @map("is_read")
   link         String?          @map("link")
   metadata     Json?            @map("metadata")
+  pushClaimedAt DateTime?        @map("push_claimed_at")
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
@@ -62,4 +75,42 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model RejectedKafkaEvent {
+  id            String   @id @default(uuid())
+  topic         String
+  partition     Int
+  offset        String
+  payloadDigest String   @map("payload_digest")
+  reason        String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
+}
+
+enum ReminderEmailStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  UNKNOWN
+  SKIPPED
+}
+
+model ReminderEmailDelivery {
+  id          String              @id @default(uuid())
+  groupKey    String              @map("group_key")
+  recipientId String              @map("recipient_id")
+  status      ReminderEmailStatus  @default(PENDING)
+  attempts    Int                 @default(0)
+  claimedAt   DateTime?           @map("claimed_at")
+  sentAt      DateTime?           @map("sent_at")
+  lastError   String?             @map("last_error")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  @@unique([groupKey, recipientId])
+  @@map("reminder_email_deliveries")
 }

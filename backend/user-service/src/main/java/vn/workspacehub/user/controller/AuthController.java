@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.*;
 import vn.workspacehub.user.service.AuthService;
+import vn.workspacehub.user.common.AuthPolicy;
 
 import java.util.Map;
 
@@ -69,7 +70,7 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         passwordResetService.requestForgotPassword(request);
-        return ResponseEntity.ok(ApiResponse.success(null, "An OTP has been sent to your email"));
+        return ResponseEntity.ok(ApiResponse.success(null, AuthPolicy.FORGOT_ACCEPTED));
     }
 
     @PostMapping("/verify-reset-otp")

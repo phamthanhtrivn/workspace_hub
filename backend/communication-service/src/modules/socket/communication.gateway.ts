@@ -9,6 +9,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { installSocketSessions } from '../../common/auth/socket-session';
 import { ChatSocketHandler } from './chat/chat-socket.handler';
 import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
 import { MeetingEvent } from './meeting/meeting-socket.events';
@@ -16,13 +17,15 @@ import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
 import { verifyRecordingUserToken } from '../../common/auth/recording-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  allowSocketRequest,
+  socketCorsOptions,
+} from '../../common/auth/socket-origin';
 
 @WebSocketGateway({
   path: '/communication.io',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: socketCorsOptions,
+  allowRequest: allowSocketRequest,
 })
 export class CommunicationGateway
   extends ChatSocketHandler
@@ -41,6 +44,7 @@ export class CommunicationGateway
   }
 
   afterInit(server: Server): void {
+    installSocketSessions(server);
     this.server = server;
     this.socketEventEmitter.bindServer(server);
   }
@@ -55,15 +59,7 @@ export class CommunicationGateway
     }
 
     try {
-      const payloadBase64 = String(token).split('.')[1];
-      const decoded = JSON.parse(
-        Buffer.from(payloadBase64, 'base64').toString(),
-      ) as Record<string, unknown>;
-      const userId =
-        process.env.JWT_SECRET_KEY ||
-        process.env.MEETING_RECORDING_ENABLED === 'true'
-          ? verifyRecordingUserToken(String(token))
-          : decoded.sub || decoded.id;
+      const userId = verifyRecordingUserToken(token);
 
       if (typeof userId !== 'string' || !userId) {
         client.disconnect();

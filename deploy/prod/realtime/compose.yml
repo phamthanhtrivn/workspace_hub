@@ -16,7 +16,24 @@ services:
       EGRESS_CONFIG_FILE: /etc/livekit/egress.yaml
     volumes:
       - ./egress.runtime.yaml:/etc/livekit/egress.yaml:ro
+      - egress_backup:/backup
     cap_add:
       - SYS_ADMIN
     shm_size: 1gb
     restart: unless-stopped
+  caddy:
+    image: caddy:2.10.0-alpine@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c
+    network_mode: host
+    environment:
+      LIVEKIT_DOMAIN: ${LIVEKIT_DOMAIN:?LIVEKIT_DOMAIN is required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - livekit
+    restart: unless-stopped
+volumes:
+  egress_backup: {}
+  caddy_data: {}
+  caddy_config: {}

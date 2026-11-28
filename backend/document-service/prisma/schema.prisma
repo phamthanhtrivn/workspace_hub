@@ -33,6 +33,57 @@ model UserStorageQuota {
   @@map("user_storage_quotas")
 }
 
+model StorageCleanupJob {
+  id            String   @id @default(uuid()) @db.Uuid
+  s3Key         String   @unique @map("s3_key")
+  attemptCount  Int      @default(0) @map("attempt_count")
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  @@index([nextAttemptAt])
+  @@map("storage_cleanup_jobs")
+}
+
+// Independent bytes owned by a destination module. Provenance is deliberately
+// not a foreign key: removing the original document must not remove a copy.
+model ModuleFileSnapshot {
+  id               String   @id @default(uuid()) @db.Uuid
+  actorId          String   @map("actor_id") @db.Uuid
+  scope            String
+  notebookId       String?  @map("notebook_id") @db.Uuid
+  operationKey     String   @unique @map("operation_key")
+  sourceDocumentId String?  @map("source_document_id") @db.Uuid
+  sourceVersionId  String?  @map("source_version_id") @db.Uuid
+  revision         String
+  name             String
+  mimeType         String   @map("mime_type")
+  sizeBytes        BigInt   @map("size_bytes")
+  s3Key            String   @map("s3_key")
+  status           String   @default("PREPARING")
+  leaseToken       String?  @map("lease_token") @db.Uuid
+  leaseUntil       DateTime? @map("lease_until")
+  expiresAt        DateTime? @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([actorId, notebookId])
+  @@index([expiresAt])
+  @@map("module_file_snapshots")
+}
+
+model StorageUploadIntent {
+  s3Key            String   @id @map("s3_key")
+  actorId          String   @map("actor_id") @db.Uuid
+  publicDocumentId String?  @map("public_document_id") @db.Uuid
+  sizeBytes        BigInt   @map("size_bytes")
+  mimeType         String   @map("mime_type")
+  expiresAt        DateTime @map("expires_at")
+  target           String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("storage_upload_intents")
+}
+
 model DocumentItem {
   id             String          @id @default(uuid()) @db.Uuid
   ownerUserId    String          @map("owner_user_id") @db.Uuid
@@ -44,9 +95,12 @@ model DocumentItem {
   s3Key          String?         @map("s3_key") // Point to the active version's S3 object
   mimeType       String?         @map("mime_type")
   sizeBytes      BigInt          @default(0) @map("size_bytes")
+  accessSyncRevision BigInt @default(0) @map("access_sync_revision")
+  importKey      String?         @unique @map("import_key")
   
   // Trash details
   isArchived     Boolean         @default(false) @map("is_archived") // Soft delete
+  isStarred      Boolean         @default(false) @map("is_starred") // Personal document region, shared by the entire tree
   archivedAt     DateTime?       @map("archived_at")
   
   // Link Sharing
@@ -123,4 +177,37 @@ model UserProfileSnapshot {
   syncedAt  DateTime @default(now()) @updatedAt @map("synced_at")
 
   @@map("user_profile_snapshots")
+}
+
+model UserEventCursor {
+  topic String
+  userId String @map("user_id") @db.Uuid
+  revision BigInt
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz
+  @@id([topic, userId])
+  @@map("user_event_cursors")
+}
+
+model RejectedKafkaEvent {
+  id String @id @default(uuid()) @db.Uuid
+  topic String
+  partition Int
+  offset String
+  payloadDigest String @map("payload_digest")
+  reason String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
+}
+
+model DocumentNotificationOutbox {
+  id String @id @db.Uuid
+  payload Json
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+  lockedAt DateTime? @map("locked_at") @db.Timestamptz
+  leaseToken String? @map("lease_token") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@index([nextAttemptAt], map: "document_notification_outbox_ready_idx")
+  @@map("document_notification_outbox")
 }

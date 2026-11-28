@@ -4,6 +4,7 @@ import {
   deleteTaskDependency,
   getProjectDependencies,
 } from "../api/dependency.api";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export const dependencyKeys = {
   project: (projectId: string) =>
@@ -31,10 +32,7 @@ export function useCreateTaskDependency(projectId: string) {
       successorTaskId: string;
       predecessorTaskId: string;
     }) => createTaskDependency(successorTaskId, predecessorTaskId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: dependencyKeys.project(projectId),
-      }),
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'DEPENDENCY', taskIds: [variables.successorTaskId, variables.predecessorTaskId] }),
   });
 }
 
@@ -48,9 +46,6 @@ export function useDeleteTaskDependency(projectId: string) {
       successorTaskId: string;
       predecessorTaskId: string;
     }) => deleteTaskDependency(successorTaskId, predecessorTaskId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: dependencyKeys.project(projectId),
-      }),
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'DEPENDENCY', taskIds: [variables.successorTaskId, variables.predecessorTaskId] }),
   });
 }

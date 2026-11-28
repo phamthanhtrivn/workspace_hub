@@ -1,7 +1,11 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { ProjectAccessStatus } from "../components/project-access-status";
+import { useProjectAccessState } from "../hooks/use-project-access-state";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
@@ -56,9 +60,15 @@ import { createProjectSettingsActions } from "@/features/project/project-setting
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
 import { projectSocketService } from "../api/project-socket.service";
+import { useLinkedProjectTask } from "../hooks/use-linked-project-task";
+import { useProjectLocation } from "../hooks/use-project-location";
+import { LEGACY_PROJECT_SETTINGS_VIEW, PROJECT_DETAIL_QUERY } from "../utils/project-navigation";
+import { QueryFeedback } from "@/components/common/query-feedback";
 
 export default function ProjectDetailScreen() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const requestedTaskId = searchParams.get(PROJECT_DETAIL_QUERY.taskId) || searchParams.get(PROJECT_DETAIL_QUERY.legacyTask);
   const router = useRouter();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
@@ -73,6 +83,7 @@ export default function ProjectDetailScreen() {
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
   const archiveProjectMutation = useArchiveProject(projectId);
+  const accessState = useProjectAccessState(projectId);
   const projectSpaceStatusQuery = useProjectSpaceStatus(projectId);
   const openProjectSpaceMutation = useOpenProjectSpace(projectId);
   const openTaskChannelMutation = useOpenTaskChannel(projectId);
@@ -87,8 +98,8 @@ export default function ProjectDetailScreen() {
         setChatTask(null);
         router.push(`/chat?spaceId=${res.spaceId}&channelId=${res.channelId}`);
       }
-    } catch {
-      toast.error("Failed to open task channel in space chat");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task channel in space chat"));
     }
   };
 
@@ -109,8 +120,8 @@ export default function ProjectDetailScreen() {
           `/chat?spaceId=${res.spaceId}&channelId=${res.channelId}&threadId=${res.threadId}`,
         );
       }
-    } catch {
-      toast.error("Failed to open task discussion thread");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task discussion thread"));
     }
   };
   const { data: labels = [] } = useProjectLabels(projectId);
@@ -118,6 +129,7 @@ export default function ProjectDetailScreen() {
   useEffect(() => {
     if (!projectId) return;
     projectSocketService.joinProject(projectId);
+
     return () => {
       projectSocketService.leaveProject(projectId);
     };
@@ -137,37 +149,57 @@ export default function ProjectDetailScreen() {
   );
 
   // States
-  const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
+  const { view: viewMode, changeView } = useProjectLocation();
   const [selectedTaskSnapshot, setSelectedTask] = useState<Task | null>(null);
-  const selectedTask = selectedTaskSnapshot
-    ? (serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ??
-      selectedTaskSnapshot)
-    : null;
+  const [drawerView, setDrawerView] = useState(viewMode);
+  if (drawerView !== viewMode) {
+    setDrawerView(viewMode);
+    setSelectedTask(null);
+  }
+  const selectedTaskDetails = useLinkedProjectTask(projectId, selectedTaskSnapshot?.id ?? null, serverTasks, Boolean(project));
+  const listedSelectedTask = selectedTaskDetails.task;
+  const selectedTask = selectedTaskSnapshot && listedSelectedTask && Date.parse(listedSelectedTask.updatedAt) >= Date.parse(selectedTaskSnapshot.updatedAt)
+    ? listedSelectedTask : selectedTaskSnapshot;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
-  const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get(PROJECT_DETAIL_QUERY.view) === LEGACY_PROJECT_SETTINGS_VIEW);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const hasOpenedUrlTaskRef = useRef(false);
+  const [openedUrlTaskId, setOpenedUrlTaskId] = useState<string | null>(null);
+  const linkedTask = useLinkedProjectTask(projectId, requestedTaskId, serverTasks, Boolean(project) && !tasksLoading);
 
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    if (query.get("view") !== "settings") return;
-    const timer = window.setTimeout(() => setShowProjectSettings(true), 0);
-    return () => window.clearTimeout(timer);
-  }, []);
 
-  useEffect(() => {
-    if (hasOpenedUrlTaskRef.current || serverTasks.length === 0) return;
-    const query = new URLSearchParams(window.location.search);
-    const targetTaskId = query.get("taskId") || query.get("task");
-    if (!targetTaskId) return;
 
-    const foundTask = serverTasks.find((task) => task.id === targetTaskId);
+  if (requestedTaskId && openedUrlTaskId !== requestedTaskId) {
+    const foundTask = linkedTask.task;
     if (foundTask) {
-      hasOpenedUrlTaskRef.current = true;
+      setOpenedUrlTaskId(requestedTaskId);
       setSelectedTask(foundTask);
+      setShowProjectSettings(false);
     }
-  }, [serverTasks]);
+  }
+  if (!requestedTaskId && openedUrlTaskId) {
+    setOpenedUrlTaskId(null);
+    if (selectedTaskSnapshot?.id === openedUrlTaskId) setSelectedTask(null);
+  }
+
+  const closeTaskDrawer = () => {
+    setSelectedTask(null);
+    if (!requestedTaskId) return;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete(PROJECT_DETAIL_QUERY.taskId);
+    nextParams.delete(PROJECT_DETAIL_QUERY.legacyTask);
+    const query = nextParams.toString();
+    router.replace(`/projects/${projectId}${query ? `?${query}` : ""}`, { scroll: false });
+  };
+
+  const selectTask = (task: Task) => {
+    setSelectedTask(task);
+    if (!requestedTaskId || requestedTaskId === task.id) return;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete(PROJECT_DETAIL_QUERY.legacyTask);
+    nextParams.set(PROJECT_DETAIL_QUERY.taskId, task.id);
+    router.replace(`/projects/${projectId}?${nextParams.toString()}`, { scroll: false });
+  };
 
   const {
     isOpen: showTaskForm,
@@ -189,7 +221,10 @@ export default function ProjectDetailScreen() {
   } = useProjectSidebarState();
 
   const handleSidebarViewChange = (view: ProjectViewMode) => {
-    setViewMode(view);
+    if (view !== viewMode) {
+      setSelectedTask(null);
+      changeView(view);
+    }
     closeMobileSidebar();
   };
 
@@ -208,12 +243,15 @@ export default function ProjectDetailScreen() {
     if (!target) return false;
     if (isTerminalTaskStatus(target.status)) {
       toast.info("This task is completed or cancelled and cannot be modified.");
+
       return true;
     }
     if (!permissions.canEditTask(target)) {
       toast.info("You do not have permission to edit this task.");
+
       return true;
     }
+
     return false;
   }
 
@@ -221,6 +259,7 @@ export default function ProjectDetailScreen() {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target || !isTerminalTaskStatus(target.status)) return false;
     toast.info("This task is completed or cancelled and cannot be modified.");
+
     return true;
   }
 
@@ -250,7 +289,6 @@ export default function ProjectDetailScreen() {
     searchQuery,
     setSearchQuery,
     assigneeIds: activeAssigneeFilters,
-    setAssigneeIds: setActiveAssigneeFilters,
     status: statusFilter,
     setStatus: setStatusFilter,
     priority: priorityFilter,
@@ -337,13 +375,16 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to create task",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to create task"),
       );
     }
   };
 
   const handleOpenProjectChat = async () => {
+    if (["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")) { toast.info("Chat access is being prepared. Please try again shortly.");
+
+ return; }
     try {
       const projectSpace = await openProjectSpaceMutation.mutateAsync();
       const searchParams = new URLSearchParams({
@@ -354,8 +395,8 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to open project chat",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to open project chat"),
       );
     }
   };
@@ -374,7 +415,7 @@ export default function ProjectDetailScreen() {
     board: "Kanban Board",
     list: "Backlog",
     calendar: "Schedule",
-    gantt: "Grantt Chart",
+    gantt: "Gantt chart",
     documents: "Documents",
     members: "Members",
   };
@@ -387,7 +428,7 @@ export default function ProjectDetailScreen() {
     });
 
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
+    <div className="flex h-full min-h-0 min-w-0 w-full flex-1 overflow-hidden">
       <ProjectDetailSidebar
         project={project}
         members={projectWithMembers.members}
@@ -407,10 +448,12 @@ export default function ProjectDetailScreen() {
 
       {/* ── Main Content Area ── */}
       <main
-        className={`flex min-w-0 flex-1 flex-col bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6 ${
-          viewMode === "documents" ? "overflow-hidden" : "overflow-y-auto"
-        }`}
+        className="@container/project-detail flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-card px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
       >
+        <ProjectAccessStatus projectId={projectId} />
+        {requestedTaskId && <QueryFeedback label="the requested task" pending={linkedTask.isFetching}
+          error={linkedTask.isError && !linkedTask.task} retrying={linkedTask.isFetching}
+          onRetry={() => linkedTask.refetch()} />}
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
@@ -427,20 +470,18 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
-          canOpenProjectChat={canOpenProjectChat}
+          canOpenProjectChat={canOpenProjectChat && !["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")}
           isOpeningProjectChat={openProjectSpaceMutation.isPending}
-          onViewChange={setViewMode}
+          onViewChange={handleSidebarViewChange}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onPriorityChange={setPriorityFilter}
-          onAssigneeChange={(value) => {
-            setQuickAssigneeFilter(value);
-            setActiveAssigneeFilters([]);
-          }}
+          onAssigneeChange={setQuickAssigneeFilter}
           onToggleAssignee={toggleAssigneeFilter}
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
           onToggleMembers={() => setShowMembers((visible) => !visible)}
+          navigationOpen={isMobileSidebarOpen}
           onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}
@@ -452,6 +493,7 @@ export default function ProjectDetailScreen() {
           projectId={projectId}
           viewMode={viewMode}
           tasks={filteredTasks}
+          allTasks={tasks}
           members={projectWithMembers.members}
           dependencies={dependencies}
           isLoading={visibleTasksLoading}
@@ -459,12 +501,12 @@ export default function ProjectDetailScreen() {
           showMembers={showMembers}
           permissions={permissions}
           openTaskForm={openCreateTask}
-          onTaskSelect={setSelectedTask}
+          onTaskSelect={selectTask}
           onChatOpen={setChatTask}
           onTaskMove={handleTaskMove}
           onTaskPriorityChange={handleTaskPriorityChange}
           onCreateTaskInline={handleCreateTaskInline}
-          onViewChange={setViewMode}
+          onViewChange={handleSidebarViewChange}
           onTaskReschedule={handleTaskReschedule}
         />
       </main>
@@ -477,9 +519,9 @@ export default function ProjectDetailScreen() {
           tasks={tasks}
           members={projectWithMembers.members}
           project={project}
-          onClose={() => setSelectedTask(null)}
+          onClose={closeTaskDrawer}
           onOpenChat={(task) => setChatTask(task)}
-          onTaskClick={(task) => setSelectedTask(task)}
+          onTaskClick={selectTask}
           onUpdateTask={handleUpdateTaskDirect}
           onCreateChecklist={handleCreateChecklist}
           onUpdateChecklist={handleUpdateChecklist}
@@ -492,11 +534,12 @@ export default function ProjectDetailScreen() {
           canEditTask={permissions.canEditTask(selectedTask)}
           canContributeTask={permissions.canContributeTask(selectedTask)}
           canComment={Boolean(permissions.role)}
+          canEditDocuments={permissions.canEditDocuments}
           onCreateSubtask={
             permissions.canCreateTask
               ? (task) => {
                   if (rejectCompletedTaskChange(task.id)) return;
-                  setSelectedTask(null);
+                  closeTaskDrawer();
                   openCreateTask(TaskStatus.TODO, undefined, false, task.id);
                 }
               : undefined
@@ -576,6 +619,7 @@ export default function ProjectDetailScreen() {
       <TaskFormDialog
         key={`${showTaskForm}-new-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
         open={showTaskForm}
+        projectId={projectId}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}

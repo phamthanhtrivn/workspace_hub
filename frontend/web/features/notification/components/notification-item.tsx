@@ -4,7 +4,11 @@ import React from "react";
 import { Notification } from "../types/notification.types";
 import { getNotificationRenderer } from "./notification-registry";
 import { DefaultListItemRenderer } from "./renderers/default-renderer";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { IconButton } from "@/components/ui/icon-button";
+import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
+
 
 interface NotificationItemProps {
   notification: Notification;
@@ -26,15 +30,15 @@ const NotificationItem = React.memo(function NotificationItem({
   const ListItem = renderer ? renderer.listItemRenderer : DefaultListItemRenderer;
 
   return (
-    <div className="group relative [&>*:first-child]:pr-12">
+    <div role="listitem" className={cn("group relative min-w-0 border-b border-border last:border-0", onDelete && "[&>button:first-child]:pr-14")}>
       <ListItem
         notification={notification}
         onClick={() => onClick(notification)}
       />
       {onDelete ? (
-        <button
-          type="button"
-          aria-label={deleteLabel}
+        <IconButton aria-busy={isDeleting || undefined}
+          label={deleteLabel}
+          showTooltip={false}
           title={deleteLabel}
           disabled={isDeleting}
           onClick={(event) => {
@@ -42,14 +46,14 @@ const NotificationItem = React.memo(function NotificationItem({
             event.stopPropagation();
             onDelete(notification.id);
           }}
-          className="absolute right-3 top-3 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-transparent bg-white/90 text-slate-400 shadow-sm ring-1 ring-slate-200/70 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="absolute right-1 top-1 size-11 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content"
         >
           {isDeleting ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Spinner size={14} />
           ) : (
             <Trash2 className="h-3.5 w-3.5" />
           )}
-        </button>
+        </IconButton>
       ) : null}
     </div>
   );

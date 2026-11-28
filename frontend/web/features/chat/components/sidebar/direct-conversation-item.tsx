@@ -1,9 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { useId as useControlledPopupId } from "react";
+
+import { IconButton } from "@/components/ui/icon-button";
+import React, { useMemo, useRef, useState } from "react";
+
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { DirectConversationResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 type DirectConversationListItem = DirectConversationResponse & {
   unreadCount?: number;
@@ -25,6 +32,7 @@ interface DirectConversationItemProps {
     conversation: DirectConversationListItem,
     muted: boolean,
   ) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
 const DirectConversationItem = React.memo(function DirectConversationItem({
@@ -35,7 +43,9 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   onClick,
   onTogglePin,
   onToggleMute,
+  onViewProfile,
 }: DirectConversationItemProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -59,83 +69,82 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   const isPinned = currentMember?.pinned || false;
   const unreadCount = conversation.unreadCount ?? 0;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
-
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-3 py-2 mx-1 my-0.5 rounded-xl cursor-pointer transition-all duration-200 select-none relative group",
+        "group relative mx-1 my-0.5 flex cursor-pointer select-none items-center justify-between rounded-control px-2.5 py-2 transition-all duration-150",
         isActive
-          ? "bg-blue-50/75 border-l-4 border-blue-600 text-blue-900 font-bold pl-2 shadow-[0_2px_8px_-3px_rgba(37,99,235,0.12)]"
-          : "hover:bg-slate-100 text-slate-600 hover:text-slate-900",
+          ? "bg-primary-soft font-semibold text-primary-soft-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
       )}
-      onClick={() => onClick(conversation)}
     >
-      <div className="flex items-center min-w-0 gap-2.5 flex-1">
+      {isActive && (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-primary"
+        />
+      )}
+      <Button
+        variant="unstyled"
+        type="button"
+        aria-current={isActive ? "true" : undefined}
+        onClick={() => onClick(conversation)}
+        className="flex min-w-0 flex-1 items-center gap-2.5 self-stretch text-left"
+      >
         <div className="shrink-0">
-          <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm transition-transform duration-200 group-hover:scale-105">
+          <div className="flex size-7 items-center justify-center overflow-hidden rounded-full border border-border bg-info-soft ring-2 ring-background transition-transform duration-150">
             {isDirectProfileLoading ? (
-              <span className="h-full w-full animate-pulse rounded-full bg-slate-200" />
-            ) : avatarUrl ? (
-              <Image
+              <span className="h-full w-full animate-pulse rounded-full bg-accent" />
+            ) : (
+              <UserAvatar
                 src={avatarUrl}
                 alt="Avatar"
                 width={28}
                 height={28}
-                className="rounded-full animate-fade-in object-cover"
+                className="animate-fade-in rounded-full object-cover"
               />
-            ) : (
-              <User size={13} className="text-slate-400" />
             )}
           </div>
         </div>
 
         <span
           className={cn(
-            "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
+            "truncate text-[13px] tracking-tight transition-colors duration-150",
             isActive
-              ? "text-blue-900"
-              : "text-slate-700 group-hover:text-slate-900",
-            unreadCount > 0 && "font-black",
+              ? "font-semibold text-primary-soft-foreground"
+              : "font-medium text-foreground",
+            unreadCount > 0 && "font-semibold",
           )}
         >
           {isDirectProfileLoading ? (
-            <span className="block h-3 w-28 animate-pulse rounded bg-slate-200" />
+            <span className="block h-3 w-28 animate-pulse rounded bg-accent" />
           ) : (
             name
           )}
         </span>
 
         {isMuted && (
-          <BellOff size={11} className="text-slate-400/80 shrink-0 ml-1" />
+          <BellOff size={11} className="ml-1 shrink-0 text-muted-foreground" />
         )}
-      </div>
+      </Button>
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
-          <Pin size={11} className="shrink-0 fill-blue-600 text-blue-600" />
+          <Pin
+            size={11}
+            className="shrink-0 fill-info-content text-info-content"
+          />
         )}
         {conversation.hasMention && (
-          <span className="text-blue-600 font-bold text-xs mr-1 animate-bounce">
+          <span className="text-info-content font-semibold text-xs mr-1">
             @
           </span>
         )}
         {unreadCount > 0 ? (
           <div
             className={cn(
-              "text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center shadow-sm",
-              isMuted ? "bg-slate-400" : "bg-red-500",
+              "text-primary-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center",
+              isMuted ? "bg-muted text-muted-foreground" : "bg-destructive",
             )}
           >
             {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
@@ -143,49 +152,77 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <button
+          <IconButton
+            aria-expanded={isMenuOpen}
+            aria-controls={`${controlledPopupId}-isMenuOpen`}
+            aria-haspopup="menu"
+            label="Conversation options"
+            showTooltip={false}
+            size="icon-sm"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
               setIsMenuOpen((value) => !value);
             }}
-            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+            className="rounded-control p-1 text-muted-foreground transition hover:bg-accent hover:text-foreground cursor-pointer"
             title="Conversation options"
           >
             <MoreVertical size={14} />
-          </button>
+          </IconButton>
 
           {isMenuOpen && (
-            <div
-              className="absolute right-0 top-full z-30 mt-1 min-w-[150px] rounded-xl border border-slate-200 bg-white py-1 text-xs text-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-100"
+            <AnchoredMenu
+              id={`${controlledPopupId}-isMenuOpen`}
+              onClose={() => setIsMenuOpen(false)}
+              side="bottom"
+              align="end"
+              aria-label="Conversation actions"
+              className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >
-              <button
-                type="button"
+              <DropdownMenuItem
+                closeOnClick={false}
+
                 onClick={() => {
                   onTogglePin?.(conversation, !isPinned);
                   setIsMenuOpen(false);
                 }}
-                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-background"
               >
                 <Pin
                   size={14}
-                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  className={
+                    isPinned ? "fill-info-content text-info-content" : ""
+                  }
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
-              </button>
-              <button
-                type="button"
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                closeOnClick={false}
+
                 onClick={() => {
                   onToggleMute?.(conversation, !isMuted);
                   setIsMenuOpen(false);
                 }}
-                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-background"
               >
                 {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
                 <span>{isMuted ? "Unmute" : "Mute"}</span>
-              </button>
-            </div>
+              </DropdownMenuItem>
+              {otherMember?.userId && onViewProfile && (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={() => {
+                    onViewProfile(otherMember.userId);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-background"
+                >
+                  <User size={14} />
+                  <span>View profile</span>
+                </DropdownMenuItem>
+              )}
+            </AnchoredMenu>
           )}
         </div>
       </div>

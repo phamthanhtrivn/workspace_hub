@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
+import { isTaskOverdue } from "../utils/task-dates";
+import { zonedDayBounds } from "@/lib/timezone";
 import {
   TaskStatus,
   isTerminalTaskStatus,
@@ -29,11 +32,12 @@ export function useProjectSummaryMetrics(
   members: ProjectMember[],
   options?: { isSoftware?: boolean },
 ) {
+  const timeZone = useAccountTimezone();
   const [now] = useState(() => Date.now());
   const isSoftware = options?.isSoftware ?? false;
 
   return useMemo(() => {
-    const activeTasks = tasks.filter((task) => !task.archived);
+    const activeTasks = tasks.filter((task) => !task.deletedAt);
     const parentIds = new Set(
       activeTasks.flatMap((task) => task.parentTaskId ? [task.parentTaskId] : []),
     );
@@ -49,13 +53,13 @@ export function useProjectSummaryMetrics(
       (task) =>
         task.dueDate &&
         !isTerminalTaskStatus(task.status) &&
-        new Date(task.dueDate).getTime() < now,
+        isTaskOverdue(task, new Date(now), timeZone),
     );
 
     const dueSoon = workItems
       .filter((task) => {
         if (!task.dueDate || isTerminalTaskStatus(task.status)) return false;
-        const due = new Date(task.dueDate).getTime();
+        const due = task.allDay ? Date.parse(zonedDayBounds(task.dueDate.slice(0, 10), timeZone).endAt) - 1 : Date.parse(task.dueDate);
         return due >= now && due <= now + 7 * DAY;
       })
       .sort(
@@ -165,5 +169,5 @@ export function useProjectSummaryMetrics(
       updatedRecently,
       createdRecently,
     };
-  }, [tasks, members, isSoftware, now]);
+  }, [tasks, members, isSoftware, now, timeZone]);
 }

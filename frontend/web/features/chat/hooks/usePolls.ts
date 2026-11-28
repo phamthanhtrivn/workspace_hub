@@ -32,16 +32,18 @@ export function usePolls(conversationId: string | undefined, q?: string) {
 
   const queryKey = [...chatKeys.polls(conversationId), q || ""];
 
-  const { data: polls = [], isLoading: loading } = useQuery<PollResponse[]>({
+  const query = useQuery<PollResponse[]>({
     queryKey,
     queryFn: async () => {
       const res = await pollApi.getPollsInConversation(conversationId!, q);
-      return res.success ? res.data : [];
+      if (!res.success) throw new Error("Could not load polls");
+      return res.data;
     },
     enabled: !!conversationId,
     staleTime: CHAT_DEFAULT_STALE_TIME_MS,
   });
 
+  const { data: polls = [], isLoading: loading } = query;
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket || !conversationId) return;
@@ -66,5 +68,5 @@ export function usePolls(conversationId: string | undefined, q?: string) {
     };
   }, [conversationId, queryClient]);
 
-  return { polls, loading };
+  return { polls, loading, isError: query.isError, retrying: query.isFetching, retry: query.refetch };
 }

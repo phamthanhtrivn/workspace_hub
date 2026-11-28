@@ -1,21 +1,9 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { createRootMetadata } from "@/lib/seo";
+import "@fontsource-variable/inter";
 import "./globals.css";
-import { Toaster } from "sonner";
-import StoreProvider from "@/store/store-provider";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-import QueryProvider from "@/store/query-provider";
-import NotificationManagers from "@/features/notification/components/notification-managers";
+import { AppProviders } from "@/components/app-providers";
 
-const inter = Inter({
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "WorkspaceHub",
-  description:
-    "Smart platform for tasks management, files management, learning, scheduling, collaboration and productivity with AI assistance.",
-};
+export const metadata = createRootMetadata();
 
 export default function RootLayout({
   children,
@@ -23,21 +11,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-screen">
-        <GoogleOAuthProvider
-          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        <AppProviders
+          googleClientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}
         >
-          <QueryProvider>
-            <StoreProvider>
-              {children}
-              <NotificationManagers />
-            </StoreProvider>
-          </QueryProvider>
-        </GoogleOAuthProvider>
-        <Toaster richColors position="top-right" />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );
 }
-

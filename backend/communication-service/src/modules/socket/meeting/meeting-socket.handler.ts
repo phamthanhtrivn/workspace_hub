@@ -33,6 +33,7 @@ export class MeetingSocketHandler {
       this.getMeetingRoom(meetingId),
       event,
       payload,
+      meetingId,
     );
   }
 

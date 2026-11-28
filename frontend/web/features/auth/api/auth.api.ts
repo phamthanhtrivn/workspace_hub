@@ -1,4 +1,8 @@
+import { store } from "@/store/store";
+import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 import { api } from "@/lib/axios";
+import { withSessionLock } from "./session-lock";
+import { AUTH_API_ROUTES, SESSION_REQUEST_TIMEOUT_MS } from "../types/auth.constants";
 import {
   ApiResponse,
   ForgotPasswordRequest,
@@ -26,25 +30,39 @@ export const registerApi = async (
 export const loginApi = async (
   payload: LoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
-  const response = await api.post("/api/auth/login", payload);
-  return response.data;
+  return withSessionLock(async () => {
+    const response = await api.post(AUTH_API_ROUTES.LOGIN, payload);
+    return response.data;
+  });
 };
 
 export const socialLoginApi = async (
   payload: SocialLoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
-  const response = await api.post("/api/auth/social", payload);
-  return response.data;
+  return withSessionLock(async () => {
+    const response = await api.post("/api/auth/social", payload);
+    return response.data;
+  });
 };
 
-export const refreshApi = async (): Promise<ApiResponse<RefreshResponse>> => {
-  const response = await api.post("/api/auth/refresh");
-  return response.data;
+let pendingRefresh: Promise<ApiResponse<RefreshResponse>> | null = null;
+
+export const refreshApi = (): Promise<ApiResponse<RefreshResponse>> => {
+  if (!pendingRefresh) {
+    pendingRefresh = withSessionLock(async () => {
+      const response = await api.post(AUTH_API_ROUTES.REFRESH, undefined, { timeout: SESSION_REQUEST_TIMEOUT_MS });
+      return response.data as ApiResponse<RefreshResponse>;
+    }).finally(() => { pendingRefresh = null; });
+  }
+  return pendingRefresh;
 };
 
 export const logoutApi = async (): Promise<ApiResponse<LogoutResponse>> => {
-  const response = await api.post("/api/auth/logout");
-  return response.data;
+  return withSessionLock(async () => {
+    const token = store.getState().auth.accessToken;
+    const response = await api.post("/api/auth/logout", undefined, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
+    return response.data;
+  });
 };
 
 export const sendResetOtpApi = async (
@@ -66,4 +84,11 @@ export const resetPasswordApi = async (
 ): Promise<ApiResponse<ResetPasswordResponse>> => {
   const response = await api.post("/api/auth/reset-password", payload);
   return response.data;
+};
+
+export const sendEmailVerificationApi = async (email: string): Promise<ApiResponse<null>> => {
+  const response = await api.post(EMAIL_VERIFICATION.send, { email }); return response.data;
+};
+export const confirmEmailApi = async (payload: { email: string; otp: string }): Promise<ApiResponse<null>> => {
+  const response = await api.post(EMAIL_VERIFICATION.confirm, payload); return response.data;
 };
